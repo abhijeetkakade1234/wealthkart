@@ -11,6 +11,10 @@
     "gas": "node scripts/forge.mjs snapshot",
     "fmt": "node scripts/forge.mjs fmt",
     "fmt:check": "node scripts/forge.mjs fmt --check",
-    "lint": "node scripts/forge.mjs fmt --check"
+    "lint": "solhint --max-warnings 0 \"src/**/*.sol\" \"script/**/*.sol\" && node scripts/forge.mjs fmt --check",
+    "lint:sol": "solhint --max-warnings 0 \"src/**/*.sol\" \"script/**/*.sol\""
+  },
+  "devDependencies": {
+    "solhint": "5.2.0"
   }
 }

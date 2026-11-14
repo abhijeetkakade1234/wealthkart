@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+// Deploy logs are the point of a script. solhint-disable-next-line is too noisy here.
+// solhint-disable no-console
+
 import {Script, console2} from "forge-std/Script.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
 
