@@ -17,7 +17,7 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 ## 2. SEO checklist (per public page)
 
 - `metadata`: unique `title` (≤ 60 chars), `description` (≤ 155), `alternates.canonical`, `openGraph`, `twitter` (`summary_large_image`)
-- Static OG image per page (`opengraph-image.tsx`, generated at build)
+- Static OG image per page (`/og/<slug>.png`, generated at build; ADR 0027)
 - One `h1`, logical `h2`/`h3`, descriptive link text, `alt` on images
 - `sitemap.ts` → `/sitemap.xml` (public routes only); `robots.ts` → `/robots.txt`
 - `manifest.webmanifest` (PWA) with name, icons, theme colour
@@ -33,7 +33,7 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 
 ## 4. llms.txt
 
-Generated at build from the same MDX content as the pages.
+Generated at build from the same content as the pages (`apps/web/src/content/pages.ts`, ADR 0027).
 
 `/llms.txt`:
 

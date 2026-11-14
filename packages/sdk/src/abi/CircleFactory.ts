@@ -95,6 +95,11 @@ export const circleFactoryAbi = [
         internalType: "struct CircleVault.Config",
         components: [
           {
+            name: "name",
+            type: "string",
+            internalType: "string",
+          },
+          {
             name: "installment",
             type: "uint128",
             internalType: "uint128",

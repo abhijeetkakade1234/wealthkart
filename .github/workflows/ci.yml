@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, dev]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -23,8 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      # .npmrc points the store at D: for the Windows dev machine; override on CI
-      - run: pnpm install --frozen-lockfile --config.store-dir=$HOME/.pnpm-store --config.cache-dir=$HOME/.pnpm-cache
+      - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm turbo run lint typecheck test build --filter=!@wealthkart/contracts
 
@@ -37,10 +36,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          # forge-std + OpenZeppelin only; OZ's own nested test libs aren't needed
+          submodules: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @wealthkart/contracts
+      - run: pnpm lint:sol
       - uses: foundry-rs/foundry-toolchain@v1
       - run: forge fmt --check
       - run: forge build --sizes
       - run: forge test -vv
         env:
           FOUNDRY_PROFILE: ci
+
+  slither:
+    name: Slither (static analysis)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: crytic/slither-action@v0.4.1
+        with:
+          target: packages/contracts
+          slither-config: packages/contracts/slither.config.json
+          fail-on: medium

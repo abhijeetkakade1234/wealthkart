@@ -1,0 +1,6 @@
+# Default owner for everything
+* @abhijeetkakade1234
+
+# Money paths: contracts and deploy workflows need an explicit owner review
+/packages/contracts/ @abhijeetkakade1234
+/.github/workflows/ @abhijeetkakade1234

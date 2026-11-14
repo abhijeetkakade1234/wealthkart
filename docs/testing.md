@@ -18,6 +18,16 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 | Gas                | `forge snapshot` + CI diff                | No regressions; 500+ member circle still works                                      |
 | Static analysis    | Slither, Aderyn, Solhint                  | Known vulnerability patterns                                                        |
 
+### G1 history replay: status
+
+`packages/rules/test/g1-replay.test.ts` replays `test/fixtures/g1-ledger.json` (made by `packages/rules/scripts/extract-g1.py` from the anonymised xlsx) and reproduces the Nov-26 snapshot **to the rupee**: paid in, cash, UTI, loans out, current value, profit and interest earned (S-ACCT-08..13).
+
+Known gaps:
+
+- **Per-loan interest history can't be replayed.** The sheet's Debit cells net interest, repayment and loan sent into one number per member per month, and loan dates live only in free-text notes. The replay checks interest month-wide instead (S-LOAN-17, Oct-26) and in total (S-ACCT-12).
+- **Outstanding loans are hand-edited formulas** (Debit row 110 and Summary column E). The replay uses them as given and checks the two copies agree.
+- The Foundry side (scaled into AVAX against `CircleVault`) waits for loans in Phase 2.
+
 ## Invariants (must hold after every action)
 
 - I-1 `trackedCash + loansOutstanding + pendingExitsOwed == totalAssets` (internal accounting, never `address(this).balance`)
@@ -75,6 +85,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-LOAN-14 Tenor 1 → 2 → 3 rate steps; after tenor 3 the loan is due; vote → frozen shares repay
 - S-LOAN-15 Guarantor tries to exit while guaranteeing → blocked
 - S-LOAN-16 AVAX price crashes 60% mid-loan → nothing in the contract depends on price (sanity)
+- S-LOAN-17 G1 replay: a month with no loan movements → each member's Debit cell equals 1% of their start-of-month balance
 
 ### Exits (S-EXIT)
 
@@ -121,6 +132,12 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-ACCT-05 Medical loan "once per financial year" → FY is Apr–Mar in UTC (ADR 0014)
 - S-ACCT-06 Medical interest-free months overlap a tenor boundary → defined precedence
 - S-ACCT-07 Two loan requests compete for the same cash (rule 14) → first finalised wins, second re-checked
+- S-ACCT-08 G1 replay fixture covers Apr-18..Dec-26, 12 members, no missing months
+- S-ACCT-09 G1 installment bands (₹1,000 → ₹4,000) match the sheet's hard-coded row 110
+- S-ACCT-10 G1 replay: paid in ₹26,58,000 (₹2,21,500 each) at Nov-26
+- S-ACCT-11 G1 replay: current value ₹35,73,552 = cash ₹7,37,552 + UTI ₹5,01,000 + loans ₹23,35,000
+- S-ACCT-12 G1 replay: interest earned ₹8,65,375 = net Debit + outstanding; the sheet's two outstanding copies agree
+- S-ACCT-13 G1 replay: fund XIRR Apr-18..Nov-26 ≈ 9.06% a year (installments on the 10th, value on 30 Nov 26)
 
 ### Circle lifecycle (S-LIFE)
 
@@ -176,6 +193,11 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-WEB-16 Members list with 500+ members → pagination and search stay fast
 - S-WEB-17 `prefers-reduced-motion` → no animations, layout identical
 - S-WEB-11 Deadline shown in UTC and device local time, with a countdown; correct across midnight in IST and in UTC−5
+- S-WEB-18 Sitemap and robots.txt list public pages only; `/app/` and `/kit/` are disallowed for every crawler, AI crawlers allowed elsewhere
+- S-WEB-19 `/llms.txt`, `/llms-full.txt` and each page's `.md` twin carry the same questions and answers as the HTML page
+- S-WEB-20 Public copy never advertises returns; titles ≤ 60 chars, descriptions ≤ 155; JSON-LD can't break out of its script tag
+- S-WEB-21 PWA: manifest opens `/app/` standalone with 192/512 and maskable icons; the service worker never caches RPC, cross-origin or non-GET requests
+- S-WEB-25 Circle switcher lists your circles by name and keeps you on the same page (overview or pay) when switching
 
 ## Gates in CI
 

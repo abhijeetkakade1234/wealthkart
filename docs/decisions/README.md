@@ -36,3 +36,4 @@
 | [0024](0024-seo-geo-llms-txt.md)               | SEO, GEO and llms.txt on public pages only                                                    | Accepted                           |
 | [0025](0025-visual-identity-gallery.md)        | Visual identity "Gallery": calm premium light UI + folk-art illustration, generous whitespace | Accepted                           |
 | [0026](0026-interaction-states-feedback.md)    | Every action gives feedback; eight UI states; nothing crashes; plain-language messages        | Accepted                           |
+| [0027](0027-public-content-in-typescript.md)   | Public page content is typed TypeScript (not MDX); OG images as `.png` routes                 | Accepted                           |
