@@ -1,6 +1,6 @@
 # Status: where we are and what's left
 
-**Current phase: Phase 0, Foundation** (planning done; scaffolding nearly done; work lands on `abhijeet`)
+**Current phase: Phase 1, MVP on Fuji** (Phase 0 done except owner actions marked below; work lands on `abhijeet`)
 Last updated: 2026-11-14
 
 How to use this file:
@@ -26,12 +26,12 @@ How to use this file:
 - [x] ADR 0016: nominee wallet
 - [x] ADR 0015: no loops over members
 - [x] ADRs 0017–0022: payment holiday, loan cap vs stake, rule-change delay + rage-quit, immutable contracts, dissolve vote, rules as a parameter menu
-- [ ] Red-team PLAN.md before writing contracts
+- [x] Red-team PLAN.md → `docs/redteam/2026-11-plan-redteam.md` (32 findings; membership blockers fixed in ADRs 0028–0030)
 
 ### Repo and tooling
 
 - [x] Monorepo: pnpm workspaces + Turborepo (pnpm store on D:)
-- [ ] `README.md` in every folder
+- [x] `README.md` in every folder (exceptions in `docs/engineering.md` §1)
 - [x] TypeScript strict, ESLint, Prettier, Solhint, `forge fmt`
 - [x] Husky: pre-commit (lint-staged), commit-msg (commitlint), pre-push (typecheck + unit tests)
 - [x] GitHub Actions CI, first version: format, lint, typecheck, test, build, Foundry fmt/build/test + Solhint + Slither (coverage gate, E2E still to add)
@@ -48,7 +48,7 @@ How to use this file:
 - [x] `PeriodMath` + `SharesMath` libraries with unit + fuzz tests
 - [x] Solhint, Slither in CI (Slither first run happens in CI; not runnable on the dev machine)
 - [x] `CircleFactory` + `CircleVault` contributions slice (shares/NAV, fees, holidays, invariants)
-- [ ] Scenario test harness (actors: honest member, late payer, attacker, contract wallet)
+- [x] Scenario test harness (actors: honest member, late payer, attacker, contract wallet)
 
 ### SDK (`packages/sdk`)
 
@@ -65,20 +65,25 @@ How to use this file:
 - [x] Next.js 15 static export
 - [x] PWA manifest + service worker (app-shell cache, never caches RPC; icons generated at build)
 - [x] shadcn/ui init + "Gallery" theme tokens + fonts (ADR 0025, `docs/ui.md`)
-- [ ] Placeholder cut-paper SVG piece set (`components/art`) + address-based avatar and circle-cover generator
+- [x] Placeholder cut-paper SVG piece set (`components/art`) + address-based avatar and circle-cover generator
 - [x] Interaction kit (ADR 0026): Button (press/working/done/failed), AnimatedIcon, StateView (8 states), TxTracker, ErrorBoundary (app/page/widget), safeCall wrapper, toast helpers, plain-language message catalogue, no-emoji lint (`feat/interaction-kit`; showcase at `/kit`)
-- [ ] Shared components: AppShell, PageHeader, StatCard, DataTable, Pagination (URL state), SearchInput (300 ms debounce), Empty/Error/Loading states, AddressLabel, AvaxAmount, TxButton, CountdownUTC
+- [x] Shared components: AppShell, PageHeader, StatCard, DataTable, Pagination (URL state), SearchInput (300 ms debounce), Empty/Error/Loading states, AddressLabel, AvaxAmount, TxButton, CountdownUTC
 - [x] Landing page: minimal placeholder only (design later)
 - [x] Look direction picked: "Gallery" (ADR 0025, `docs/design/gallery.html`)
-- [ ] Brief and commission an illustrator: 1 hero + 20–30 cut-paper SVG pieces in the art palette
+- [x] Illustrator brief → `docs/design/illustrator-brief.md`
+- [ ] Commission the illustrator (owner action)
 - [x] SEO base: metadata, sitemap, robots, OG images, JSON-LD, `/llms.txt` + `/llms-full.txt` + `.md` twins (ADR 0024, 0027, `docs/seo.md`)
 - [x] Public pages: how-it-works, faq, rules, security (typed content in `src/content`, ADR 0027)
-- [ ] Lighthouse budget in CI for public pages (docs/seo.md §2)
+- [x] Lighthouse budget in CI for public pages (docs/seo.md §2)
 - [x] Core Wallet connect (EIP-6963), Fuji network switch, access gate
 - [ ] WalletConnect for Core mobile (needs a Reown project id); Core's in-app browser works already
 - [x] App shell: top bar, sidebar, bottom nav, page header, portfolio empty state
 - [x] Circle pages: create, overview (members table, URL pagination), pay + holiday, UTC countdown
 - [x] Circle switcher dropdown in the top bar
+
+### Testing
+
+- [x] Playwright E2E against a local anvil chain with a fake Core wallet; every user-facing feature ships with one (CLAUDE.md)
 
 ### Other
 
@@ -89,11 +94,15 @@ How to use this file:
 
 ## Phase 1: MVP on Fuji (circles, vault, contributions)
 
-- [ ] Create circle wizard → deploy via factory
-- [ ] Invite link/QR → join request → member vote → member
-- [ ] Display names (unique, cooldown)
-- [ ] Contribute AVAX; shares minted at NAV
-- [ ] Late fees 1 and 2 (lazy); dormant vote
+- [x] Create circle → deploy via factory (single-page form; wizard steps later if needed)
+- [ ] Invite link → join request → member vote → member (contracts done, ADR 0028; web join + votes pages in progress)
+- [x] Founders accept their invite before they count (RT-02)
+- [x] Factory `isCircle` registry (RT-01); web guard in progress
+- [ ] Display names (unique, cooldown): contracts done (ADR 0029); web in progress
+- [x] Contribute AVAX; shares minted at NAV
+- [x] Late fees 1 and 2 (lazy), capped at half the installment (ADR 0030)
+- [ ] Dormant-member vote
+- [ ] Red-team leftovers for membership: vote only after N installments (RT-03), drop behind-on-dues members from the quorum count (RT-07), circle-name phishing check (RT-26), per-inviter request cap
 - [ ] Portfolio across circles; circle overview charts; contribution heatmap
 - [ ] Activity feed + Snowtrace links
 - [ ] Indexer (AvaCloud Data API / The Graph / Worker cache)
@@ -101,6 +110,9 @@ How to use this file:
 
 ## Phase 2: Loans and governance
 
+- [ ] **First:** split CircleVault into modules (factory has ~587 bytes left under the 24 KB limit, ADR 0028)
+- [ ] Re-enable Slither `locked-ether` once exits exist
+- [ ] Red-team Phase 2 items: NAV includes interest owed and marks down overdue loans (RT-08, RT-18), k rises with tenure (RT-15), guarantee locks shares (RT-16), no new loans while exits wait (RT-17), pull-payment fallback for wallets that reject AVAX (RT-20), migration targets from a timelocked registry (RT-13)
 - [ ] Loan request → vote → auto-disbursal
 - [ ] Interest, partial payments, repayment allocation, auto-close
 - [ ] Tenors (rule 15), minimum interest (rule 17), medical loans (rule 18), cap (rule 13), reserve (rule 12)
