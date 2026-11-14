@@ -16,18 +16,12 @@
     "format:check": "prettier --check .",
     "prepare": "husky"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
-    "prettier-plugin-solidity": "^2.1.0",
     "turbo": "^2.5.6",
     "typescript": "^5.9.2"
   }

@@ -11,3 +11,4 @@ packages/contracts/cache
 .claude/skills
 docs/design/*.html
 *.xlsx
+*.sol
