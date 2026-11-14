@@ -1,0 +1,29 @@
+{
+  "name": "@wealthkart/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed ABIs, chain config and deployment addresses for WealthKart contracts.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "gen": "node scripts/gen-abi.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "viem": "^2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "viem": "^2.37.0",
+    "vitest": "^3.2.4"
+  }
+}
