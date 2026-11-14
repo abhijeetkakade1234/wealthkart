@@ -20,7 +20,7 @@ export function absoluteUrl(path: string): string {
 }
 
 /** Private areas: never indexed, never in the sitemap. */
-export const PRIVATE_PATHS = ["/app/", "/kit/"] as const;
+export const PRIVATE_PATHS = ["/app/", "/kit/", "/login/"] as const;
 
 /** Crawlers for AI answer engines; allowed on public pages (ADR 0024). */
 export const AI_CRAWLERS = [

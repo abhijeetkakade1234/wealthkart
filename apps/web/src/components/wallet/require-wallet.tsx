@@ -1,18 +1,38 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+
+import { loginHref } from "@/components/login/safe-next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StateView } from "@/components/kit";
 import { notify } from "@/lib/toast";
-import { CORE_DOWNLOAD_URL } from "@/lib/wagmi";
 
 import { useCoreWallet } from "./use-core-wallet";
 
+const REDIRECT_GRACE_MS = 400;
+
 /**
- * Gate for wallet-only screens: shows the right "access" state (docs/ui.md §10)
- * until Core is installed, connected and on the supported network.
+ * Gate for wallet-only screens. Signed out (or no Core) goes to the sign-in page and comes
+ * back afterwards; a wrong network shows the switch state in place (docs/ui.md §10).
  */
 export function RequireWallet({ children }: { children: React.ReactNode }) {
   const w = useCoreWallet();
+  const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
+  const signedOut = w.status === "no-core" || w.status === "disconnected";
+
+  useEffect(() => {
+    if (!signedOut) return;
+    // wagmi reports "disconnected" for a moment before it reconnects a returning wallet;
+    // wait briefly so signed-in people never bounce through the sign-in page.
+    const t = setTimeout(
+      () => router.replace(loginHref(search ? `${pathname}?${search}` : pathname)),
+      REDIRECT_GRACE_MS,
+    );
+    return () => clearTimeout(t);
+  }, [signedOut, pathname, search, router]);
 
   if (w.status === "connecting") {
     return (
@@ -29,24 +49,12 @@ export function RequireWallet({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (w.status === "no-core") {
+  if (signedOut) {
     return (
       <StateView
-        state="access"
-        reason="no-wallet"
-        actionLabel="Get Core wallet"
-        onAction={() => window.open(CORE_DOWNLOAD_URL, "_blank", "noopener,noreferrer")}
-      />
-    );
-  }
-
-  if (w.status === "disconnected") {
-    return (
-      <StateView
-        state="access"
-        reason="no-wallet"
-        actionLabel="Connect Core"
-        onAction={() => w.connect().catch((e) => notify.error(e))}
+        state="loading"
+        label="Taking you to sign in"
+        skeleton={<Skeleton className="h-36 rounded-[14px]" />}
       />
     );
   }

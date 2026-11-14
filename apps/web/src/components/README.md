@@ -8,6 +8,7 @@
 - `app/`: app shell, page header, pagination, countdown, stat card, circle switcher
 - `art/`: cut-paper art, avatars, circle covers, empty-state scenes
 - `kit/`: interaction kit (ADR 0026)
+- `login/`: sign-in screen and return-path guard
 - `public/`: public-site header, footer, content blocks
 - `pwa/`: service-worker registration
 - `ui/`: shadcn primitives restyled to Gallery
