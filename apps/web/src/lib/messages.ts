@@ -36,6 +36,16 @@ export const messages = {
   // Transactions the circle contract turned down
   alreadyPaid: (month?: string) =>
     month ? `You've already paid for ${month}.` : "You've already paid for this month.",
+  amountChanged: () =>
+    "The amount due just changed, usually because a late fee started. Check the new amount and try again.",
+  notMember: () => "This wallet isn't a member of this circle.",
+  holidayTooLate: () =>
+    "It's past this month's due date, so a payment holiday can't be taken now. Pay as soon as you can to keep fees low.",
+  holidayAlreadyTaken: () => "You've already taken a payment holiday for this month.",
+  holidayLimitReached: () => "You've used all your payment holidays for this year.",
+  monthAlreadyPaid: () => "You've already paid this month, so there's nothing to delay.",
+  notAvailableYet: () =>
+    "Circles aren't open on the main Avalanche network yet. Use the Fuji test network for now.",
   voteClosed: () => "This vote has already ended.",
   loanAboveCap: (maxAvax?: string) =>
     maxAvax
@@ -93,6 +103,13 @@ export type FriendlyErrorCode =
   | "network"
   | "timeout"
   | "already-paid"
+  | "amount-changed"
+  | "not-member"
+  | "holiday-too-late"
+  | "holiday-already-taken"
+  | "holiday-limit"
+  | "month-already-paid"
+  | "not-available"
   | "vote-closed"
   | "loan-above-cap"
   | "unknown";
@@ -207,9 +224,31 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     return friendlyError("user-rejected", messages.userRejected(), details);
   }
 
-  // 2. Contract custom errors we know about (decoded by viem as errorName).
-  if (hasName("AlreadyPaid", "AlreadyPaidThisPeriod")) {
+  // 2. Contract custom errors (decoded by viem as errorName). Names match
+  //    packages/contracts/src/CircleVault.sol; VoteClosed / LoanAboveCap are reserved for Phase 2.
+  if (hasName("AdvancePaymentNotAllowed", "AlreadyPaid")) {
     return friendlyError("already-paid", messages.alreadyPaid(ctx.month), details);
+  }
+  if (hasName("WrongAmount")) {
+    return friendlyError("amount-changed", messages.amountChanged(), details);
+  }
+  if (hasName("NotAMember")) {
+    return friendlyError("not-member", messages.notMember(), details);
+  }
+  if (hasName("HolidayTooLate")) {
+    return friendlyError("holiday-too-late", messages.holidayTooLate(), details);
+  }
+  if (hasName("HolidayAlreadyDeclared")) {
+    return friendlyError("holiday-already-taken", messages.holidayAlreadyTaken(), details);
+  }
+  if (hasName("HolidayLimitReached")) {
+    return friendlyError("holiday-limit", messages.holidayLimitReached(), details);
+  }
+  if (hasName("PeriodAlreadyPaid")) {
+    return friendlyError("month-already-paid", messages.monthAlreadyPaid(), details);
+  }
+  if (hasName("MainnetNotSupported")) {
+    return friendlyError("not-available", messages.notAvailableYet(), details);
   }
   if (hasName("VoteClosed", "VotingClosed", "ProposalClosed")) {
     return friendlyError("vote-closed", messages.voteClosed(), details);
