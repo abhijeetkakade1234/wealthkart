@@ -1,0 +1,33 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+out/
+.next/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# foundry
+packages/contracts/out/
+packages/contracts/cache/
+packages/contracts/broadcast/*/31337/
+packages/contracts/lcov.info
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# cloudflare
+.wrangler/
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
