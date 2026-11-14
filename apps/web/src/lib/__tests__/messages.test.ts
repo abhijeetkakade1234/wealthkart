@@ -76,6 +76,24 @@ describe("toFriendlyError", () => {
     );
   });
 
+  it("S-UX-07 every CircleVault custom error has a plain-language message", () => {
+    const cases: Array<[string, string]> = [
+      ["AdvancePaymentNotAllowed", messages.alreadyPaid()],
+      ["WrongAmount", messages.amountChanged()],
+      ["NotAMember", messages.notMember()],
+      ["HolidayTooLate", messages.holidayTooLate()],
+      ["HolidayAlreadyDeclared", messages.holidayAlreadyTaken()],
+      ["HolidayLimitReached", messages.holidayLimitReached()],
+      ["PeriodAlreadyPaid", messages.monthAlreadyPaid()],
+      ["MainnetNotSupported", messages.notAvailableYet()],
+    ];
+    for (const [errorName, expected] of cases) {
+      const fe = toFriendlyError({ name: "ContractFunctionRevertedError", data: { errorName } });
+      expect(fe.message).toBe(expected);
+      expect(fe.code).not.toBe("unknown");
+    }
+  });
+
   it("S-UX-07 never throws on hostile input", () => {
     const hostile = {
       get message(): string {
