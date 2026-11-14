@@ -44,8 +44,12 @@ How to use this file:
 - [x] Foundry project (D: oolsoundry), forge-std v1.9.7, OpenZeppelin v5.4.0
 - [x] `PeriodMath` + `SharesMath` libraries with unit + fuzz tests
 - [ ] Solhint, Slither in CI
-- [ ] `CircleFactory` + `CircleVault` skeleton (shares/NAV, internal accounting)
+- [x] `CircleFactory` + `CircleVault` contributions slice (shares/NAV, fees, holidays, invariants)
 - [ ] Scenario test harness (actors: honest member, late payer, attacker, contract wallet)
+
+### SDK (`packages/sdk`)
+
+- [x] Generated ABIs, chains, deployments map, formatting helpers
 
 ### Rules engine (`packages/rules`)
 
@@ -66,8 +70,10 @@ How to use this file:
 - [ ] Brief and commission an illustrator: 1 hero + 20–30 cut-paper SVG pieces in the art palette
 - [ ] SEO base: metadata, sitemap, robots, OG images, JSON-LD, `/llms.txt` + `/llms-full.txt` (ADR 0024, `docs/seo.md`)
 - [ ] Public pages: how-it-works, faq, rules, security (content in MDX)
-- [ ] Core Wallet connect (EIP-6963 + WalletConnect), Fuji network switch
-- [ ] App shell: bottom nav, circle switcher, empty states
+- [x] Core Wallet connect (EIP-6963), Fuji network switch, access gate
+- [ ] WalletConnect for Core mobile (needs a Reown project id); Core's in-app browser works already
+- [x] App shell: top bar, sidebar, bottom nav, page header, portfolio empty state
+- [ ] Circle switcher (needs circle pages)
 
 ### Other
 
