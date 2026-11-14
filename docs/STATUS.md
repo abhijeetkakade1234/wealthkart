@@ -59,7 +59,7 @@ How to use this file:
 - [ ] PWA manifest + service worker
 - [x] shadcn/ui init + "Gallery" theme tokens + fonts (ADR 0025, `docs/ui.md`)
 - [ ] Placeholder cut-paper SVG piece set (`components/art`) + address-based avatar and circle-cover generator
-- [ ] Interaction kit (ADR 0026): Button (press/working/done/failed), AnimatedIcon, StateView (8 states), TxTracker, ErrorBoundary (app/page/widget), safeCall wrapper, toast helpers, plain-language message catalogue, no-emoji lint
+- [x] Interaction kit (ADR 0026): Button (press/working/done/failed), AnimatedIcon, StateView (8 states), TxTracker, ErrorBoundary (app/page/widget), safeCall wrapper, toast helpers, plain-language message catalogue, no-emoji lint (`feat/interaction-kit`; showcase at `/kit`)
 - [ ] Shared components: AppShell, PageHeader, StatCard, DataTable, Pagination (URL state), SearchInput (300 ms debounce), Empty/Error/Loading states, AddressLabel, AvaxAmount, TxButton, CountdownUTC
 - [x] Landing page: minimal placeholder only (design later)
 - [x] Look direction picked: "Gallery" (ADR 0025, `docs/design/gallery.html`)
