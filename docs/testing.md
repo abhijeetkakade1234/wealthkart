@@ -5,19 +5,21 @@ Per [ADR 0013](decisions/0013-production-scenario-testing.md), tests describe **
 Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 
 ## Layers
-| Layer | Tool | What it proves |
-|---|---|---|
-| Contract scenarios | Foundry (`forge test`) | Real member stories across months, with `vm.warp` time travel |
-| Fuzz | Foundry fuzz | Random amounts, timings, orders don't break rules |
-| Invariants | Foundry invariant (handler-based) | Money is never created or lost, whatever sequence happens |
-| History replay | Foundry + `packages/rules` | G1's 104 months replayed (scaled into AVAX) give the same totals as the rule engine |
-| Fork tests | Foundry `--fork-url` Fuji | Works against real chain state, Chainlink Automation registry |
-| Rule engine | Vitest | TS math = contract math (differential tests via `ffi` or shared vectors) |
-| E2E | Playwright + Anvil + injected wallet mock | A member clicks through real flows against a local chain |
-| Gas | `forge snapshot` + CI diff | No regressions; 500+ member circle still works |
-| Static analysis | Slither, Aderyn, Solhint | Known vulnerability patterns |
+
+| Layer              | Tool                                      | What it proves                                                                      |
+| ------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| Contract scenarios | Foundry (`forge test`)                    | Real member stories across months, with `vm.warp` time travel                       |
+| Fuzz               | Foundry fuzz                              | Random amounts, timings, orders don't break rules                                   |
+| Invariants         | Foundry invariant (handler-based)         | Money is never created or lost, whatever sequence happens                           |
+| History replay     | Foundry + `packages/rules`                | G1's 104 months replayed (scaled into AVAX) give the same totals as the rule engine |
+| Fork tests         | Foundry `--fork-url` Fuji                 | Works against real chain state, Chainlink Automation registry                       |
+| Rule engine        | Vitest                                    | TS math = contract math (differential tests via `ffi` or shared vectors)            |
+| E2E                | Playwright + Anvil + injected wallet mock | A member clicks through real flows against a local chain                            |
+| Gas                | `forge snapshot` + CI diff                | No regressions; 500+ member circle still works                                      |
+| Static analysis    | Slither, Aderyn, Solhint                  | Known vulnerability patterns                                                        |
 
 ## Invariants (must hold after every action)
+
 - I-1 `trackedCash + loansOutstanding + pendingExitsOwed == totalAssets` (internal accounting, never `address(this).balance`)
 - I-2 `sum(member shares) == totalShares`
 - I-3 No member can withdraw more than `shares × NAV − owed`
@@ -30,6 +32,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 ## Scenario catalogue
 
 ### Contributions (S-PAY)
+
 - S-PAY-01 Member pays on time → shares minted at NAV, no fee
 - S-PAY-02 Pays at 23:59:59 UTC on the due day → **no** late fee (ADR 0014)
 - S-PAY-03 Pays at 00:00:00 UTC the day after → late fee 1 (exact boundary)
@@ -43,6 +46,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-PAY-11 Member in 5 circles pays all of them → no cross-circle interference
 
 ### Membership (S-MEM)
+
 - S-MEM-01 Join via invite → vote passes → member; vote fails → not a member
 - S-MEM-02 Expired or reused invite code → rejected
 - S-MEM-03 Joins late (month 40) → buys in at current NAV, existing members not diluted
@@ -54,6 +58,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-MEM-09 Circle with 500 members → every action still under the gas limit (ADR 0015)
 
 ### Loans (S-LOAN)
+
 - S-LOAN-01 Request → vote passes → AVAX arrives in the same tx as finalisation
 - S-LOAN-02 Vote fails / quorum not met / window expires → nothing disbursed
 - S-LOAN-03 Borrower tries to vote on own loan → rejected
@@ -72,6 +77,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-LOAN-16 AVAX price crashes 60% mid-loan → nothing in the contract depends on price (sanity)
 
 ### Exits (S-EXIT)
+
 - S-EXIT-01 Request exit → 30 days → automatic payout = shares × NAV − dues
 - S-EXIT-02 Exit with an open loan → blocked
 - S-EXIT-03 **Bank run:** 50% of members request exit the same day → queue, reserve respected, paid in order from inflows
@@ -83,12 +89,14 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-EXIT-09 Last member exits → vault empties cleanly, no dust stuck
 
 ### Governance (S-GOV)
+
 - S-GOV-01 Rule change passes → applies from the next period, not retroactively
 - S-GOV-02 Timelock: a passed change can't execute early
 - S-GOV-03 Proposal spam by one member → rate limited
 - S-GOV-04 Fee waiver vote passes → fee removed, NAV adjusted correctly
 
 ### Math and time (S-MATH)
+
 - S-MATH-01 First depositor deposits 1 wei then donates to inflate share price → later members not robbed (virtual shares)
 - S-MATH-02 10 years of monthly rounding → dust always favours the vault, never a member
 - S-MATH-03 Due day 28 in February (incl. a leap year)
@@ -96,6 +104,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-MATH-05 Max values: 10,000 AVAX loan, 1,000 members, 30 years of periods → no overflow
 
 ### Trust and collusion (S-TRUST)
+
 - S-TRUST-01 A majority votes big loans to themselves, then defaults → loss limited by per-member cap / loan-to-stake limit; minority can exit before the next one
 - S-TRUST-02 A majority votes a huge exit fee to trap the minority → the change is timelocked and members can exit under old rules first (rage-quit)
 - S-TRUST-03 Quorum with dormant members → dormant excluded, so lost wallets can't block every vote forever
@@ -104,6 +113,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-TRUST-06 Admin multisig pauses forever → pause has a max duration; exits stay possible while paused
 
 ### Accounting edge cases (S-ACCT)
+
 - S-ACCT-01 Loan defaults → NAV marks the loan down **before** anyone exits, so leavers don't take more than their real share
 - S-ACCT-02 Interest lands in a lump on the 10th; someone joins on the 9th → interest accrues into NAV over the month, so a newcomer doesn't capture income earned by older members
 - S-ACCT-03 A payment covers installment + fees + interest but is short → defined order (fees → interest → installment), or rejected whole
@@ -113,6 +123,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-ACCT-07 Two loan requests compete for the same cash (rule 14) → first finalised wins, second re-checked
 
 ### Circle lifecycle (S-LIFE)
+
 - S-LIFE-01 Circle with 1 or 2 members → borrowing needs ≥ 3 members (the borrower can't vote, so someone else must)
 - S-LIFE-02 Members vote to dissolve → new loans stop, existing loans must close, then everything is paid out by shares
 - S-LIFE-03 Member dies (rule 1, ADR 0016) → nominee claims after dormancy + vote + notice → paid automatically
@@ -132,6 +143,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-LIFE-07 Member has exactly the installment but no AVAX left for gas → UI warns before sending
 
 ### Interaction and resilience (S-UX)
+
 - S-UX-01 Click Pay → pressed feedback, spinner, "Paying…", button disabled; double-click sends one transaction
 - S-UX-02 Every data component renders all eight states (Storybook/visual tests per state)
 - S-UX-03 Indexer returns 500 → widget shows error card with Retry; rest of the page works
@@ -146,6 +158,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-UX-12 Reduced motion → no animations, all state changes still visible
 
 ### Frontend / E2E (S-WEB)
+
 - S-WEB-01 Core not installed → install prompt
 - S-WEB-02 Wrong network (Ethereum, Fuji vs mainnet) → switch prompt; no tx sent on the wrong chain
 - S-WEB-03 User rejects the tx in Core → clean state, can retry
@@ -165,6 +178,7 @@ Test IDs (`S-PAY-03`) go in test names so failures map back to this file.
 - S-WEB-11 Deadline shown in UTC and device local time, with a countdown; correct across midnight in IST and in UTC−5
 
 ## Gates in CI
+
 - All scenarios and invariants pass (invariant runs ≥ 256 runs × depth 100 on PRs, deeper nightly)
 - Branch coverage ≥ 95% on `packages/contracts/src` money paths
 - No new Slither high/medium findings

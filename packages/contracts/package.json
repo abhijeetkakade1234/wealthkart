@@ -1,0 +1,16 @@
+{
+  "name": "@wealthkart/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WealthKart Solidity contracts (Foundry).",
+  "scripts": {
+    "build": "forge build --sizes",
+    "test": "forge test -vv",
+    "test:ci": "FOUNDRY_PROFILE=ci forge test -vv",
+    "coverage": "forge coverage --report summary",
+    "gas": "forge snapshot",
+    "fmt": "forge fmt",
+    "fmt:check": "forge fmt --check",
+    "lint": "forge fmt --check"
+  }
+}

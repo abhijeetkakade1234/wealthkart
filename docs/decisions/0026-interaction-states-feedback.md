@@ -4,9 +4,11 @@
 - **Date:** 2026-11-14
 
 ## Context
+
 A premium feel comes from how the app responds, not only how it looks. The founder wants: loaders wherever something waits, buttons that feel pressed, animated icons (no emojis), all UI states handled (success, error, empty, failure and the rest), no crash on server or chain errors, no overlapping or confusing layout, toasts where needed, and **all messages in plain language**.
 
 ## Decision
+
 1. **Loaders everywhere something waits.** Skeletons for content, an inline spinner inside the button for actions, a step-by-step tracker for blockchain transactions. Nothing appears frozen.
 2. **Buttons feel pressed.** On press: scale to 0.97, slight darkening, icon micro-animation; while working: spinner replaces the icon, label changes ("Paying…"), button disabled (no double submits); on finish: brief check or cross icon.
 3. **Icons only, no emojis.** lucide-react throughout; icons animate on interaction (e.g. send icon nudges, check draws in, refresh spins). All motion respects `prefers-reduced-motion`.
@@ -17,4 +19,5 @@ A premium feel comes from how the app responds, not only how it looks. The found
 8. **Plain language.** Every message says what happened and what to do next, with no jargon or error codes in the main text. Technical details sit behind a "Details" toggle for support. A message catalogue maps every technical error to a human sentence.
 
 ## Consequences
+
 Shared components: `Button` (press, loading, done states), `AnimatedIcon`, `StateView` (renders any of the eight states), `TxTracker`, `ErrorBoundary`, `Toast` helpers, a `messages` catalogue. Full spec: `docs/ui.md` §8–12. Tests: S-UX-* in `docs/testing.md`.
