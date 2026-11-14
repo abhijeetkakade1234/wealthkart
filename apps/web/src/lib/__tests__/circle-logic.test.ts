@@ -77,3 +77,13 @@ describe("circle id from the URL", () => {
     expect(parseCircleId("<script>")).toBeNull();
   });
 });
+
+describe("circle switcher (S-WEB-25)", () => {
+  it("keeps you on the same circle page when switching", async () => {
+    const { switchHref } = await import("@/components/app/circle-switcher");
+    expect(switchHref("/app/circle/pay/", FRIEND)).toBe(`/app/circle/pay/?id=${FRIEND}`);
+    expect(switchHref("/app/circle", FRIEND)).toBe(`/app/circle/?id=${FRIEND}`);
+    expect(switchHref("/app/", FRIEND)).toBe(`/app/circle/?id=${FRIEND}`);
+    expect(switchHref("/app/new/", FRIEND)).toBe(`/app/circle/?id=${FRIEND}`);
+  });
+});

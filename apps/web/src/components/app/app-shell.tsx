@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { CircleSwitcher } from "@/components/app/circle-switcher";
 import { ConnectButton } from "@/components/wallet/connect-button";
 import { parseCircleId } from "@/lib/circle";
 import { cn } from "@/lib/utils";
@@ -78,9 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             WealthKart
           </Link>
           <div className="flex items-center gap-2.5">
-            <span className="hidden h-9 items-center rounded-full border border-border px-3.5 font-mono text-[12px] text-muted-foreground sm:inline-flex">
-              {circleId ? `Circle ${circleId.slice(0, 6)}…${circleId.slice(-4)}` : "No circle open"}
-            </span>
+            <CircleSwitcher circleId={circleId} />
             <ConnectButton />
           </div>
         </div>
