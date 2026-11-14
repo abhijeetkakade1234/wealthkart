@@ -38,6 +38,8 @@ How to use this file:
 - [ ] Cloudflare Pages project + preview deploy per PR
 - [ ] PR template, CODEOWNERS, branch protection on `main`
 - [ ] `.env.example`, secrets in GitHub/Cloudflare only
+- [x] Manual "Deploy contracts" workflow (Fuji, environment approval, Snowtrace verify)
+- [ ] Create GitHub environment `fuji` with `DEPLOYER_PRIVATE_KEY` (and optional `FUJI_RPC_URL`), fund the deployer from the Fuji faucet, run the workflow, commit `packages/sdk/src/deployments/43113.json`
 
 ### Contracts (`packages/contracts`)
 
@@ -73,7 +75,8 @@ How to use this file:
 - [x] Core Wallet connect (EIP-6963), Fuji network switch, access gate
 - [ ] WalletConnect for Core mobile (needs a Reown project id); Core's in-app browser works already
 - [x] App shell: top bar, sidebar, bottom nav, page header, portfolio empty state
-- [ ] Circle switcher (needs circle pages)
+- [x] Circle pages: create, overview (members table, URL pagination), pay + holiday, UTC countdown
+- [ ] Circle switcher dropdown in the top bar
 
 ### Other
 
