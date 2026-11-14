@@ -1,0 +1,5 @@
+# Cloudflare Pages project for the static WealthKart app (ADR 0011).
+# Deploy: `pnpm --filter @wealthkart/web deploy:preview` (or deploy:prod).
+name = "wealthkart"
+pages_build_output_dir = "out"
+compatibility_date = "2025-09-01"

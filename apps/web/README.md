@@ -27,3 +27,5 @@
 **Depends on / used by:** `@wealthkart/rules` (later `@wealthkart/sdk`) / end users.
 
 Commands: `pnpm dev`, `pnpm build` (outputs `out/`), `pnpm lint` (ESLint + no-emoji check), `pnpm typecheck`, `pnpm test` (Vitest).
+
+**Deploy (Cloudflare Pages, project `wealthkart`):** one-time `npx wrangler login` (or set `CLOUDFLARE_API_TOKEN`), then `pnpm --filter @wealthkart/web deploy:preview` for a preview URL or `deploy:prod` for production. `public/_headers` sets security headers; `wrangler.toml` points Pages at `out/`.
