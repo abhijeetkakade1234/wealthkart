@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WealthKart Look Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Spline+Sans+Mono:wght@400;600&family=Archivo:wdth,wght@62..125,500..900&family=Schibsted+Grotesk:wght@400;600;800;900&family=DM+Mono:wght@400;500&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Space+Mono:wght@400;700&family=Courier+Prime:wght@400;700&family=Libre+Franklin:wght@400;600;800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap">
+<style>
+/* Layout: gallery of five mock screens. Same content, but each direction changes material, structure and texture, not just colour. Page chrome stays neutral grey so the screens carry the identity. */
+:root{
+  color-scheme: dark;
+  --frame-bg:#1A1B1D;
+  --frame-fg:#ECECEC;
+  --frame-muted:#9A9DA2;
+  --frame-line:#2C2E31;
+  --ui:"Geist",system-ui,sans-serif;
+  --ui-mono:"Geist Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--frame-bg);color:var(--frame-fg);font-family:var(--ui);font-size:15px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-block:40px 64px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.intro{display:grid;gap:10px;max-width:70ch;margin-bottom:32px}
+.intro h1{font-weight:600;font-size:clamp(24px,3vw,32px);margin:0;letter-spacing:-.01em}
+.intro p{margin:0;color:var(--frame-muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr));gap:40px 28px}
+.dir{display:grid;gap:12px;align-content:start;min-width:0}
+.dir-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.dir-head h2{margin:0;font-size:19px;font-weight:600}
+.dir-head .tag{font-size:12px;color:var(--frame-muted)}
+.dir-notes{margin:0;color:var(--frame-muted);font-size:14px;max-width:64ch}
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.sw{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--frame-muted);font-family:var(--ui-mono)}
+.sw i{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.15);display:block}
+.fonts{font-size:11.5px;color:var(--frame-muted);font-family:var(--ui-mono)}
+.foot{margin-top:40px;color:var(--frame-muted);font-size:14px;max-width:70ch}
+
+/* ================= base mock (neutral; every direction restyles it) ================= */
+.screen{position:relative;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--f-body)}
+.s-inner{position:relative;display:grid;gap:14px;padding:18px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--f-display)}
+.brand b{font-size:0;line-height:0}
+.t .brand b{font-size:inherit;line-height:inherit}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:11px;padding:3px 8px;font-family:var(--f-mono)}
+.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+@media (max-width:600px){.hero{grid-template-columns:1fr}}
+.card{min-width:0;padding:14px}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.big{font-family:var(--f-num);font-variant-numeric:tabular-nums;line-height:1;margin-top:8px}
+.big small{font-size:13px;color:var(--muted);margin-left:6px;font-family:var(--f-mono);letter-spacing:0}
+.delta{font-family:var(--f-mono);font-size:12px;margin-top:6px;color:var(--good)}
+.spark{display:block;width:100%;height:46px;margin-top:10px}
+.owe{display:grid;gap:8px;align-content:start}
+.due-amt{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.due-time{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);line-height:1.5}
+.due-time strong{color:var(--fg);font-weight:600}
+.btn{appearance:none;border:0;cursor:pointer;font:inherit;font-weight:600;font-size:14px;padding:10px 14px;text-align:center}
+.btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.vote{display:grid;gap:8px}
+.vote-row{display:flex;justify-content:space-between;gap:8px;font-size:13px;flex-wrap:wrap}
+.vote-row span:last-child{font-family:var(--f-mono);color:var(--muted);font-size:12px}
+.bar{height:10px;display:flex;overflow:hidden}
+.bar i{display:block;height:100%}
+.bar .y{width:58%}.bar .n{width:17%}
+.quorum{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
+th{font-weight:500;text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 6px}
+td{padding:9px 6px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.who{display:flex;align-items:center;gap:8px}
+.av{width:20px;height:20px;flex:none}
+.addr{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.st{font-size:10.5px;padding:2px 7px;font-family:var(--f-mono);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+.toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.search{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:13px;color:var(--muted)}
+.search kbd{margin-left:auto;font-family:var(--f-mono);font-size:10px;padding:0 5px}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.pages{display:flex;gap:4px}
+.pages span{min-width:26px;height:26px;display:grid;place-items:center;font-size:11px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* ================= 1 · TERMINAL (Bloomberg-style amber phosphor) ================= */
+.t{--bg:#0B0A07;--fg:#FFB000;--muted:#9C7A2E;--line:#3B2F12;--good:#FFB000;--bad:#FF5B3A;
+   --f-body:"IBM Plex Mono",monospace;--f-display:"IBM Plex Mono",monospace;--f-num:"IBM Plex Mono",monospace;--f-mono:"IBM Plex Mono",monospace;
+   border:1px solid #2A220D}
+.t::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+.t .brand{font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:14px}
+.t .brand b{display:inline-block;padding:0 6px;background:var(--fg);color:var(--bg)}
+.t .pill{border:1px solid var(--line);color:var(--muted)}
+.t .pill.on{color:var(--fg);border-color:var(--fg)}
+.t .card{border-top:1px solid var(--line);padding:12px 0 0}
+.t .hero .card,.t .owe{border-top:1px solid var(--fg)}
+.t .big{font-size:40px;font-weight:500;text-shadow:0 0 12px rgba(255,176,0,.35)}
+.t .due-amt{font-size:22px;font-weight:700}
+.t .btn{background:var(--fg);color:var(--bg);text-transform:uppercase;letter-spacing:.08em;font-size:13px}
+.t .btn::before{content:"> "}
+.t .btn::after{content:"_";animation:blink 1s steps(1) infinite}
+.t .bar{height:12px;background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 8px)}
+.t .bar .y{background:repeating-linear-gradient(90deg,var(--fg) 0 6px,transparent 6px 8px)}
+.t .bar .n{background:repeating-linear-gradient(90deg,var(--bad) 0 6px,transparent 6px 8px)}
+.t th{border-bottom:1px solid var(--fg);color:var(--fg)}
+.t td{border-bottom:1px dotted var(--line)}
+.t .av{background:var(--line)!important;outline:1px solid var(--muted)}
+.t .st.ok{color:var(--bg);background:var(--fg)}
+.t .st.late{color:var(--bad);border:1px solid var(--bad)}
+.t .st.exit{color:var(--muted);border:1px solid var(--line)}
+.t .search{border:1px solid var(--line)}.t .search kbd{border:1px solid var(--line)}
+.t .pages span{border:1px solid var(--line)}.t .pages span.cur{background:var(--fg);color:var(--bg)}
+@keyframes blink{50%{opacity:0}}
+
+/* ================= 2 · THERMAL RECEIPT ================= */
+.r{--bg:#FBFBF9;--fg:#121212;--muted:#6B6B6B;--line:#121212;--good:#121212;--bad:#D7261E;--stamp:#D7261E;
+   --f-body:"Spline Sans Mono",monospace;--f-display:"Archivo",sans-serif;--f-num:"Archivo",sans-serif;--f-mono:"Spline Sans Mono",monospace;
+   color-scheme:light;
+   -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/14px 100%;
+           mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/14px 100%;
+   padding-bottom:10px;box-shadow:0 1px 0 #0000}
+.r .s-inner{padding:22px 20px 26px}
+.r .brand{font-weight:900;font-stretch:62%;font-size:26px;text-transform:uppercase;letter-spacing:.01em}
+.r .brand b{display:none}
+.r .pill{border:1px solid var(--fg)}
+.r .pill.on{background:var(--fg);color:var(--bg)}
+.r .card{border-top:2px dashed var(--fg);padding:14px 0 0}
+.r .big{font-size:52px;font-weight:900;font-stretch:62%;letter-spacing:-.01em}
+.r .big small{color:var(--fg)}
+.r .delta{color:var(--fg)}
+.r .owe{border:2.5px solid var(--stamp);color:var(--stamp);padding:12px;transform:rotate(-2.2deg);margin:6px 4px;border-radius:6px;
+        background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(215,38,30,.04) 6px 7px)}
+.r .owe .label,.r .owe .due-time,.r .owe .due-time strong{color:var(--stamp)}
+.r .due-amt{font-size:30px;font-weight:900;font-stretch:62%}
+.r .btn{background:var(--fg);color:var(--bg);text-transform:uppercase;font-family:"Archivo",sans-serif;font-weight:800;font-stretch:75%;font-size:16px;letter-spacing:.04em}
+.r .bar{border:1.5px solid var(--fg);height:14px;padding:2px;gap:2px}
+.r .bar .y{background:var(--fg)}.r .bar .n{background:repeating-linear-gradient(45deg,var(--fg) 0 2px,transparent 2px 5px)}
+.r th{border-bottom:2px dashed var(--fg);color:var(--fg)}
+.r td{border-bottom:1px dashed #BDBDBD}
+.r .av{border-radius:50%;filter:grayscale(1) contrast(1.2)}
+.r .st{border:1.5px solid currentColor}
+.r .st.late{color:var(--stamp)}.r .st.exit{color:var(--muted)}
+.r .search{border-bottom:2px solid var(--fg);padding-left:0}.r .search kbd{border:1px solid var(--fg)}
+.r .pages span{border:1px solid var(--fg)}.r .pages span.cur{background:var(--fg);color:var(--bg)}
+
+/* ================= 3 · SNOWFIELD (light, topographic, avalanche-warning orange) ================= */
+.p{--bg:#F3F5F6;--fg:#12161A;--muted:#5F6B76;--line:#D3D9DE;--good:#0F7B5F;--bad:#FF5A00;--signal:#FF5A00;
+   --f-body:"Schibsted Grotesk",sans-serif;--f-display:"Schibsted Grotesk",sans-serif;--f-num:"Schibsted Grotesk",sans-serif;--f-mono:"DM Mono",monospace;
+   color-scheme:light;border:1px solid #C9D0D6;
+   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Cg fill='none' stroke='%23C5CDD4' stroke-width='1'%3E%3Cpath d='M-20 300 C 80 240 160 330 260 270 S 440 200 620 260'/%3E%3Cpath d='M-20 270 C 90 205 170 300 270 238 S 450 165 620 228'/%3E%3Cpath d='M-20 240 C 100 170 180 268 280 206 S 460 130 620 196'/%3E%3Cpath d='M-20 210 C 110 135 195 236 295 174 S 470 98 620 164'/%3E%3Cpath d='M60 150 C 140 90 240 120 300 100 S 420 40 520 70'/%3E%3Cpath d='M140 120 C 200 80 270 95 320 80 S 410 40 470 58'/%3E%3Cpath d='M230 92 C 270 70 320 72 360 62'/%3E%3Cpath d='M-20 340 C 70 280 150 365 250 305 S 430 238 620 296'/%3E%3Cpath d='M-20 380 C 60 320 140 400 240 340 S 420 275 620 334'/%3E%3C/g%3E%3C/svg%3E");
+   background-size:cover}
+.p .brand{font-weight:900;font-size:19px;letter-spacing:-.03em}
+.p .brand b{width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:17px solid var(--fg);display:inline-block}
+.p .pill{background:#fff;border:1px solid var(--line);color:var(--muted)}
+.p .pill.on{color:var(--fg);border-color:var(--fg)}
+.p .card{background:rgba(255,255,255,.88);border:1px solid var(--line);backdrop-filter:blur(2px)}
+.p .big{font-size:46px;font-weight:900;letter-spacing:-.045em}
+.p .owe{background:#fff;border:1px solid var(--fg);padding:0}
+.p .owe::before{content:"";display:block;height:10px;background:repeating-linear-gradient(-45deg,var(--signal) 0 8px,#12161A 8px 16px)}
+.p .owe > *{margin:0 14px}
+.p .owe > .btn{margin:2px 14px 14px}
+.p .due-amt{font-size:28px;font-weight:900;letter-spacing:-.03em}
+.p .btn{background:var(--signal);color:#12161A;font-weight:800;letter-spacing:-.01em}
+.p .bar{background:var(--line);height:8px}.p .bar .y{background:var(--fg)}.p .bar .n{background:var(--signal)}
+.p th{border-bottom:1px solid var(--fg)}
+.p td{border-bottom:1px solid var(--line)}
+.p .av{border-radius:2px}
+.p .st.ok{color:var(--good);background:#E2F2EC}
+.p .st.late{color:#12161A;background:#FFD9C2}
+.p .st.exit{color:var(--muted);background:#E8ECEF}
+.p .search{background:#fff;border:1px solid var(--line)}.p .search kbd{border:1px solid var(--line)}
+.p .pages span{border:1px solid var(--line);background:#fff}.p .pages span.cur{background:var(--fg);color:#fff;border-color:var(--fg)}
+
+/* ================= 4 · RISO PRINT (fluorescent ink, misregistration, hard offsets) ================= */
+.z{--bg:#FAF9F7;--fg:#1B1B1B;--muted:#55534F;--line:#1B1B1B;--good:#0078BF;--bad:#FF48B0;--pink:#FF48B0;--blue:#0078BF;--yellow:#FFE800;
+   --f-body:"Space Mono",monospace;--f-display:"Bricolage Grotesque",sans-serif;--f-num:"Bricolage Grotesque",sans-serif;--f-mono:"Space Mono",monospace;
+   color-scheme:light;border:2px solid var(--fg)}
+.z::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;mix-blend-mode:multiply;
+   background-image:radial-gradient(rgba(0,0,0,.18) .6px,transparent .7px);background-size:4px 4px}
+.z .brand{font-weight:800;font-stretch:75%;font-size:24px;letter-spacing:-.02em}
+.z .brand b{width:18px;height:18px;border-radius:50%;background:var(--pink);box-shadow:5px 3px 0 var(--blue);display:inline-block;mix-blend-mode:multiply}
+.z .pill{border:2px solid var(--fg);background:var(--bg)}
+.z .pill.on{background:var(--yellow)}
+.z .card{background:var(--bg);border:2px solid var(--fg);box-shadow:5px 5px 0 var(--blue)}
+.z .big{font-size:58px;font-weight:800;font-stretch:75%;letter-spacing:-.03em;color:var(--fg);text-shadow:3px 2px 0 var(--pink)}
+.z .delta{color:var(--blue);font-weight:700}
+.z .owe{background:var(--pink);border:2px solid var(--fg);box-shadow:5px 5px 0 var(--fg);padding:14px}
+.z .owe .label,.z .owe .due-time{color:var(--fg)}
+.z .due-amt{font-size:32px;font-weight:800;font-stretch:75%}
+.z .btn{background:var(--yellow);color:var(--fg);border:2px solid var(--fg);box-shadow:3px 3px 0 var(--fg);font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:16px}
+.z .vote{box-shadow:5px 5px 0 var(--pink)}
+.z .bar{border:2px solid var(--fg);height:16px;background:var(--bg)}.z .bar .y{background:var(--blue)}.z .bar .n{background:var(--pink)}
+.z th{border-bottom:2px solid var(--fg);color:var(--fg)}
+.z td{border-bottom:1px solid #D8D5CF}
+.z .av{border-radius:50%;border:2px solid var(--fg)}
+.z .st{border:2px solid var(--fg);color:var(--fg)}
+.z .st.ok{background:var(--yellow)}.z .st.late{background:var(--pink)}.z .st.exit{background:var(--bg)}
+.z .search{border:2px solid var(--fg)}.z .search kbd{border:1px solid var(--fg)}
+.z .pages span{border:2px solid var(--fg)}.z .pages span.cur{background:var(--blue);color:#fff}
+
+/* ================= 5 · LEDGER PAD (green columnar accounting paper, red & black ink) ================= */
+.l{--bg:#E6EFDF;--fg:#1D2A22;--muted:#56695C;--line:#9DB59F;--good:#1D2A22;--bad:#C2271D;--ink-red:#C2271D;--ink-green:#1F4D36;
+   --f-body:"Libre Franklin",sans-serif;--f-display:"Libre Franklin",sans-serif;--f-num:"Courier Prime",monospace;--f-mono:"Courier Prime",monospace;
+   color-scheme:light;border:1px solid #B9CDB9;
+   background-image:
+     linear-gradient(90deg,transparent 0 38px,rgba(194,39,29,.45) 38px 39px,transparent 39px 42px,rgba(194,39,29,.45) 42px 43px,transparent 43px),
+     repeating-linear-gradient(0deg,transparent 0 25px,rgba(83,128,96,.28) 25px 26px)}
+.l .s-inner{padding-left:58px}
+.l .brand{font-weight:800;font-size:17px;letter-spacing:.02em;text-transform:uppercase}
+.l .brand b{display:inline-block;width:16px;height:20px;background:var(--ink-red);box-shadow:inset -3px 0 0 rgba(0,0,0,.25)}
+.l .pill{border:1px solid var(--line);background:rgba(255,255,255,.4);color:var(--muted)}
+.l .pill.on{color:var(--fg);border-color:var(--fg)}
+.l .card{padding:10px 0 0;border-top:1px solid var(--fg)}
+.l .big{font-size:42px;font-weight:700;letter-spacing:-.02em;display:inline-block;padding-bottom:4px;border-bottom:4px double var(--fg)}
+.l .delta{color:var(--ink-green);font-weight:700}
+.l .owe{border-top:1px solid var(--ink-red)}
+.l .owe .label{color:var(--ink-red)}
+.l .due-amt{font-size:26px;font-weight:700;color:var(--ink-red)}
+.l .btn{background:var(--ink-green);color:#EFF5EA;font-family:"Libre Franklin",sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:13px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.l .bar{height:8px;background:rgba(83,128,96,.25)}.l .bar .y{background:var(--fg)}.l .bar .n{background:var(--ink-red)}
+.l th{border-bottom:1px solid var(--fg);color:var(--fg)}
+.l td{border-bottom:0}
+.l tbody tr:last-child td.num{border-bottom:4px double var(--fg)}
+.l .av{border-radius:50%;opacity:.85}
+.l .st.ok{color:var(--fg)}
+.l .st.ok::before{content:"✓ "}
+.l .st.late{color:var(--ink-red)}
+.l .st.exit{color:var(--muted)}
+.l .search{border-bottom:1px solid var(--fg);padding-left:0}.l .search kbd{border:1px solid var(--line)}
+.l .pages span{border:1px solid var(--line)}.l .pages span.cur{background:var(--fg);color:var(--bg)}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>WealthKart look directions, round 2</h1>
+    <p>Round 1 used one dark glowing-card template in four colours. Here each direction changes the material itself: paper, ink, screen, print. Same screen everywhere: portfolio, this month's dues with the UTC deadline, a live loan vote, and the paginated members list. Names and numbers are examples.</p>
+  </header>
+  <main class="grid" id="grid"></main>
+  <p class="foot">Pick one, mix two (e.g. Snowfield layout with Ledger's double-underlined totals), or tell me what you like or hate in any of them. The pick becomes the shadcn theme: colours, radius, borders, shadows and type.</p>
+</div>
+
+<template id="screen-tpl">
+  <div class="screen">
+    <div class="s-inner">
+      <div class="topbar">
+        <div class="brand"><b>WK</b>WealthKart</div>
+        <div class="pills">
+          <span class="pill on">College Gang ▾</span>
+          <span class="pill">Fuji</span>
+          <span class="pill">0x3f…a1c2</span>
+        </div>
+      </div>
+      <div class="hero">
+        <div class="card">
+          <div class="label">Across 3 circles</div>
+          <div class="big">48.62<small>AVAX</small></div>
+          <div class="delta">+6.41% since you joined</div>
+          <svg class="spark" viewBox="0 0 300 46" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 38 L25 35 L50 36 L75 31 L100 32 L125 27 L150 25 L175 26 L200 19 L225 17 L250 12 L275 10 L300 5" fill="none" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="card owe">
+          <div class="label">You owe this month</div>
+          <div class="due-amt">0.50 AVAX</div>
+          <div class="due-time">Due <strong>10 Dec, 23:59 UTC</strong><br>Your time: 11 Dec, 05:29 IST<br>2d 4h left</div>
+          <button class="btn" type="button">Pay 0.50 AVAX</button>
+        </div>
+      </div>
+      <div class="card vote">
+        <div class="vote-row"><span>Loan for <b>Comet_K</b> · 4.00 AVAX · medical</span><span>ends in 19h</span></div>
+        <div class="bar"><i class="y"></i><i class="n"></i></div>
+        <div class="quorum">7 yes · 2 no · 3 not voted · quorum reached</div>
+      </div>
+      <div class="card" style="display:grid;gap:10px">
+        <div class="toolbar">
+          <div class="search">⌕ Search members<kbd>/</kbd></div>
+          <span class="pill">Status: all ▾</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Member</th><th class="num">Share</th><th class="num">Stake</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><div class="who"><span class="av" style="background:#E9A23B"></span><div>NightOwl<div class="addr">0x3f…a1c2</div></div></div></td><td class="num">9.8%</td><td class="num">12.40</td><td><span class="st ok">paid</span></td></tr>
+              <tr><td><div class="who"><span class="av" style="background:#4F86C6"></span><div>Comet_K<div class="addr">0x91…7be0</div></div></div></td><td class="num">8.6%</td><td class="num">10.88</td><td><span class="st late">late · fee 1</span></td></tr>
+              <tr><td><div class="who"><span class="av" style="background:#8E6FC9"></span><div>Mango.eth<div class="addr">0x07…c44d</div></div></div></td><td class="num">8.1%</td><td class="num">10.25</td><td><span class="st exit">exiting 12d</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager"><span>1–3 of 12</span><div class="pages"><span>‹</span><span class="cur">1</span><span>2</span><span>3</span><span>4</span><span>›</span></div></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+const DIRS = [
+  { cls:"t", name:"1 · Terminal", tag:"dark · trader screen",
+    notes:"An amber phosphor trading terminal. Everything is monospace, nothing is rounded, scanlines on top, and a blinking cursor on the Pay button. It feels like a serious money tool, not a toy.",
+    sw:[["#0B0A07","screen"],["#FFB000","phosphor"],["#9C7A2E","dim"],["#FF5B3A","alert"]], fonts:"IBM Plex Mono only" },
+  { cls:"r", name:"2 · Thermal Receipt", tag:"light · proof of payment",
+    notes:"Every screen is a receipt slip with a torn edge, dashed rules and a red rubber stamp for what you owe. It matches the product idea that every payment leaves a record.",
+    sw:[["#FBFBF9","paper"],["#121212","print"],["#D7261E","stamp red"],["#6B6B6B","faded"]], fonts:"Archivo Condensed (numbers) · Spline Sans Mono (text)" },
+  { cls:"p", name:"3 · Snowfield", tag:"light · avalanche safety gear",
+    notes:"Snow-white with topographic contour lines and avalanche-warning orange, plus hazard stripes on the dues card. It's the Avalanche name taken literally: a mountain map and the gear you'd carry on it.",
+    sw:[["#F3F5F6","snow"],["#12161A","slate"],["#FF5A00","signal"],["#0F7B5F","paid"]], fonts:"Schibsted Grotesk (all) · DM Mono (data)" },
+  { cls:"z", name:"4 · Riso Print", tag:"light · zine, playful, friends",
+    notes:"Fluorescent risograph inks (pink, blue, yellow), slightly misaligned print on the big number, hard offset shadows and halftone grain. It feels like something friends made together.",
+    sw:[["#FAF9F7","paper"],["#FF48B0","riso pink"],["#0078BF","riso blue"],["#FFE800","riso yellow"]], fonts:"Bricolage Grotesque Condensed · Space Mono" },
+  { cls:"l", name:"5 · Ledger Pad", tag:"light · the accountant's book",
+    notes:"Green columnar accounting paper with a red margin, red ink for what you owe and double-underlined totals. It's the digital version of the money book every group like G1 used to keep.",
+    sw:[["#E6EFDF","ledger green"],["#1D2A22","black ink"],["#C2271D","red ink"],["#1F4D36","bottle green"]], fonts:"Courier Prime (numbers) · Libre Franklin (text)" },
+];
+const grid = document.getElementById("grid"), tpl = document.getElementById("screen-tpl");
+DIRS.forEach(d=>{
+  const sec=document.createElement("section");sec.className="dir";
+  sec.innerHTML=`<div class="dir-head"><h2>${d.name}</h2><span class="tag">${d.tag}</span></div>
+    <p class="dir-notes">${d.notes}</p>
+    <div class="swatches">${d.sw.map(([h,n])=>`<span class="sw"><i style="background:${h}"></i>${n} ${h}</span>`).join("")}</div>
+    <div class="fonts">${d.fonts}</div>`;
+  const node=tpl.content.cloneNode(true);
+  node.querySelector(".screen").classList.add(d.cls);
+  sec.appendChild(node);grid.appendChild(sec);
+});
+</script>
+
+</html>
