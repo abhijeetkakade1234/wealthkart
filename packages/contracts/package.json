@@ -4,13 +4,13 @@
   "private": true,
   "description": "WealthKart Solidity contracts (Foundry).",
   "scripts": {
-    "build": "forge build --sizes",
-    "test": "forge test -vv",
-    "test:ci": "FOUNDRY_PROFILE=ci forge test -vv",
-    "coverage": "forge coverage --report summary",
-    "gas": "forge snapshot",
-    "fmt": "forge fmt",
-    "fmt:check": "forge fmt --check",
-    "lint": "forge fmt --check"
+    "build": "node scripts/forge.mjs build --sizes",
+    "test": "node scripts/forge.mjs test -vv",
+    "test:ci": "node scripts/forge.mjs test -vv",
+    "coverage": "node scripts/forge.mjs coverage --report summary",
+    "gas": "node scripts/forge.mjs snapshot",
+    "fmt": "node scripts/forge.mjs fmt",
+    "fmt:check": "node scripts/forge.mjs fmt --check",
+    "lint": "node scripts/forge.mjs fmt --check"
   }
 }
