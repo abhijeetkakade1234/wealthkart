@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 import { CountdownUTC } from "@/components/app/countdown-utc";
+import { Avatar, CircleCover } from "@/components/art";
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { StatCard } from "@/components/app/stat-card";
@@ -68,6 +69,9 @@ function CircleOverview() {
 
   return (
     <>
+      <div className="mb-10 h-[120px] overflow-hidden rounded-[14px] border border-line-soft sm:h-[150px]">
+        <CircleCover address={id} name={d.name} />
+      </div>
       <PageHeader
         title={d.name}
         subtitle={
@@ -201,7 +205,10 @@ function MembersTable({
                 return (
                   <tr key={r.address} className="border-b border-line-soft last:border-0">
                     <td className="px-6 py-[18px]">
-                      <span className="font-mono text-[12.5px]">{shortAddress(r.address)}</span>
+                      <span className="inline-flex items-center gap-3 align-middle">
+                        <Avatar address={r.address} size={30} />
+                        <span className="font-mono text-[12.5px]">{shortAddress(r.address)}</span>
+                      </span>
                       {address?.toLowerCase() === r.address.toLowerCase() && (
                         <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-[11.5px] text-brand">
                           You
