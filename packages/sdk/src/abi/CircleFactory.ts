@@ -129,10 +129,25 @@ export const circleFactoryAbi = [
             type: "uint8",
             internalType: "uint8",
           },
+          {
+            name: "votingWindow",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "quorumPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "maxMembers",
+            type: "uint16",
+            internalType: "uint16",
+          },
         ],
       },
       {
-        name: "founders",
+        name: "invitees",
         type: "address[]",
         internalType: "address[]",
       },
@@ -144,6 +159,38 @@ export const circleFactoryAbi = [
         internalType: "address",
       },
     ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "isCircle",
+    inputs: [
+      {
+        name: "circle",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "registerMember",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [],
     stateMutability: "nonpayable",
   },
   {
@@ -163,12 +210,42 @@ export const circleFactoryAbi = [
         internalType: "address",
       },
       {
-        name: "founders",
+        name: "invitedFounders",
         type: "uint256",
         indexed: false,
         internalType: "uint256",
       },
     ],
     anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MemberRegistered",
+    inputs: [
+      {
+        name: "circle",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "NotACircle",
+    inputs: [
+      {
+        name: "caller",
+        type: "address",
+        internalType: "address",
+      },
+    ],
   },
 ] as const;

@@ -38,6 +38,9 @@ Known gaps:
 - I-6 A frozen member can't exit, borrow, or transfer anything
 - I-7 Each member pays at most one installment per period
 - I-8 Force-sent AVAX (selfdestruct or coinbase) doesn't change NAV or break accounting
+- I-9 `memberCount` = creator + accepted founders + admitted members; the member list never holds duplicates
+- I-10 A display name in use maps back to exactly one member, ignoring case
+- I-11 Open join requests stay ≤ 20, each is Open and indexed by its applicant
 
 ## Scenario catalogue
 
@@ -57,8 +60,8 @@ Known gaps:
 
 ### Membership (S-MEM)
 
-- S-MEM-01 Join via invite → vote passes → member; vote fails → not a member
-- S-MEM-02 Expired or reused invite code → rejected
+- S-MEM-01 Join request from the circle link → vote passes (quorum + 66% yes) → member; vote fails → not a member (ADR 0028)
+- S-MEM-02 Founder invite not accepted within 14 days → can't be accepted; the person can still request to join (no secret invite codes, RT-04)
 - S-MEM-03 Joins late (month 40) → buys in at current NAV, existing members not diluted
 - S-MEM-04 Two people pick the same display name → second rejected
 - S-MEM-05 Changes name twice in 30 days → second rejected
@@ -66,6 +69,15 @@ Known gaps:
 - S-MEM-07 Wallet lost; 3 months missed → dormant vote → dues stop, shares untouched
 - S-MEM-08 Dormant member comes back → can resume?
 - S-MEM-09 Circle with 500 members → every action still under the gas limit (ADR 0015)
+- S-MEM-10 Joins (or circle created) after this month's due moment → first installment is next month; nobody starts already late (ADR 0028)
+- S-MEM-11 Smart-contract wallet that refuses plain AVAX is a member → can pay and vote
+- S-MEM-12 Only members who joined before the request can vote; outsiders, the applicant and later joiners can't; one vote each
+- S-MEM-13 Outcome certain mid-vote → settles on that vote; window ends without quorum → expired; tie → rejected
+- S-MEM-14 Applicant cancels; second open request rejected; vote passes but circle hit max members → closed as full
+- S-MEM-15 Display name held while the vote runs; freed if rejected, expired, cancelled or full
+- S-MEM-16 Admitted member sees the circle in their portfolio; only factory circles can register members
+- S-MEM-17 Applicant names a member as inviter → shown as unconfirmed until that member votes yes; naming a non-member reverts
+- S-MEM-18 Name rules: 3–24 chars of letters, digits, space, `_` `.` `-`; case-insensitive uniqueness; changing frees the old name
 
 ### Loans (S-LOAN)
 
@@ -198,6 +210,11 @@ Known gaps:
 - S-WEB-20 Public copy never advertises returns; titles ≤ 60 chars, descriptions ≤ 155; JSON-LD can't break out of its script tag
 - S-WEB-21 PWA: manifest opens `/app/` standalone with 192/512 and maskable icons; the service worker never caches RPC, cross-origin or non-GET requests
 - S-WEB-25 Circle switcher lists your circles by name and keeps you on the same page (overview or pay) when switching
+- S-WEB-30 Same wallet or circle address (any letter case) always gives the same avatar and cover, on every device, with no network call
+- S-WEB-31 Different addresses spread across every avatar shape and cover layout; neighbours in a members list rarely look identical
+- S-WEB-32 Generated art uses only the art palette and stays inside its frame
+- S-WEB-33 Avatars are decorative next to a visible name and labelled when standing alone; covers carry the circle name as their label
+- S-WEB-34 Every empty-state variant shows a fixed, decorative spot illustration
 
 ## Gates in CI
 
@@ -205,3 +222,42 @@ Known gaps:
 - Branch coverage ≥ 95% on `packages/contracts/src` money paths
 - No new Slither high/medium findings
 - Gas snapshot diff reviewed
+
+## Red-team scenarios
+
+From [`redteam/2026-11-plan-redteam.md`](redteam/2026-11-plan-redteam.md). Each ID names the finding it covers.
+
+- S-RT-01 (RT-01) Circle page with `?id=` of a contract not created by the factory → "This isn't a WealthKart circle", no Pay or Holiday button, no tx possible
+- S-RT-02 (RT-01, RT-27) Join page for a non-factory address → no rules shown, verified-circle line absent; for a real circle → "Verified WealthKart circle" with Snowtrace link
+- S-RT-03 (RT-02) Creator lists 3 other founders → they are invited, not members; `memberCount` = 1 and they don't count in quorum until each calls `acceptInvite()`
+- S-RT-04 (RT-02) Founder invite not accepted within 14 days → expires; the circle never appears in that wallet's `circlesOf`
+- S-RT-05 (RT-03) Member admitted today votes on a loan proposal created yesterday → rejected (snapshot); can't vote at all until N installments paid
+- S-RT-06 (RT-03) Admission vote with 60% yes when the pass mark is 66% → fails; one member with more than a third of open invites → warning shown on the request
+- S-RT-07 (RT-04) Attacker copies an address-bound invite from the mempool and calls `requestJoin` from another wallet → reverts; the invitee's request still succeeds
+- S-RT-08 (RT-05) Same address opens a second join request while one is pending → reverts; expired requests leave the open list and reads stay bounded
+- S-RT-09 (RT-06) Name with a Cyrillic look-alike letter, zero-width space, RTL mark, leading/trailing space, or differing only by case from an existing name → rejected
+- S-RT-10 (RT-06) Member renames; another member tries to take the old name within 30 days → rejected; name taken between request and approval → member admitted with a placeholder name, vote not reverted
+- S-RT-11 (RT-07) Member 2 periods behind → can't vote and isn't counted in quorum for proposals created while behind; pays up → can vote on new proposals
+- S-RT-12 (RT-08) Borrower owes 6 months of unpaid interest; newcomer pays first installment → shares minted at NAV that includes accrued interest; after borrower pays, long-standing members' stakes aren't diluted
+- S-RT-13 (RT-08) Loan 2 periods overdue → join NAV counts it at the impaired value; join page lists it
+- S-RT-14 (RT-09) Exited member re-admitted with the same address → shares 0, fresh `nextPeriod`, holiday counters reset, no duplicate in `membersPage`
+- S-RT-15 (RT-09) Member admitted after that month's due day → first period owed is next month, no late fees for the join month
+- S-RT-16 (RT-09) Two admission votes finalised in the same block with one seat left under `maxMembers` → second finalise reverts or is rejected cleanly
+- S-RT-17 (RT-10) Loan vote reaches majority 5 minutes in → can't finalise until the window ends; a voter changes their vote before the end → counted once, latest choice
+- S-RT-18 (RT-11) Dormancy proposal for a member with fewer than N missed periods → rejected; dormant member pays or votes → dormancy cleared
+- S-RT-19 (RT-12) Proposal to lower the reserve or raise k / exit fee / notice / fees → needs 66% and a 14-day delay; a lower-risk change keeps the normal pass mark
+- S-RT-20 (RT-12) Member rage-quits during the delay → exit uses the old notice and fee even after the change takes effect
+- S-RT-21 (RT-13) Migration proposal targeting an address not created by a registered factory → can't be created
+- S-RT-22 (RT-14) Guardian pauses deposits over the due day → no late fees for paused days; second pause within 30 days → reverts; exits still process during a pause
+- S-RT-23 (RT-15) Pair with stakes 2 + 2, borrower has 3 paid periods → cap uses k = 1 (4 AVAX), not 8
+- S-RT-24 (RT-16) Guarantor backs a second loan with already-locked shares → rejected; locked shares can't be exited
+- S-RT-25 (RT-17) Exit queue non-empty and a loan vote passes → disbursal blocked until the queue is paid; reserve used for the queued exit
+- S-RT-26 (RT-18) Member requests exit while a loan is 1 month late → payout excludes the haircut share, which is held and paid when the loan recovers
+- S-RT-27 (RT-19) Second medical loan within 12 months → rejected; medical vote window under 12 hours → rejected at proposal time
+- S-RT-28 (RT-20) Exiting member is a contract that reverts on receive or burns all gas → its payout goes to `pendingWithdrawals`; the next exits in the batch still pay
+- S-RT-29 (RT-21) Keeper never runs → exiting member calls `processExit(self)` after the notice and is paid
+- S-RT-30 (RT-22) Nominee claim passes; the member sends any tx during the notice → claim cancelled; nominee can't vote on their own claim
+- S-RT-31 (RT-23) Payment sent at 23:59:55 UTC lands after the deadline → behaves per the deadline ADR (re-quote or accepted with fee1 and a refund credit); never silently overcharges
+- S-RT-32 (RT-24) Rule change passing mid-month → applies from the next period only
+- S-RT-33 (RT-25) Create a circle with fee1 above 50% of the installment → reverts with a plain message
+- S-RT-34 (RT-26) Circle name containing `://`, `www.` or a domain pattern → rejected by the form and the contract
