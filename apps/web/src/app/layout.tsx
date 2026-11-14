@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Hanken_Grotesk, Instrument_Serif } from "next/font/google";
+import { ErrorBoundary, GlobalErrorHandlers, Toaster } from "@/components/kit";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 import "./globals.css";
 
 const hanken = Hanken_Grotesk({
@@ -44,7 +47,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       lang="en"
       className={`${hanken.variable} ${instrumentSerif.variable} ${geistMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <TooltipProvider>
+          <ErrorBoundary preset="app">{children}</ErrorBoundary>
+          <Toaster />
+          <GlobalErrorHandlers />
+        </TooltipProvider>
+      </body>
     </html>
   );
 }
