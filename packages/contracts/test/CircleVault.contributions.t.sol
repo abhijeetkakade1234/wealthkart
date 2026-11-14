@@ -249,6 +249,36 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         factory.createCircle(_cfg(), zero);
     }
 
+    // ---------------------------------------------------------------- name and member list
+
+    function test_nameAndMembersAreReadable() public view {
+        assertEq(vault.name(), "College Gang");
+        assertEq(vault.memberCount(), 12);
+        address[] memory first = vault.membersPage(0, 5);
+        assertEq(first.length, 5);
+        assertEq(first[0], members[0]);
+        address[] memory last = vault.membersPage(10, 5);
+        assertEq(last.length, 2);
+        assertEq(last[1], members[11]);
+        assertEq(vault.membersPage(12, 5).length, 0);
+    }
+
+    function test_nameBoundsAreEnforced() public {
+        address[] memory one = new address[](1);
+        one[0] = members[0];
+        CircleVault.Config memory c = _cfg();
+        c.name = "";
+        vm.expectRevert(
+            abi.encodeWithSelector(CircleVault.InvalidConfig.selector, "name must be 1..48 bytes")
+        );
+        factory.createCircle(c, one);
+        c.name = "0123456789012345678901234567890123456789012345678"; // 49 bytes
+        vm.expectRevert(
+            abi.encodeWithSelector(CircleVault.InvalidConfig.selector, "name must be 1..48 bytes")
+        );
+        factory.createCircle(c, one);
+    }
+
     // ---------------------------------------------------------------- funds-stuck guard
 
     /// This version has no exits; deploying on Avalanche mainnet would lock funds forever.

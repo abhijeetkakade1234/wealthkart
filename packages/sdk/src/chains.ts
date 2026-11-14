@@ -1,6 +1,8 @@
 import { avalanche, avalancheFuji } from "viem/chains";
 import type { Address, Chain } from "viem";
 
+import fuji from "./deployments/43113.json";
+
 /**
  * Supported chains. Fuji (testnet) first; mainnet stays disabled until contracts
  * with exits are audited (CircleVault refuses to deploy on mainnet until then).
@@ -19,9 +21,24 @@ export interface Deployment {
   fromBlock: bigint | null;
 }
 
-/** Deployed addresses per chain id. Filled in by the deploy workflow. */
+interface DeploymentFile {
+  circleFactory: string | null;
+  fromBlock: number | null;
+}
+
+function toDeployment(file: DeploymentFile): Deployment {
+  return {
+    circleFactory: (file.circleFactory as Address | null) ?? null,
+    fromBlock: file.fromBlock === null ? null : BigInt(file.fromBlock),
+  };
+}
+
+/**
+ * Deployed addresses per chain id, written by `script/DeployFactory.s.sol` into
+ * `src/deployments/<chainId>.json`. Mainnet stays empty until the audited release.
+ */
 export const DEPLOYMENTS: Record<number, Deployment> = {
-  [avalancheFuji.id]: { circleFactory: null, fromBlock: null },
+  [avalancheFuji.id]: toDeployment(fuji as DeploymentFile),
   [avalanche.id]: { circleFactory: null, fromBlock: null },
 };
 

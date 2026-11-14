@@ -1,0 +1,57 @@
+name: Deploy contracts
+
+# Manual only, with environment approval (docs/engineering.md §6). Fuji only until the
+# audited release with exits; CircleVault refuses to deploy on mainnet.
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: Network to deploy to
+        required: true
+        default: fuji
+        type: choice
+        options: [fuji]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy CircleFactory to ${{ inputs.network }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.network }}
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge test -vv
+        env:
+          FOUNDRY_PROFILE: ci
+      - name: Deploy and verify on Snowtrace (Routescan)
+        env:
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          FUJI_RPC_URL: ${{ secrets.FUJI_RPC_URL || 'https://api.avax-test.network/ext/bc/C/rpc' }}
+        run: |
+          forge script script/DeployFactory.s.sol \
+            --rpc-url "$FUJI_RPC_URL" \
+            --private-key "$DEPLOYER_PRIVATE_KEY" \
+            --broadcast \
+            --verify \
+            --verifier etherscan \
+            --verifier-url "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan" \
+            --etherscan-api-key "verifyContract"
+      - name: Summary
+        run: |
+          echo "### CircleFactory deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat ../sdk/src/deployments/43113.json >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit this file to \`abhijeet\`: packages/sdk/src/deployments/43113.json" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployments-${{ inputs.network }}
+          path: packages/sdk/src/deployments/43113.json
