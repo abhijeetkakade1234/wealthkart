@@ -27,7 +27,7 @@ describe("Button", () => {
         workingLabel="Paying…"
         doneLabel="Paid"
         onAction={onAction}
-        feedbackMs={30}
+        feedbackMs={300}
       >
         Pay
       </Button>,
@@ -62,7 +62,7 @@ describe("Button", () => {
         workingLabel="Paying…"
         onAction={() => Promise.reject(new Error("boom"))}
         onError={onError}
-        feedbackMs={30}
+        feedbackMs={300}
       >
         Pay
       </Button>,
