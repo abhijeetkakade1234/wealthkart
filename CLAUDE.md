@@ -56,6 +56,7 @@ Super admin, admins, members (see guide §1). Auth: mobile + 6-digit PIN, salted
 - **Every decision gets an ADR** in `docs/decisions/` (next number, template 0000), plus a row in its README index. Never rewrite an accepted ADR; supersede it.
 - **`docs/STATUS.md` is the phase + todo tracker.** Read it at session start; tick items and update the current phase as work lands.
 - **Tests model real production scenarios** (`docs/testing.md` catalogue, IDs like `S-PAY-02` in test names), plus fuzz, invariants and a G1 history replay. A new bug means a new scenario first.
+- **Every user-facing feature ships with a Playwright E2E test** (user rule, 2026-11-14): `apps/web/e2e/`, real app against a local anvil chain with a test wallet; scenario IDs in test names.
 - Husky + lint + CI/CD per `docs/engineering.md`.
 - **Git flow (user rule):** `main` ← `dev` ← `abhijeet`. Commit only on `abhijeet`; PR `abhijeet` → `dev`, then `dev` → `main`. Don't create other long-lived or stacked branches. A temporary worktree branch must merge into `abhijeet` and be deleted. Push needs `FOUNDRY_DIR=/d/tools/foundry` for the pre-push hook. The GitHub account in this environment can't open PRs on the repo: give the user compare links.
 - **Machine:** C: is nearly full; keep tools, caches and temp on D: (`D:\tools\foundry`, `D:\tools\pnpm-store`, `TEMP=D:\tools\tmp`). The pnpm store/cache location lives in the user's global pnpm config, **never in the repo `.npmrc`** (a D: path there breaks CI and Cloudflare).

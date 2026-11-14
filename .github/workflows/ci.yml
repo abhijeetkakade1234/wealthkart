@@ -89,3 +89,33 @@ jobs:
           name: lighthouse-reports
           path: apps/web/.lighthouseci/reports
           if-no-files-found: ignore
+
+  e2e:
+    name: E2E (Playwright + anvil)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: pnpm install --frozen-lockfile
+      - name: Compile contracts (the test chain deploys the real factory)
+        run: forge build
+        working-directory: packages/contracts
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: pnpm e2e
+        working-directory: apps/web
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          if-no-files-found: ignore

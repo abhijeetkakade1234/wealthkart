@@ -9,10 +9,15 @@ import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 export const CIRCLES_PAGE_SIZE = 12;
 export const MEMBERS_PAGE_SIZE = 10;
 
+/** Build-time override for E2E runs against a local chain. Unset in real builds. */
+const FACTORY_OVERRIDE = process.env.NEXT_PUBLIC_FACTORY_OVERRIDE;
+
 /** The factory for the wallet's current chain, or null if not deployed there yet. */
 export function useFactory(): Address | null {
   const { chainId } = useCoreWallet();
-  return chainId ? (DEPLOYMENTS[chainId]?.circleFactory ?? null) : null;
+  if (!chainId) return null;
+  if (FACTORY_OVERRIDE && isAddress(FACTORY_OVERRIDE)) return FACTORY_OVERRIDE;
+  return DEPLOYMENTS[chainId]?.circleFactory ?? null;
 }
 
 /** Parses `?id=` safely; anything that isn't an address becomes null ("circle not found"). */

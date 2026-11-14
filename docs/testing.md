@@ -216,12 +216,21 @@ Known gaps:
 - S-WEB-33 Avatars are decorative next to a visible name and labelled when standing alone; covers carry the circle name as their label
 - S-WEB-34 Every empty-state variant shows a fixed, decorative spot illustration
 
+### End-to-end (Playwright, `apps/web/e2e/`)
+
+Real static export, local anvil chain posing as Fuji (chain id 43113), test wallet that announces itself as Core and forwards to anvil. Every user-facing feature adds one here (CLAUDE.md).
+
+- S-E2E-01 Public pages load and stay indexable; app pages are noindex; robots.txt blocks `/app/`
+- S-E2E-02 Connect Core and see the portfolio
+- S-E2E-03 Start a circle, land on it; started after the due day means first installment next month; pay it and see "all paid up"
+
 ## Gates in CI
 
 - All scenarios and invariants pass (invariant runs ≥ 256 runs × depth 100 on PRs, deeper nightly)
 - Branch coverage ≥ 95% on `packages/contracts/src` money paths
 - No new Slither high/medium findings
 - Gas snapshot diff reviewed
+- Playwright E2E suite green (`pnpm --filter @wealthkart/web e2e`)
 
 ## Red-team scenarios
 

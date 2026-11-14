@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "deploy:preview": "pnpm build && wrangler pages deploy out --project-name=wealthkart --branch=preview",
-    "deploy:prod": "pnpm build && wrangler pages deploy out --project-name=wealthkart --branch=main"
+    "deploy:prod": "pnpm build && wrangler pages deploy out --project-name=wealthkart --branch=main",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
