@@ -20,6 +20,7 @@ abstract contract CircleVaultBase is Test {
 
     function _cfg() internal pure returns (CircleVault.Config memory c) {
         c = CircleVault.Config({
+            name: "College Gang",
             installment: uint128(AVAX / 2),
             fee1: uint128(AVAX / 100),
             fee2: uint128(AVAX / 100),

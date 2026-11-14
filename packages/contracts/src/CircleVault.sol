@@ -18,6 +18,8 @@ contract CircleVault is ReentrancyGuard {
     // ------------------------------------------------------------------ types
 
     struct Config {
+        /// @dev Circle name shown in the app, 1..48 bytes (public on-chain; no personal data).
+        string name;
         /// @dev Fixed installment per period, in wei (ADR 0002).
         uint128 installment;
         /// @dev Late fee 1 (after the due day) and late fee 2 (after `secondFeeDay`), in wei.
@@ -45,6 +47,7 @@ contract CircleVault is ReentrancyGuard {
     ///         Phase 2) and contracts are immutable, so deploying it on mainnet would lock funds.
     uint256 public constant AVALANCHE_MAINNET_CHAIN_ID = 43_114;
     uint8 public constant MAX_HOLIDAYS_PER_YEAR = 12;
+    uint256 public constant MAX_NAME_BYTES = 48;
 
     // ------------------------------------------------------------------ immutable config
 
@@ -63,7 +66,10 @@ contract CircleVault is ReentrancyGuard {
     /// @notice Internally tracked assets in wei (cash + loans outstanding, once loans exist).
     uint256 public totalAssets;
     uint256 public totalShares;
-    uint256 public memberCount;
+    /// @notice Circle name (set once at creation).
+    string public name;
+    /// @dev Append-only member list for paginated reads; never iterated in write paths (ADR 0015).
+    address[] internal _memberList;
 
     mapping(address member => Member) internal _members;
     mapping(address member => mapping(uint256 period => bool)) public holidayFor;
@@ -102,6 +108,10 @@ contract CircleVault is ReentrancyGuard {
     constructor(Config memory cfg, address[] memory founders) {
         // Funds-stuck guard: no exits in this version (see AVALANCHE_MAINNET_CHAIN_ID).
         if (block.chainid == AVALANCHE_MAINNET_CHAIN_ID) revert MainnetNotSupported();
+        uint256 nameLen = bytes(cfg.name).length;
+        if (nameLen == 0 || nameLen > MAX_NAME_BYTES) {
+            revert InvalidConfig("name must be 1..48 bytes");
+        }
         if (cfg.installment == 0) revert InvalidConfig("installment must be > 0");
         if (cfg.dueDay < 1 || cfg.dueDay > 28) revert InvalidConfig("dueDay must be 1..28");
         if (cfg.secondFeeDay <= cfg.dueDay || cfg.secondFeeDay > 28) {
@@ -120,6 +130,7 @@ contract CircleVault is ReentrancyGuard {
         dueDay = cfg.dueDay;
         secondFeeDay = cfg.secondFeeDay;
         holidaysPerYear = cfg.holidaysPerYear;
+        name = cfg.name;
         factory = msg.sender;
 
         uint32 start = SafeCast.toUint32(PeriodMath.periodOf(block.timestamp));
@@ -131,9 +142,9 @@ contract CircleVault is ReentrancyGuard {
             if (f == address(0)) revert ZeroAddressMember();
             if (_members[f].active) revert DuplicateMember(f);
             _members[f] = Member({active: true, nextPeriod: start, shares: 0});
+            _memberList.push(f);
             emit MemberAdded(f, start);
         }
-        memberCount = founders.length;
     }
 
     // ------------------------------------------------------------------ contributions
@@ -204,6 +215,26 @@ contract CircleVault is ReentrancyGuard {
 
     function memberOf(address account) external view returns (Member memory) {
         return _members[account];
+    }
+
+    /// @notice Number of members ever added (members are never removed in this version).
+    function memberCount() external view returns (uint256) {
+        return _memberList.length;
+    }
+
+    /// @notice Paginated member list for the app (bounded by `limit`).
+    function membersPage(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory page)
+    {
+        uint256 len = _memberList.length;
+        if (offset >= len) return new address[](0);
+        uint256 end = offset + limit > len ? len : offset + limit;
+        page = new address[](end - offset);
+        for (uint256 i = offset; i < end; ++i) {
+            page[i - offset] = _memberList[i];
+        }
     }
 
     function isMember(address account) external view returns (bool) {

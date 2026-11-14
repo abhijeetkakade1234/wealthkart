@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Hanken_Grotesk, Instrument_Serif } from "next/font/google";
 import { ErrorBoundary, GlobalErrorHandlers, Toaster } from "@/components/kit";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SITE_NAME, SITE_URL } from "@/content/site";
 
 import "./globals.css";
 
@@ -26,13 +28,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "WealthKart: savings circles for friends, on Avalanche",
     template: "%s · WealthKart",
   },
   description:
     "A private circle for friends: everyone adds AVAX each month, loans are decided by the group, and the contract keeps the books.",
-  applicationName: "WealthKart",
+  applicationName: SITE_NAME,
+  icons: { apple: "/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -52,6 +57,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <ErrorBoundary preset="app">{children}</ErrorBoundary>
           <Toaster />
           <GlobalErrorHandlers />
+          <RegisterServiceWorker />
         </TooltipProvider>
       </body>
     </html>
