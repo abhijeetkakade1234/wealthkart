@@ -4,9 +4,11 @@
 - **Date:** 2026-11-14
 
 ## Context
+
 The app has about 12 pages with many lists (circles, members, loans, votes, activity). It should feel like a modern web3 product, be consistent across pages, and stay usable as circles grow to many members and years of history.
 
 ## Decision
+
 - **shadcn/ui** (Radix + Tailwind) is the base component system. Components live in our repo, so we own and theme them.
 - **Web3-style flair** from shadcn-compatible copy-paste libraries, **Magic UI** and **Aceternity UI**: animated gradient borders, glow cards, number tickers, shimmer buttons, aurora/grid backgrounds. Used sparingly on key moments (balances, CTAs, vote results), never on dense data.
 - **Dark-first theme** (light supported) with design tokens in CSS variables; charts via **shadcn charts** (Recharts).
@@ -15,9 +17,11 @@ The app has about 12 pages with many lists (circles, members, loans, votes, acti
 - The landing page is out of scope for now (ADR to follow when designed).
 
 ## Alternatives considered
+
 - Chakra / MUI / Mantine: heavier, harder to give a distinctive web3 look.
 - A fully custom component kit: slow; shadcn gives accessible primitives we can restyle.
 - Infinite scroll: breaks "page 7 of 40", deep links and the back button. Rejected for data lists (OK only for the activity feed on mobile, as an optional "load more").
 
 ## Consequences
+
 Shared `DataTable`, `Pagination`, `SearchInput`, `PageHeader` components must be built first, in Phase 0. Full spec: `docs/ui.md`.

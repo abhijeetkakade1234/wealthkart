@@ -1,0 +1,3 @@
+# Foundry may live outside the default PATH (e.g. D:/tools/foundry); FOUNDRY_DIR points to it
+export PATH="$PATH:${FOUNDRY_DIR:-$HOME/.foundry}/bin"
+pnpm turbo run typecheck test --affected

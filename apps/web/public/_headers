@@ -1,0 +1,15 @@
+# Cloudflare Pages response headers. Static app: no cookies, no server; lock down framing and sniffing.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# Dev showcase must never be indexed
+/kit/*
+  X-Robots-Tag: noindex, nofollow
+
+# Hashed build assets can be cached forever
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
