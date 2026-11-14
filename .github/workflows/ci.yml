@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  js:
+    name: Lint, typecheck, test, build (TS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # .npmrc points the store at D: for the Windows dev machine; override on CI
+      - run: pnpm install --frozen-lockfile --config.store-dir=$HOME/.pnpm-store --config.cache-dir=$HOME/.pnpm-cache
+      - run: pnpm format:check
+      - run: pnpm turbo run lint typecheck test build --filter=!@wealthkart/contracts
+
+  contracts:
+    name: Contracts (Foundry)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge fmt --check
+      - run: forge build --sizes
+      - run: forge test -vv
+        env:
+          FOUNDRY_PROFILE: ci
