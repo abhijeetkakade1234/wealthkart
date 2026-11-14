@@ -5,6 +5,7 @@ pragma solidity 0.8.28;
 /// @notice Calendar-month periods and due moments, all in UTC (ADR 0014).
 /// @dev Mirrors `packages/rules/src/periods.ts`. A period index is `year * 12 + (month - 1)`.
 ///      Date conversion uses Howard Hinnant's days-from-civil algorithm (proleptic Gregorian).
+// forge-lint: disable-start(divide-before-multiply)
 library PeriodMath {
     uint256 internal constant SECONDS_PER_DAY = 86_400;
     uint8 internal constant MIN_DUE_DAY = 1;
@@ -32,7 +33,11 @@ library PeriodMath {
     }
 
     /// @dev Days since 1970-01-01 for a civil date. Valid for years >= 1970.
+    ///      Integer division before multiplication is intentional (calendar arithmetic);
+    ///      correctness is covered by the civil round-trip fuzz test.
     function daysFromCivil(uint256 y, uint256 m, uint256 d) internal pure returns (uint256) {
+        // unchecked is safe: callers pass y >= 1970 (periods come from block timestamps), m in 1..12,
+        // d in 1..31, so `y - 1` cannot underflow and every product stays far below 2^256.
         unchecked {
             if (m <= 2) y -= 1;
             uint256 era = y / 400;
@@ -46,6 +51,8 @@ library PeriodMath {
 
     /// @dev Civil date for days since 1970-01-01.
     function civilFromDays(uint256 z) internal pure returns (uint256 y, uint256 m, uint256 d) {
+        // unchecked is safe: z is days since 1970 (< 2^40 for any realistic timestamp); all
+        // subtractions are of quantities proven <= their minuend by the algorithm's construction.
         unchecked {
             z += 719_468;
             uint256 era = z / 146_097;
@@ -60,3 +67,4 @@ library PeriodMath {
         }
     }
 }
+// forge-lint: disable-end(divide-before-multiply)
