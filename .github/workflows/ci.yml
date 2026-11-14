@@ -67,3 +67,25 @@ jobs:
           target: packages/contracts
           slither-config: packages/contracts/slither.config.json
           fail-on: medium
+
+  lighthouse:
+    name: Lighthouse budget (web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @wealthkart/web build
+      - name: Run Lighthouse against the static export
+        working-directory: apps/web
+        run: npx -y @lhci/cli@0.14.0 autorun
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: apps/web/.lighthouseci/reports
+          if-no-files-found: ignore

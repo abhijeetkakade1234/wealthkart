@@ -34,3 +34,4 @@ Thumbs.db
 
 # local git worktrees made by tools
 .claude/worktrees/
+.lighthouseci/
