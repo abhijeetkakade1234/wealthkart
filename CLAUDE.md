@@ -57,6 +57,8 @@ Super admin, admins, members (see guide §1). Auth: mobile + 6-digit PIN, salted
 - **`docs/STATUS.md` is the phase + todo tracker.** Read it at session start; tick items and update the current phase as work lands.
 - **Tests model real production scenarios** (`docs/testing.md` catalogue, IDs like `S-PAY-02` in test names), plus fuzz, invariants and a G1 history replay. A new bug means a new scenario first.
 - Husky + lint + CI/CD per `docs/engineering.md`.
+- **Git flow (user rule):** `main` ← `dev` ← `abhijeet`. Commit only on `abhijeet`; PR `abhijeet` → `dev`, then `dev` → `main`. Don't create other long-lived or stacked branches. A temporary worktree branch must merge into `abhijeet` and be deleted. Push needs `FOUNDRY_DIR=/d/tools/foundry` for the pre-push hook. The GitHub account in this environment can't open PRs on the repo: give the user compare links.
+- **Machine:** C: is nearly full; keep tools, caches and temp on D: (`D:\tools\foundry`, `D:\tools\pnpm-store`, `TEMP=D:\tools\tmp`).
 - **Repo skills** in `.claude/skills/` (see its README): run `solidity-hardening` + `redteam-attack` on every contract change; `frontend-design` for UI; `security-audit-orchestrator` pre-mainnet; `human-writing-style` for docs and pitch; `3d-website-guide` only when the landing page gets its Phase 4 upgrade. Source: `D:\skills`.
 
 ## Working notes

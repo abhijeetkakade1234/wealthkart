@@ -27,9 +27,13 @@ Architecture, money flow, security, data or scope decisions get an ADR in `docs/
 
 ## 4. Git
 
-- Branch from `main`: `feat/…`, `fix/…`, `chore/…`, `docs/…`
+- **Three long-lived branches:** `main` ← `dev` ← `abhijeet`
+  - `abhijeet`: day-to-day work; all commits go here
+  - `dev`: integration; updated only by PR from `abhijeet`
+  - `main`: production; updated only by PR from `dev`
+- No other branches unless agreed (a parallel tool worktree may use a short-lived branch that merges into `abhijeet` and is then deleted)
 - **Conventional Commits** (`feat(contracts): add exit queue`), enforced by commitlint
-- PRs need a green CI and one review; `main` is protected
+- PRs need a green CI; `main` and `dev` are protected
 - Versioning and changelog via Changesets
 
 ## 5. Husky hooks
