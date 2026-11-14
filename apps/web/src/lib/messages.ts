@@ -52,6 +52,34 @@ export const messages = {
       ? `This loan is bigger than the circle allows for you right now. The most you can ask for is ${maxAvax} AVAX.`
       : "This loan is bigger than the circle allows for you right now.",
 
+  // Membership (ADR 0028, 0029)
+  notACircle: () =>
+    "This link doesn't point to a WealthKart circle. Don't send it any money; ask your friend for the link again.",
+  noFounderInvite: () => "There's no founder invite for this wallet in this circle.",
+  founderInviteExpired: () =>
+    "Your founder invite has expired. You can still ask to join; the members will vote.",
+  alreadyMember: () => "This wallet is already a member of this circle.",
+  requestAlreadyOpen: () =>
+    "You've already asked to join. Wait for the vote, or cancel your request first.",
+  tooManyOpenRequests: () =>
+    "This circle has too many people waiting to join right now. Try again after the members vote.",
+  circleFull: () => "This circle is full. It has reached the member limit its rules set.",
+  inviterNotMember: () =>
+    "The friend who invited you isn't a member of this circle, so we can't show them as your inviter.",
+  invalidDisplayName: () =>
+    "Names need 3 to 24 letters, numbers, spaces, dots, dashes or underscores, with no space at the start or end.",
+  nameTaken: () => "Someone in this circle already uses that name. Try another one.",
+  nameChangeTooSoon: (when?: string) =>
+    when
+      ? `You changed your name recently. You can change it again on ${when}.`
+      : "You changed your name recently. You can change it again after 30 days.",
+  requestNotOpen: () => "This join request has already been settled.",
+  notEligibleToVote: () =>
+    "You can't vote on this one. Only members who joined before the request, and are at most one month behind, can vote.",
+  alreadyVoted: () => "You've already voted on this request.",
+  notDecidedYet: () => "The vote isn't decided yet. It can be settled once the voting time ends.",
+  noOpenRequest: () => "You don't have a join request waiting in this circle.",
+
   // Success
   paid: (month: string, amountAvax: string) =>
     `Paid. Your ${month} installment of ${amountAvax} AVAX is in.`,
@@ -112,6 +140,22 @@ export type FriendlyErrorCode =
   | "not-available"
   | "vote-closed"
   | "loan-above-cap"
+  | "not-a-circle"
+  | "no-founder-invite"
+  | "founder-invite-expired"
+  | "already-member"
+  | "request-already-open"
+  | "too-many-requests"
+  | "circle-full"
+  | "inviter-not-member"
+  | "invalid-name"
+  | "name-taken"
+  | "name-change-too-soon"
+  | "request-not-open"
+  | "not-eligible-to-vote"
+  | "already-voted"
+  | "not-decided-yet"
+  | "no-open-request"
   | "unknown";
 
 /** The only error shape that ever reaches the UI. `details` is for the "Details" toggle. */
@@ -127,6 +171,8 @@ export interface FriendlyErrorContext {
   insufficient?: InsufficientAvaxParams;
   month?: string;
   maxLoanAvax?: string;
+  /** When a display name can change again, already formatted. */
+  nameChangeAt?: string;
 }
 
 export function friendlyError(
@@ -255,6 +301,32 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
   }
   if (hasName("LoanAboveCap", "LoanExceedsCap")) {
     return friendlyError("loan-above-cap", messages.loanAboveCap(ctx.maxLoanAvax), details);
+  }
+  // Membership errors (ADR 0028, 0029), plus the factory's NotACircle.
+  const membership: Array<[string, FriendlyErrorCode, () => string]> = [
+    ["NotACircle", "not-a-circle", messages.notACircle],
+    ["NoFounderInvite", "no-founder-invite", messages.noFounderInvite],
+    ["FounderInviteExpired", "founder-invite-expired", messages.founderInviteExpired],
+    ["AlreadyMember", "already-member", messages.alreadyMember],
+    ["RequestAlreadyOpen", "request-already-open", messages.requestAlreadyOpen],
+    ["TooManyOpenRequests", "too-many-requests", messages.tooManyOpenRequests],
+    ["CircleFull", "circle-full", messages.circleFull],
+    ["InvitedByNotAMember", "inviter-not-member", messages.inviterNotMember],
+    ["InvalidDisplayName", "invalid-name", messages.invalidDisplayName],
+    ["NameTaken", "name-taken", messages.nameTaken],
+    [
+      "NameChangeTooSoon",
+      "name-change-too-soon",
+      () => messages.nameChangeTooSoon(ctx.nameChangeAt),
+    ],
+    ["RequestNotOpen", "request-not-open", messages.requestNotOpen],
+    ["NotEligibleToVote", "not-eligible-to-vote", messages.notEligibleToVote],
+    ["AlreadyVoted", "already-voted", messages.alreadyVoted],
+    ["NotDecidedYet", "not-decided-yet", messages.notDecidedYet],
+    ["NoOpenRequest", "no-open-request", messages.noOpenRequest],
+  ];
+  for (const [name, code, message] of membership) {
+    if (hasName(name)) return friendlyError(code, message(), details);
   }
 
   // 3. Not enough AVAX for value + gas (often wrapped in -32000 / -32603).

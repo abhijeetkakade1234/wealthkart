@@ -95,10 +95,11 @@ How to use this file:
 ## Phase 1: MVP on Fuji (circles, vault, contributions)
 
 - [x] Create circle → deploy via factory (single-page form; wizard steps later if needed)
-- [ ] Invite link → join request → member vote → member (contracts done, ADR 0028; web join + votes pages in progress)
+- [x] Invite link → join request → member vote → member (ADR 0028; `/app/join`, `/app/circle/votes`, E2E S-E2E-04..06)
 - [x] Founders accept their invite before they count (RT-02)
-- [x] Factory `isCircle` registry (RT-01); web guard in progress
-- [ ] Display names (unique, cooldown): contracts done (ADR 0029); web in progress
+- [x] Factory `isCircle` registry and web guard against look-alike circles (RT-01)
+- [x] Display names (unique, cooldown, ADR 0029); set from the circle overview (S-E2E-07)
+- [x] Sign-in page (`/login`, split layout) with safe return path (S-E2E-08..10)
 - [x] Contribute AVAX; shares minted at NAV
 - [x] Late fees 1 and 2 (lazy), capped at half the installment (ADR 0030)
 - [ ] Dormant-member vote

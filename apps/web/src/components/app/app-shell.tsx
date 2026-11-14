@@ -32,7 +32,7 @@ const NAV: NavItem[] = [
   { label: "Circle", href: "/app/circle/", icon: Users, needsCircle: true },
   { label: "Pay", href: "/app/circle/pay/", icon: HandCoins, needsCircle: true },
   { label: "Loans", href: "/app/circle/loans/", icon: Landmark, needsCircle: true, soon: true },
-  { label: "Votes", href: "/app/circle/votes/", icon: Vote, needsCircle: true, soon: true },
+  { label: "Votes", href: "/app/circle/votes/", icon: Vote, needsCircle: true },
   {
     label: "Activity",
     href: "/app/circle/activity/",

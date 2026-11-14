@@ -78,6 +78,7 @@ Known gaps:
 - S-MEM-16 Admitted member sees the circle in their portfolio; only factory circles can register members
 - S-MEM-17 Applicant names a member as inviter → shown as unconfirmed until that member votes yes; naming a non-member reverts
 - S-MEM-18 Name rules: 3–24 chars of letters, digits, space, `_` `.` `-`; case-insensitive uniqueness; changing frees the old name
+- S-MEM-19 Every membership error the contract can return is shown in plain language, never as a code
 
 ### Loans (S-LOAN)
 
@@ -215,6 +216,8 @@ Known gaps:
 - S-WEB-32 Generated art uses only the art palette and stays inside its frame
 - S-WEB-33 Avatars are decorative next to a visible name and labelled when standing alone; covers carry the circle name as their label
 - S-WEB-34 Every empty-state variant shows a fixed, decorative spot illustration
+- S-WEB-35 Invite link carries only the circle address and the inviter; any look-alike contract that isn't in the factory registry shows a "don't pay this" warning on every circle page (RT-01)
+- S-WEB-40 Sign-in return path guard: only `/app/` paths are accepted as `next`; absolute URLs, `//host`, backslashes and encoded tricks fall back to `/app/`
 
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
@@ -223,6 +226,13 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-01 Public pages load and stay indexable; app pages are noindex; robots.txt blocks `/app/`
 - S-E2E-02 Connect Core and see the portfolio
 - S-E2E-03 Start a circle, land on it; started after the due day means first installment next month; pay it and see "all paid up"
+- S-E2E-04 Founder named at creation isn't a member until they accept; after accepting, members count goes up
+- S-E2E-05 Friend opens the invite link, picks a free name, asks to join; members vote yes in their own browsers; request settles on the deciding vote and the friend sees "You're in" and their name in the members table
+- S-E2E-06 Request nobody votes on: after the voting window anyone can settle it as expired; the applicant sees the result
+- S-E2E-07 Picking a name another member uses (different letter case) is refused before sending; a free name saves and the change button locks for 30 days
+- S-E2E-08 A wallet page while signed out sends you to sign in, then back to the page you asked for
+- S-E2E-09 Without Core installed, sign-in offers the Core download instead of a broken button
+- S-E2E-10 A crafted `next` link on the sign-in page can't send you outside the app
 
 ## Gates in CI
 

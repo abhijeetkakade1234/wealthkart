@@ -19,6 +19,8 @@ test.describe("create a circle and pay", () => {
     const name = `E2E Circle ${Date.now() % 100000}`;
     await page.goto("/app/new/");
     await page.getByRole("button", { name: "Connect Core" }).first().click();
+    // Signed-out visitors go through /login and come back here (S-E2E-08).
+    await page.waitForURL("**/app/new/");
     await page.getByLabel("Circle name").fill(name);
     await page.getByRole("button", { name: "Create circle" }).click();
 

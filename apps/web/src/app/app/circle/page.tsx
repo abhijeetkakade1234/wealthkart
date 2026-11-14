@@ -2,6 +2,7 @@
 
 import { explorerAddressUrl, formatAvax, periodLabel, shortAddress } from "@wealthkart/sdk";
 import { HandCoins } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -10,11 +11,20 @@ import { Avatar, CircleCover } from "@/components/art";
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { StatCard } from "@/components/app/stat-card";
-import { Button, ErrorBoundary, StateView } from "@/components/kit";
+import { CircleNotFound } from "@/components/app/circle-not-found";
+import { Button, ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
+import { InviteCard } from "@/components/membership/invite-card";
+import { NameCard } from "@/components/membership/name-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
-import { MEMBERS_PAGE_SIZE, parseCircleId, useCircle, useCircleMembers } from "@/lib/circle";
+import {
+  MEMBERS_PAGE_SIZE,
+  parseCircleId,
+  useChainNow,
+  useCircle,
+  useCircleMembers,
+} from "@/lib/circle";
 import type { Address } from "viem";
 
 export default function CirclePage() {
@@ -30,18 +40,11 @@ export default function CirclePage() {
 function CircleOverview() {
   const router = useRouter();
   const id = parseCircleId(useSearchParams().get("id"));
-  const { chainId } = useCoreWallet();
+  const { chainId, address } = useCoreWallet();
   const c = useCircle(id);
+  const chainNow = useChainNow();
 
-  if (!id || c.notFound) {
-    return (
-      <StateView
-        state="empty"
-        message="We couldn't find this circle. Check the link, or make sure your wallet is on the right network."
-        action={{ label: "Go to your circles", onAction: () => router.push("/app/") }}
-      />
-    );
-  }
+  if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
 
   if (c.isPending || !c.data) {
     return (
@@ -149,12 +152,46 @@ function CircleOverview() {
         )}
       </div>
 
+      {d.isMember && address && (
+        <section className="mt-16 grid gap-5 lg:grid-cols-2">
+          <ErrorBoundary preset="widget" name="Your name">
+            <NameCard
+              circle={id}
+              me={address}
+              name={d.myName}
+              nameChangedAt={d.myNameChangedAt}
+              chainNow={chainNow}
+              onSaved={() => void c.refetch()}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary preset="widget" name="Invite">
+            <InviteCard circle={id} me={address} />
+          </ErrorBoundary>
+        </section>
+      )}
+
+      {d.isMember && d.openRequestCount > 0 && (
+        <div className="mt-10">
+          <InlineAlert tone="info">
+            {d.openRequestCount === 1
+              ? "1 person is asking to join. "
+              : `${d.openRequestCount} people are asking to join. `}
+            <Link
+              href={`/app/circle/votes/?id=${id}`}
+              className="font-semibold underline underline-offset-4"
+            >
+              Go to Votes
+            </Link>
+          </InlineAlert>
+        </div>
+      )}
+
       <section className="mt-16">
         <h2 className="mb-6 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
           Members
         </h2>
         <ErrorBoundary preset="widget" name="Members">
-          <MembersTable id={id} total={Number(d.memberCount)} currentPeriod={d.due?.period} />
+          <MembersTable id={id} total={Number(d.memberListLength)} currentPeriod={d.due?.period} />
         </ErrorBoundary>
       </section>
     </>
@@ -207,7 +244,12 @@ function MembersTable({
                     <td className="px-6 py-[18px]">
                       <span className="inline-flex items-center gap-3 align-middle">
                         <Avatar address={r.address} size={30} />
-                        <span className="font-mono text-[12.5px]">{shortAddress(r.address)}</span>
+                        <span className="grid gap-0.5">
+                          <span className="font-medium">{r.name || "No name yet"}</span>
+                          <span className="font-mono text-[12px] text-muted-foreground">
+                            {shortAddress(r.address)}
+                          </span>
+                        </span>
                       </span>
                       {address?.toLowerCase() === r.address.toLowerCase() && (
                         <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-[11.5px] text-brand">
@@ -217,8 +259,14 @@ function MembersTable({
                     </td>
                     <td className="px-6 py-[18px] text-right tabular">{formatAvax(r.stake)}</td>
                     <td className="px-6 py-[18px]">
-                      {r.nextPeriod === null ? (
+                      {!r.active ? (
+                        <span className="text-[12.5px] text-muted-foreground">Left</span>
+                      ) : r.nextPeriod === null ? (
                         "–"
+                      ) : r.shares === 0n ? (
+                        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12.5px]">
+                          Nothing paid yet
+                        </span>
                       ) : (
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12.5px] ${behind ? "bg-bad-soft text-bad" : "bg-good-soft text-good"}`}
