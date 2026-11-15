@@ -799,19 +799,14 @@ export const circleVaultAbi = [
         internalType: "struct Exits.Entry",
         components: [
           {
+            name: "prev",
+            type: "address",
+            internalType: "address",
+          },
+          {
             name: "requestedAt",
             type: "uint64",
             internalType: "uint64",
-          },
-          {
-            name: "maturesAt",
-            type: "uint64",
-            internalType: "uint64",
-          },
-          {
-            name: "slot",
-            type: "uint32",
-            internalType: "uint32",
           },
           {
             name: "feeBps",
@@ -822,6 +817,16 @@ export const circleVaultAbi = [
             name: "waiting",
             type: "bool",
             internalType: "bool",
+          },
+          {
+            name: "next",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "maturesAt",
+            type: "uint64",
+            internalType: "uint64",
           },
         ],
       },
@@ -1109,6 +1114,30 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "hasVotedProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "ok",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "holidayFor",
     inputs: [
       {
@@ -1255,6 +1284,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "lastPauseAt",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "lendableCash",
     inputs: [],
     outputs: [
@@ -1356,6 +1398,21 @@ export const circleVaultAbi = [
             name: "charged",
             type: "bool",
             internalType: "bool",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "defaultPeriod",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
           },
         ],
       },
@@ -1600,6 +1657,11 @@ export const circleVaultAbi = [
             name: "paid",
             type: "uint16",
             internalType: "uint16",
+          },
+          {
+            name: "exiting",
+            type: "bool",
+            internalType: "bool",
           },
           {
             name: "shares",
@@ -1848,6 +1910,11 @@ export const circleVaultAbi = [
             name: "passPct",
             type: "uint8",
             internalType: "uint8",
+          },
+          {
+            name: "memberBar",
+            type: "bool",
+            internalType: "bool",
           },
           {
             name: "seqSnapshot",
@@ -2297,6 +2364,11 @@ export const circleVaultAbi = [
             name: "passPct",
             type: "uint8",
             internalType: "uint8",
+          },
+          {
+            name: "memberBar",
+            type: "bool",
+            internalType: "bool",
           },
           {
             name: "seqSnapshot",
@@ -3889,31 +3961,6 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
-    name: "DissolutionClaimed",
-    inputs: [
-      {
-        name: "member",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "shares",
-        type: "uint256",
-        indexed: false,
-        internalType: "uint256",
-      },
-      {
-        name: "amount",
-        type: "uint256",
-        indexed: false,
-        internalType: "uint256",
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: "event",
     name: "FeeWaived",
     inputs: [
       {
@@ -3945,25 +3992,6 @@ export const circleVaultAbi = [
         name: "id",
         type: "uint256",
         indexed: true,
-        internalType: "uint256",
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: "event",
-    name: "PayoutQueued",
-    inputs: [
-      {
-        name: "to",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "amount",
-        type: "uint256",
-        indexed: false,
         internalType: "uint256",
       },
     ],
@@ -4156,17 +4184,6 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
-    name: "LoansStillOutstanding",
-    inputs: [
-      {
-        name: "amount",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-  },
-  {
-    type: "error",
     name: "NoEligibleVoters",
     inputs: [],
   },
@@ -4185,11 +4202,6 @@ export const circleVaultAbi = [
         internalType: "address",
       },
     ],
-  },
-  {
-    type: "error",
-    name: "NotDissolved",
-    inputs: [],
   },
   {
     type: "error",
@@ -4219,6 +4231,17 @@ export const circleVaultAbi = [
     inputs: [
       {
         name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalTooSoon",
+    inputs: [
+      {
+        name: "allowedAt",
         type: "uint256",
         internalType: "uint256",
       },
@@ -4266,6 +4289,31 @@ export const circleVaultAbi = [
         internalType: "address",
       },
     ],
+  },
+  {
+    type: "event",
+    name: "DissolutionClaimed",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "shares",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
   },
   {
     type: "event",
@@ -4407,6 +4455,19 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
+    name: "GuardianRetired",
+    inputs: [
+      {
+        name: "guardian",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "GuardianUnpaused",
     inputs: [
       {
@@ -4417,6 +4478,36 @@ export const circleVaultAbi = [
       },
     ],
     anonymous: false,
+  },
+  {
+    type: "event",
+    name: "PayoutQueued",
+    inputs: [
+      {
+        name: "to",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "ClaimBlockedByLoan",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
   },
   {
     type: "error",
@@ -4479,12 +4570,22 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "NotDissolved",
+    inputs: [],
+  },
+  {
+    type: "error",
     name: "NotGuardian",
     inputs: [],
   },
   {
     type: "error",
     name: "NotPaused",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NothingToClaimYet",
     inputs: [],
   },
   {
@@ -4497,6 +4598,11 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "PayoutGasTooLow",
+    inputs: [],
   },
   {
     type: "event",
@@ -5037,6 +5143,17 @@ export const circleVaultAbi = [
     type: "error",
     name: "MedicalLoansOff",
     inputs: [],
+  },
+  {
+    type: "error",
+    name: "MemberExiting",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
   },
   {
     type: "error",

@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { CircleGov } from "@/lib/gov-hooks";
-import { exitPhase, isAhead, noticeText } from "@/lib/governance";
+import { effectiveNoticeDays, exitPhase, isAhead, noticeText } from "@/lib/governance";
 import { messages } from "@/lib/messages";
 import { formatBps } from "@/lib/rules";
 import { notify } from "@/lib/toast";
@@ -49,7 +49,7 @@ export function LeaveCard({
   const claim = useVaultAction(circle);
   const rules = gov.rules;
   const rageQuit = isAhead(gov.rageQuitUntil, chainNow);
-  const noticeDays = rageQuit ? 0 : (rules?.exitNoticeDays ?? 0);
+  const noticeDays = effectiveNoticeDays(rules?.exitNoticeDays ?? 0, gov.rageQuitUntil, chainNow);
   const feeBps = gov.exit
     ? Math.min(gov.exit.feeBps, rules?.exitFeeBps ?? gov.exit.feeBps)
     : (rules?.exitFeeBps ?? 0);
@@ -121,9 +121,9 @@ export function LeaveCard({
       {phase === "none" && (
         <>
           {rageQuit && (
-            <InlineAlert tone="info" title="You can leave with no notice right now">
-              New rules start on {dateFmt.format(new Date(gov.rageQuitUntil * 1000))}. Until then,
-              anyone who doesn&apos;t want them can leave straight away under today&apos;s rules.
+            <InlineAlert tone="info" title="You can leave before the new rules start">
+              New rules start on {dateFmt.format(new Date(gov.rageQuitUntil * 1000))}. If you ask to
+              leave now, your notice ends by then and you leave under today&apos;s rules.
             </InlineAlert>
           )}
           <dl className="grid gap-4 sm:grid-cols-3">

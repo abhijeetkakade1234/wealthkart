@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {Membership} from "../src/modules/Membership.sol";
 import {Governance} from "../src/modules/Governance.sol";
+import {Exits} from "../src/modules/Exits.sol";
 import {Rules} from "../src/modules/Rules.sol";
 import {CircleVaultBase} from "./CircleVault.base.sol";
 import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
@@ -13,15 +14,14 @@ import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 abstract contract GovernanceBase is CircleVaultBase {
     uint256 internal constant JAN_1_2027 = 1_798_761_600; // 2027-01-01T00:00:00Z
     uint256 internal constant FEB_1_2027 = 1_801_440_000; // 2027-02-01T00:00:00Z
-    /// @dev `_ledger` starts at slot 24 (forge inspect CircleVault storageLayout).
-    uint256 internal constant SLOT_LOANS_OUT = 26;
-    uint256 internal constant SLOT_SWITCHES = 30; // pausedUntil | rageQuitUntil | dissolved | guard
+    uint256 internal constant SLOT_LOANS_OUT = SLOT_LOANS_OUTSTANDING;
 
+    /// @dev An ordinary (not risky, ADR 0043) change: cheaper loans and a longer exit notice.
     function _newRules() internal pure returns (Rules.Params memory r) {
         r = Rules.defaults(uint128(AVAX / 2));
-        r.interestBps = 200;
-        r.tenor2Bps = 250;
-        r.tenor3Bps = 300;
+        r.interestBps = 50;
+        r.tenor2Bps = 100;
+        r.tenor3Bps = 150;
         r.exitNoticeDays = 45;
     }
 
@@ -78,7 +78,7 @@ contract CircleVaultGovernanceTest is GovernanceBase {
         vm.prank(honest);
         uint256 id = vault.proposeRuleChange(r);
         assertEq(uint8(_status(vault, id)), uint8(Governance.Status.Open));
-        assertEq(vault.proposalRules(id).interestBps, 200);
+        assertEq(vault.proposalRules(id).interestBps, 50);
 
         // 12 voters, pass mark > 50%: the 7th yes decides it early.
         _govVotes(vault, members, id, 5, true);
@@ -89,13 +89,14 @@ contract CircleVaultGovernanceTest is GovernanceBase {
         // Passed on Dec 1 + 7 days = Dec 8 -> next period start, Jan 1.
         (Rules.Params memory pending, uint64 at) = vault.pendingRuleChange();
         assertEq(at, JAN_1_2027);
-        assertEq(pending.interestBps, 200);
+        assertEq(pending.interestBps, 50);
         assertEq(vault.rageQuitUntil(), JAN_1_2027);
         assertEq(vault.rules().interestBps, 100, "old rules until the change applies");
 
         vm.warp(JAN_1_2027);
+        assertEq(vault.rules().interestBps, 50, "in force from effectiveAt, before any poke");
         vault.applyRuleChange();
-        assertEq(vault.rules().interestBps, 200);
+        assertEq(vault.rules().interestBps, 50);
         assertEq(vault.rules().exitNoticeDays, 45);
         (, at) = vault.pendingRuleChange();
         assertEq(at, 0);
@@ -167,13 +168,13 @@ contract CircleVaultGovernanceTest is GovernanceBase {
         // Once due, a new proposal puts the waiting change into force first.
         vm.warp(JAN_1_2027);
         Rules.Params memory next = _newRules();
-        next.interestBps = 300;
-        next.tenor2Bps = 300;
-        next.tenor3Bps = 300;
+        next.interestBps = 25;
+        next.tenor2Bps = 100;
+        next.tenor3Bps = 150;
         vm.prank(members[2]);
         uint256 id = vault.proposeRuleChange(next);
-        assertEq(vault.rules().interestBps, 200, "first change applied");
-        assertEq(vault.proposalRules(id).interestBps, 300);
+        assertEq(vault.rules().interestBps, 50, "first change applied");
+        assertEq(vault.proposalRules(id).interestBps, 25);
     }
 
     function test_S_GOV_06_rejectedChangeFreesTheSlot() public {
@@ -214,7 +215,7 @@ contract CircleVaultGovernanceTest is GovernanceBase {
 
     function test_S_GOV_08_quorumMetButSplitIsRejectedAtTheEnd() public {
         vm.prank(honest);
-        uint256 id = vault.proposeGuardianOff();
+        uint256 id = vault.proposeRuleChange(_newRules());
         _govVotes(vault, members, id, 2, true);
         _govVotes(vault, members, id, 3, false); // 3 yes, 3 no: quorum met, not > 50%
         vm.warp(block.timestamp + 48 hours + 1);
@@ -224,13 +225,27 @@ contract CircleVaultGovernanceTest is GovernanceBase {
 
     function test_S_GOV_08_quorumMetMajorityPassesAtTheEnd() public {
         vm.prank(honest);
-        uint256 id = vault.proposeGuardianOff();
+        uint256 id = vault.proposeRuleChange(_newRules());
         _govVotes(vault, members, id, 3, true);
         _govVotes(vault, members, id, 2, false); // 4 yes, 2 no
         vm.warp(block.timestamp + 48 hours + 1);
         vault.finalizeProposal(id);
         assertEq(uint8(_status(vault, id)), uint8(Governance.Status.Approved));
-        assertTrue(vault.guardianDisabled());
+        (, uint64 at) = vault.pendingRuleChange();
+        assertGt(at, 0);
+    }
+
+    /// @dev GOV-01 (ADR 0043): guardian-off needs yes from the pass mark of all eligible members.
+    function test_S_GOV_08_guardianOffNeedsMembersNotJustVotesCast() public {
+        vm.prank(honest);
+        uint256 id = vault.proposeGuardianOff();
+        assertTrue(vault.proposal(id).memberBar);
+        _govVotes(vault, members, id, 3, true);
+        _govVotes(vault, members, id, 2, false); // 4 yes, 2 no: 4 of 12 is not > 50%
+        vm.warp(block.timestamp + 48 hours + 1);
+        vault.finalizeProposal(id);
+        assertEq(uint8(_status(vault, id)), uint8(Governance.Status.Expired));
+        assertFalse(vault.guardianDisabled());
     }
 
     function test_S_GOV_09_voteGuards() public {
@@ -275,16 +290,26 @@ contract CircleVaultGovernanceTest is GovernanceBase {
     function test_S_GOV_03_proposalSpamIsRateLimited() public {
         vm.startPrank(honest);
         vault.proposeDissolve();
+        // GOV-08: one new proposal per member per day.
+        vm.expectRevert(
+            abi.encodeWithSelector(Governance.ProposalTooSoon.selector, block.timestamp + 1 days)
+        );
         vault.proposeGuardianOff();
+        vm.warp(block.timestamp + 1 days);
+        vault.proposeGuardianOff();
+        vm.warp(block.timestamp + 1 days);
         vm.expectRevert(abi.encodeWithSelector(Governance.TooManyOpenProposalsBy.selector, honest));
         vault.proposeDissolve();
         vm.stopPrank();
 
         for (uint256 i = 1; i < 5; ++i) {
-            vm.startPrank(members[i]);
+            vm.prank(members[i]);
             vault.proposeDissolve();
+        }
+        vm.warp(block.timestamp + 1 days);
+        for (uint256 i = 1; i < 5; ++i) {
+            vm.prank(members[i]);
             vault.proposeGuardianOff();
-            vm.stopPrank();
         }
         (uint256[] memory ids, Governance.Proposal[] memory page) = vault.openProposalsPage(0, 50);
         assertEq(ids.length, 10);
@@ -413,21 +438,39 @@ contract CircleVaultGovernanceTest is GovernanceBase {
         vault.proposeGuardianOff();
     }
 
-    function test_S_LIFE_02_claimsWaitForLoansToClose() public {
+    /// @dev GOV-06 (ADR 0043): claims pay each member's share of the cash while loans are out;
+    ///      the rest is claimed again once the loans come back.
+    function test_S_LIFE_02_claimsPayCashNowAndTheRestLater() public {
         _payAll(vault, members);
-        vm.expectRevert(Governance.NotDissolved.selector);
+        vm.expectRevert(Exits.NotDissolved.selector);
         vm.prank(honest);
         vault.claimDissolution();
 
         _dissolve(vault, members);
+        // 1 AVAX is lent out (what LoanBook would do).
         vm.store(address(vault), bytes32(SLOT_LOANS_OUT), bytes32(uint256(1 ether)));
+        vm.deal(address(vault), address(vault).balance - 1 ether);
+        uint256 shares = vault.memberOf(honest).shares;
+        uint256 cashNow = vault.cash();
+        uint256 navBefore = vault.navPerShareE18();
+        uint256 totalBefore = vault.totalShares();
+        uint256 before = honest.balance;
         vm.prank(honest);
-        vm.expectRevert(abi.encodeWithSelector(Governance.LoansStillOutstanding.selector, 1 ether));
         vault.claimDissolution();
+        uint256 first = honest.balance - before;
+        assertEq(first, shares * cashNow / totalBefore, "share of cash");
+        assertTrue(vault.isMember(honest), "stays while loans are out");
+        assertGt(vault.memberOf(honest).shares, 0);
+        assertGe(vault.navPerShareE18(), navBefore, "claim never lowers NAV");
 
+        // The loan is repaid; the second claim pays the rest and the member leaves.
         vm.store(address(vault), bytes32(SLOT_LOANS_OUT), bytes32(0));
+        vm.deal(address(vault), address(vault).balance + 1 ether);
+        uint256 stakeLeft = vault.stakeOf(honest);
+        before = honest.balance;
         vm.prank(honest);
         vault.claimDissolution();
+        assertApproxEqAbs(honest.balance - before, stakeLeft, 2);
         assertFalse(vault.isMember(honest));
     }
 

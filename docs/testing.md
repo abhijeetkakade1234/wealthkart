@@ -41,7 +41,8 @@ Known gaps:
 - I-9 `memberCount` = creator + accepted founders + admitted members; the member list never holds duplicates
 - I-10 A display name in use maps back to exactly one member, ignoring case
 - I-11 Open join requests stay ≤ 20, each is Open and indexed by its applicant
-- I-12 Vault balance = total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets)
+- I-12 Vault balance ≥ total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets); `≥` because AVAX can be forced in (EXIT-10)
+- I-13 The exit queue is a consistent linked list of live exits; exactly the queued members are flagged `exiting`, and `voterCount` leaves them out (ADR 0043)
 
 ## Scenario catalogue
 
@@ -125,19 +126,19 @@ Known gaps:
 - S-EXIT-09 Last member exits → vault empties cleanly, no dust stuck
 - S-EXIT-10 Exit fee → stays in the vault; everyone else's NAV goes up
 - S-EXIT-11 Dormant member exits → paid for their shares; dormant count drops
-- S-EXIT-12 Rage-quit window open (ADR 0019) → exit has no notice and is paid even if an earlier exit is still in its notice
+- S-EXIT-12 Rage-quit window open (ADR 0019, 0043) → exit matures at `min(now + notice, rageQuitUntil)` under the old rules, never instantly, and is paid at the switch even if an earlier exit is still in its notice
 - S-EXIT-13 Member takes a loan tie or is frozen during the notice → exit dropped at processing, `exitsWaiting` stays exact
 
 ### Governance (S-GOV)
 
 - S-GOV-01 Rule change passes → applies from the next period, not retroactively
 - S-GOV-02 Timelock: a passed change can't execute early
-- S-GOV-03 Proposal spam by one member → rate limited
+- S-GOV-03 Proposal spam by one member → rate limited (2 open per member, 10 in all, one new proposal per member per day)
 - S-GOV-04 Fee waiver vote passes → fee removed, NAV adjusted correctly; the member it is about can't vote on it; unpaid started periods only
 - S-GOV-05 Rule change outside the bounds → refused when proposed
 - S-GOV-06 One rule change at a time: a second is refused while one is open or waiting; a due one is applied first
 - S-GOV-07 Only current voters propose (non-members and members two periods behind can't)
-- S-GOV-08 Quorum and pass mark: no quorum → expired; quorum but no majority → rejected; majority at the end → passes
+- S-GOV-08 Quorum and pass mark: no quorum → expired; quorum but no majority → rejected; majority at the end → passes (ordinary rule changes); guardian-off and dissolve need the pass mark of all eligible members (ADR 0043)
 - S-GOV-09 Vote guards: twice, outsider, after the window, unknown id → revert
 - S-GOV-10 Proposer cancels an open proposal; nobody else can
 - S-GOV-11 Guardian voted off → pause cleared and can't be voted off twice
@@ -301,6 +302,38 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - No new Slither high/medium findings
 - Gas snapshot diff reviewed
 - Playwright E2E suite green (`pnpm --filter @wealthkart/web e2e`)
+
+## Security review fixes (S-RV)
+
+From the November 2026 module reviews ([governance](redteam/2026-11-governance-review.md), [exits](redteam/2026-11-exits-review.md), [loans](redteam/2026-11-loans-review.md)); decisions in ADR 0043. Tests: `packages/contracts/test/CircleVault.reviewFixes.t.sol`.
+
+- S-RV-LAYOUT Storage slots the tests poke with `vm.store` haven't moved (transient lock, `exiting` byte, exit list head, rules)
+- S-RV-GOV-01 6 of 12 members vote to dissolve with quorum met → expires, not dissolved; in a 5-member circle at 20% quorum the proposer alone can't dissolve
+- S-RV-GOV-02 Exit pending when the circle dissolves → paid with no exit fee; new exits refused; a waiting exit is cleared when its member claims dissolution (`exitsWaiting` exact)
+- S-RV-GOV-03 Rule change that lowers the dissolve bar (or touches any risky field) → needs the dissolve pass mark of all eligible members; safer changes keep the ordinary bar
+- S-RV-GOV-04 A passed change is shown in force from `effectiveAt` and the next write applies it, with no poke
+- S-RV-GOV-05 Every forwarded Governance write, then a `nonReentrant` call in the same transaction → the lock was never left set
+- S-RV-GOV-07 Proposer tries to cancel after the window closed → refused; the vote is finalised as passed
+- S-RV-GOV-09 Member two periods behind proposes a waiver for themselves → refused; nobody can open a waiver for a dormant member
+- S-RV-GOV-13 Dirty or short calldata through the forwarder → reverts; a view called by CALL writes nothing
+- S-RV-EXIT-01 Two members churn request/cancel hundreds of times → queue holds only live exits, cancel stays O(1); two waiting exits are both paid once cash returns
+- S-RV-EXIT-02 Seven self-claims at the front → keeper still sees the next matured exit
+- S-RV-EXIT-03 Rage-quit exit matures at the earlier of the notice and the switch, never at once
+- S-RV-EXIT-04 Member four months behind exits → paid full value (arrears forgiven by design)
+- S-RV-EXIT-05 Later exit claims while an earlier matured one is unmarked → the earlier one is paid first
+- S-RV-EXIT-06 Member asks to exit → can't vote or propose and leaves the quorum base; cancel → votes again on new proposals only
+- S-RV-EXIT-09 Caller sweeps gas limits on a payout → never pushes it into `withdrawable`
+- S-RV-EXIT-11 Creator leaves → guardian role and any pause end for good, even after rejoining
+- S-RV-LOAN-01 Mutual guarantees, a borrower guaranteeing, or a guarantor with an open request → refused
+- S-RV-LOAN-02 Circle dissolves with a loan out → untied members claim cash now; the default is settled by anyone with no vote; everyone claims the rest and the vault empties
+- S-RV-LOAN-03 Borrower wallet return-bombs or burns gas → the vote still closes; a refused payout becomes withdrawable
+- S-RV-LOAN-04 `defaultAfter` and the interest late fee change after payout → the running loan keeps its own
+- S-RV-LOAN-05 Medical cap lowered before payout → the request closes as Failed
+- S-RV-LOAN-06 Settle months after a default → charges interest and fees only up to the default month
+- S-RV-LOAN-07 Exit matured but unmarked at the head of the queue → disbursal waits until it is paid
+- S-RV-LOAN-08 Frozen member → can't vote on loans or proposals
+- S-RV-LOAN-09 Member in exit notice → can't borrow or guarantee
+- S-RV-LOAN-11 `loanRequest(0)` → clean revert, not a panic
 
 ## Red-team scenarios
 

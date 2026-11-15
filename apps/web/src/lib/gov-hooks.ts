@@ -61,7 +61,6 @@ export function useCircleGov(id: Address | null) {
     ? {
         requestedAt: Number(entry.requestedAt),
         maturesAt: Number(entry.maturesAt),
-        slot: Number(entry.slot),
         feeBps: Number(entry.feeBps),
         waiting: entry.waiting,
       }
@@ -90,7 +89,8 @@ export function useCircleGov(id: Address | null) {
           rageQuitUntil: Number(ok<bigint | number>(3) ?? 0),
           dissolved: ok<boolean>(4) ?? false,
           guardianDisabled: ok<boolean>(5) ?? false,
-          exit: exit && exit.slot > 0 ? exit : null,
+          // "No exit pending" is requestedAt == 0 (ADR 0043: the queue is a linked list now).
+          exit: exit && exit.requestedAt > 0 ? exit : null,
           exitValue: ok<bigint>(7) ?? 0n,
           exitsWaiting: Number(ok<bigint>(8) ?? 0n),
           withdrawable: ok<bigint>(9) ?? 0n,

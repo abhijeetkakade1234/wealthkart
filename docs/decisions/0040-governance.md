@@ -1,6 +1,6 @@
 # 0040. Governance module: rule changes, fee waivers, dissolution, guardian off
 
-- **Status:** Accepted
+- **Status:** Accepted; pass marks for dissolve, guardian-off and risky rule changes, rule switch-over, cancel and proposer rules, dissolution claims: Superseded by 0043
 - **Date:** 2026-11-15
 
 ## Context

@@ -64,11 +64,16 @@ contract LoanHandler is Test {
         for (uint256 k = 0; k < 3; ++k) {
             payAll();
         }
-        address b = _who(who);
-        vm.prank(b);
-        try vault.requestLoan(bound(amount, 1, 0.5 ether), false, address(0)) returns (uint256 id) {
-            this.voteAllYes(id - 1);
-        } catch {}
+        // Try members from `who` on until one may borrow: one stake backs one loan (LOAN-01), so
+        // guarantors and members with a request or loan are skipped.
+        amount = bound(amount, 1, 0.5 ether);
+        for (uint256 k = 0; k < members.length; ++k) {
+            vm.prank(_who(who + k));
+            try vault.requestLoan(amount, false, address(0)) returns (uint256 id) {
+                this.voteAllYes(id - 1);
+                return;
+            } catch {}
+        }
     }
 
     /// @dev Every eligible member votes yes on request `id` (lets runs reach payouts often).
@@ -158,7 +163,8 @@ contract CircleVaultLoansInvariantTest is CircleVaultBase {
 
     /// I-L1: AVAX held = cash + refused payouts (members here are EOAs, so none are refused).
     function invariant_S_LOAN_28_IL1_balanceEqualsCash() public view {
-        assertEq(address(vault).balance, vault.totalAssets() - vault.loansOutstanding());
+        // `>=`: AVAX can be forced in without touching the books (EXIT-10).
+        assertGe(address(vault).balance, vault.totalAssets() - vault.loansOutstanding());
     }
 
     /// I-L2: loans out equals the sum of every borrower's principal.

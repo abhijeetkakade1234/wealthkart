@@ -11,10 +11,9 @@ import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 
 /// @notice Shared helpers for loan scenarios (ADR 0007, 0009, 0018, 0038).
 abstract contract LoanBase is CircleVaultBase {
-    /// @dev Storage slots of `Ledger.Store` fields in CircleVault (forge inspect storageLayout):
-    ///      `_ledger` starts at slot 24. Used to simulate the Exits and Governance switches.
-    uint256 internal constant SLOT_EXITS_WAITING = 29;
-    uint256 internal constant SLOT_PAUSE_FLAGS = 30;
+    /// @dev `Ledger.Store` switch slots come from CircleVaultBase; used to simulate the Exits
+    ///      and Governance switches.
+    uint256 internal constant SLOT_PAUSE_FLAGS = SLOT_SWITCHES;
 
     uint256 internal constant LOAN = 8e17; // 0.8 AVAX
     uint256 internal constant FEE = 1e16; // interestFee default = installment / 50

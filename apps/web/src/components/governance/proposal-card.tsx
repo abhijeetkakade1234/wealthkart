@@ -145,7 +145,8 @@ export function ProposalCard({
             )}
             <p className="text-muted-foreground">
               If it passes, the new rules wait {rules?.ruleChangeDelayDays ?? 7} days and then start
-              on the 1st of the next month. Until then, anyone can leave with no notice.
+              on the 1st of the next month. Anyone who asks to leave before then is out under
+              today&apos;s rules.
             </p>
           </>
         )}
