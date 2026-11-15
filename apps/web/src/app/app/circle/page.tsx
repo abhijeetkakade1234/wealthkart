@@ -6,6 +6,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
+import { periodOf } from "@wealthkart/rules";
+
+import { CircleAnalytics } from "@/components/analytics/circle-analytics";
 import { CountdownUTC } from "@/components/app/countdown-utc";
 import { Avatar, CircleCover } from "@/components/art";
 import { PageHeader } from "@/components/app/page-header";
@@ -26,6 +29,7 @@ import {
   useCircle,
   useCircleMembers,
 } from "@/lib/circle";
+import { votingRightsNote } from "@/lib/membership";
 import type { Address } from "viem";
 
 export default function CirclePage() {
@@ -197,6 +201,21 @@ function CircleOverview() {
 
       <section className="mt-16">
         <h2 className="mb-6 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
+          How the circle is doing
+        </h2>
+        <ErrorBoundary preset="widget" name="Circle history">
+          <CircleAnalytics
+            id={id}
+            memberListLength={Number(d.memberListLength)}
+            currentPeriod={periodOf(chainNow)}
+            chainNow={chainNow}
+            dueDay={d.dueDay}
+          />
+        </ErrorBoundary>
+      </section>
+
+      <section className="mt-16">
+        <h2 className="mb-6 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
           Members
         </h2>
         <ErrorBoundary preset="widget" name="Members">
@@ -205,6 +224,7 @@ function CircleOverview() {
             total={Number(d.memberListLength)}
             canPropose={d.isMember && !d.iAmDormant}
             dormantAfter={d.dormantAfter}
+            minPaidToVote={d.minPaidToVote}
             onChanged={() => void c.refetch()}
           />
         </ErrorBoundary>
@@ -218,6 +238,7 @@ function MembersTable({
   total,
   canPropose,
   dormantAfter,
+  minPaidToVote,
   onChanged,
 }: {
   id: Address;
@@ -225,6 +246,7 @@ function MembersTable({
   /** The viewer is an active member, so they may start a dormant vote. */
   canPropose: boolean;
   dormantAfter: number;
+  minPaidToVote: number;
   onChanged: () => void;
 }) {
   const page = usePageParam();
@@ -245,7 +267,7 @@ function MembersTable({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-[14px]">
+          <table aria-label="Members" className="w-full min-w-[640px] text-[14px]">
             <thead>
               <tr className="border-b border-line-soft text-left text-[12.5px] text-muted-foreground">
                 <th className="px-6 py-3.5 font-medium">Member</th>
@@ -305,6 +327,11 @@ function MembersTable({
                         >
                           <span className="size-1.5 rounded-full bg-current" aria-hidden />
                           {r.nextPeriod === 0n ? "Not started" : periodLabel(r.nextPeriod - 1n)}
+                        </span>
+                      )}
+                      {r.active && !r.dormant && !r.voter && (
+                        <span className="mt-1 block text-[12px] text-muted-foreground">
+                          {votingRightsNote(r.paid, minPaidToVote)}
                         </span>
                       )}
                       {behind && !r.dormant && (

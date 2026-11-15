@@ -62,3 +62,11 @@ export async function send(tx: { from: string; to: string; data: string; value?:
 
 /** Read-only contract call (eth_call) at the latest block. */
 export const call = (to: string, data: string) => rpc<string>("eth_call", [{ to, data }, "latest"]);
+
+/** Jumps chain time to `day` 12:00 UTC of the current calendar month (must be in the future). */
+export async function warpToDayThisMonth(day: number) {
+  const now = new Date((await chainNow()) * 1000);
+  const target = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, 12, 0, 0) / 1000;
+  await rpc("evm_setNextBlockTimestamp", [target]);
+  await rpc("evm_mine");
+}

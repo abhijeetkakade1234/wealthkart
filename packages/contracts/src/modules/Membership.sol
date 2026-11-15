@@ -20,12 +20,18 @@ library Membership {
         bool active;
         /// @dev Voted dormant (ADR 0032): owes nothing, can't vote, shares stay. Ends on `wake`.
         bool dormant;
+        /// @dev Has voting rights: founders from the start; members admitted by vote once they
+        ///      have paid `minPaidToVote` installments (ADR 0033, RT-03). Kept while dormant.
+        bool voter;
         /// @dev Next period this member must pay; payments are always oldest first.
         uint32 nextPeriod;
-        /// @dev Join order stamp, renewed on wake. Votes only on requests made after it.
+        /// @dev Voting stamp: set on joining, renewed when voting rights arrive and on wake.
+        ///      A member votes only on requests made after it.
         uint32 seq;
         /// @dev Last time the display name was set (0 = never set).
         uint64 nameChangedAt;
+        /// @dev Installments paid so far.
+        uint16 paid;
         uint128 shares;
     }
 
@@ -78,6 +84,7 @@ library Membership {
         uint8 quorumPct;
         uint16 maxMembers;
         uint8 dormantAfter;
+        uint8 minPaidToVote;
     }
 
     struct Store {
@@ -85,6 +92,13 @@ library Membership {
         /// @dev Members right now, dormant included (the `maxMembers` cap counts them).
         uint256 memberCount;
         uint256 dormantCount;
+        /// @dev Members who can vote right now: voter, active, not dormant. Every quorum
+        ///      denominator starts here (ADR 0033), kept O(1) without looping (ADR 0015).
+        uint256 voterCount;
+        /// @dev Open requests naming a member as inviter (join) or proposer (dormant).
+        mapping(address member => uint256) openBy;
+        /// @dev Members admitted with `member` as their confirmed inviter.
+        mapping(address member => uint256) admittedVia;
         uint32 seqCounter;
         /// @dev Every address that was ever a member, once each, for paginated reads.
         address[] memberList;
@@ -116,6 +130,8 @@ library Membership {
     uint256 internal constant DORMANT_PASS_PCT = 50;
     /// @dev Open requests allowed at once, so spam can't flood the Votes page (RT-05).
     uint256 internal constant MAX_OPEN_REQUESTS = 20;
+    /// @dev Open requests that may name one member as inviter or proposer (RT-03, RT-05).
+    uint256 internal constant MAX_OPEN_PER_MEMBER = 3;
     /// @dev How long an invited founder has to accept (RT-02).
     uint64 internal constant FOUNDER_INVITE_TTL = 14 days;
     /// @dev Minimum time between display-name changes, and how long a dropped name stays
@@ -150,6 +166,8 @@ library Membership {
     event RequestClosed(uint256 indexed requestId, Kind kind, Status status);
     event MemberDormant(address indexed member, uint256 indexed period);
     event MemberWoke(address indexed member, uint256 indexed nextPeriod);
+    /// @notice A member admitted by vote paid enough installments to vote (ADR 0033).
+    event VotingRightsGranted(address indexed member);
     event DisplayNameSet(address indexed member, string displayName);
     /// @notice The name a newcomer asked for was taken before they were admitted; they joined
     ///         without a name and pick one with `setDisplayName`.
@@ -168,6 +186,7 @@ library Membership {
     error AlreadyMember(address account);
     error RequestAlreadyOpen(uint256 requestId);
     error TooManyOpenRequests();
+    error TooManyOpenRequestsBy(address member);
     error CircleFull(uint256 maxMembers);
     error InvitedByNotAMember(address invitedBy);
     error InvalidDisplayName();
@@ -193,7 +212,7 @@ library Membership {
         if (creator == address(0)) revert ZeroAddressMember();
         if (invitees.length + 1 > MAX_FOUNDERS) revert TooManyFounders(invitees.length + 1);
         startPeriod = _firstPeriod(p.dueDay);
-        _addMember(s, creator, startPeriod);
+        _addMember(s, creator, startPeriod, true);
 
         uint64 expiresAt = SafeCast.toUint64(block.timestamp) + FOUNDER_INVITE_TTL;
         // forge-lint: disable-next-line(require-revert-in-loop)
@@ -214,7 +233,8 @@ library Membership {
         if (block.timestamp > expiresAt) revert FounderInviteExpired(expiresAt);
         if (_isFull(s, p)) revert CircleFull(p.maxMembers);
         delete s.founderInviteExpiry[msg.sender];
-        _addMember(s, msg.sender, _firstPeriod(p.dueDay));
+        // Founders were chosen by the creator and vote from the start.
+        _addMember(s, msg.sender, _firstPeriod(p.dueDay), true);
         ICircleRegistry(p.factory).registerMember(msg.sender);
     }
 
@@ -250,7 +270,7 @@ library Membership {
         if (!DisplayName.isValid(displayName)) revert InvalidDisplayName();
         if (!_isNameFree(s, DisplayName.key(displayName), msg.sender)) revert NameTaken();
 
-        uint32 eligible = SafeCast.toUint32(s.memberCount - s.dormantCount);
+        uint32 eligible = SafeCast.toUint32(s.voterCount);
         id = _open(s, p, Kind.Join, msg.sender, invitedBy, eligible, displayName);
         s.openJoinOf[msg.sender] = id;
         emit JoinRequested(
@@ -275,7 +295,8 @@ library Membership {
         if (!_isCurrentVoter(s.members[msg.sender])) revert NotEligibleToVote(0, msg.sender);
 
         // Everyone who could vote now, minus the member it is about (they can't vote on it).
-        uint256 voters = s.memberCount - s.dormantCount - 1;
+        // The proposer is a voter and isn't the member, so this is at least 1.
+        uint256 voters = s.voterCount - (m.voter ? 1 : 0);
         id = _open(s, p, Kind.Dormant, member, msg.sender, SafeCast.toUint32(voters), "");
         s.openDormantOf[member] = id;
         Request storage r = s.requests[id - 1];
@@ -382,6 +403,20 @@ library Membership {
             && _isNameFree(s, DisplayName.key(displayName), account);
     }
 
+    /// @notice Count one paid installment; grant voting rights once `minPaidToVote` is reached.
+    /// @dev Internal (inlined into the vault's `contribute`). A fresh stamp means the new voter
+    ///      votes only on requests opened from now on.
+    function recordPayment(Store storage s, address who, uint8 minPaidToVote) internal {
+        Member storage m = s.members[who];
+        m.paid += 1;
+        if (!m.voter && m.paid >= minPaidToVote) {
+            m.voter = true;
+            m.seq = ++s.seqCounter;
+            s.voterCount += 1;
+            emit VotingRightsGranted(who);
+        }
+    }
+
     /// @notice Installments whose fee-free deadline has passed and that are still unpaid.
     /// @dev Only the latest past-due period can still be inside a holiday's grace (ADR 0017):
     ///      every earlier one is past the next period's due moment too. 0 for dormant members.
@@ -424,21 +459,25 @@ library Membership {
         m.nextPeriod = next;
         m.seq = ++s.seqCounter;
         s.dormantCount -= 1;
+        if (m.voter) s.voterCount += 1;
         emit MemberWoke(who, next);
     }
 
     /// @dev Fresh record every time; listed once even if the address rejoins later (RT-09).
-    function _addMember(Store storage s, address who, uint32 firstPeriod) private {
+    function _addMember(Store storage s, address who, uint32 firstPeriod, bool voter) private {
         uint32 seq = ++s.seqCounter;
         s.members[who] = Member({
             active: true,
             dormant: false,
+            voter: voter,
             nextPeriod: firstPeriod,
             seq: seq,
             nameChangedAt: 0,
+            paid: 0,
             shares: 0
         });
         s.memberCount += 1;
+        if (voter) s.voterCount += 1;
         if (!s.listed[who]) {
             s.listed[who] = true;
             s.memberList.push(who);
@@ -457,7 +496,7 @@ library Membership {
     /// @dev Active, not dormant, and at most one period behind (RT-03, RT-07). A member still
     ///      inside their first unpaid month is not behind.
     function _isCurrentVoter(Member storage m) private view returns (bool) {
-        return _isVoter(m)
+        return _isVoter(m) && m.voter
             && uint256(m.nextPeriod) + MAX_PERIODS_BEHIND_TO_VOTE
                 >= PeriodMath.periodOf(block.timestamp);
     }
@@ -487,6 +526,12 @@ library Membership {
             revert TooManyOpenRequests();
         }
         if (eligible == 0) revert NoOtherVoters();
+        if (invitedBy != address(0)) {
+            if (s.openBy[invitedBy] >= MAX_OPEN_PER_MEMBER) {
+                revert TooManyOpenRequestsBy(invitedBy);
+            }
+            s.openBy[invitedBy] += 1;
+        }
         s.requests
             .push(
                 Request({
@@ -542,9 +587,10 @@ library Membership {
         view
         returns (Status)
     {
-        // yes + no <= e: only members with seq <= seqSnapshot that aren't dormant (and, for a
-        // dormant vote, aren't its subject) vote, and exactly `eligible` such members existed at
-        // request time; waking renews seq. So `e - no` cannot underflow.
+        // yes + no <= e: only voters with seq <= seqSnapshot that aren't dormant (and, for a
+        // dormant vote, aren't its subject) vote, and at most `eligible` such members existed at
+        // request time; gaining voting rights and waking both renew seq. So `e - no` can't
+        // underflow.
         uint256 e = r.eligible;
         uint256 yes = r.yes;
         uint256 no = r.no;
@@ -581,6 +627,7 @@ library Membership {
             delete s.openDormantOf[account];
         }
         r.status = outcome;
+        if (r.invitedBy != address(0)) s.openBy[r.invitedBy] -= 1;
 
         uint256 pos = s.openPos[id];
         uint256 lastId = s.openIds[s.openIds.length - 1];
@@ -592,12 +639,15 @@ library Membership {
 
         if (outcome != Status.Approved) return;
         if (kind == Kind.Dormant) {
-            s.members[account].dormant = true;
+            Member storage target = s.members[account];
+            target.dormant = true;
             s.dormantCount += 1;
+            if (target.voter) s.voterCount -= 1;
             emit MemberDormant(account, PeriodMath.periodOf(block.timestamp));
             return;
         }
-        _addMember(s, account, _firstPeriod(p.dueDay));
+        if (r.inviterConfirmed && r.invitedBy != address(0)) s.admittedVia[r.invitedBy] += 1;
+        _addMember(s, account, _firstPeriod(p.dueDay), p.minPaidToVote == 0);
         // Names aren't held while a vote runs, so check again (RT-06): never revert a passed vote.
         bytes32 k = DisplayName.key(r.displayName);
         if (_isNameFree(s, k, account)) _takeName(s, account, r.displayName, k);

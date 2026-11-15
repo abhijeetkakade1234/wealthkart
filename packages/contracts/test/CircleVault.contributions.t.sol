@@ -341,14 +341,10 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         one[0] = members[0];
         CircleVault.Config memory c = _cfg();
         c.name = "";
-        vm.expectRevert(
-            abi.encodeWithSelector(CircleVault.InvalidConfig.selector, "name must be 1..48 bytes")
-        );
+        vm.expectRevert(abi.encodeWithSelector(CircleVault.InvalidConfig.selector, NAME_RULE));
         factory.createCircle(c, one);
         c.name = "0123456789012345678901234567890123456789012345678"; // 49 bytes
-        vm.expectRevert(
-            abi.encodeWithSelector(CircleVault.InvalidConfig.selector, "name must be 1..48 bytes")
-        );
+        vm.expectRevert(abi.encodeWithSelector(CircleVault.InvalidConfig.selector, NAME_RULE));
         factory.createCircle(c, one);
     }
 
@@ -385,5 +381,12 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         // The 200th payment costs no more than the first (it's cheaper: warm storage slots).
         assertLe(last, first);
         assertLt(last, 100_000);
+    }
+
+    function test_S_ACT_01_createdAtBlockMarksWhereEventsStart() public {
+        vm.roll(12_345);
+        vm.prank(honest);
+        CircleVault v = CircleVault(payable(factory.createCircle(_cfg(), new address[](0))));
+        assertEq(v.createdAtBlock(), 12_345);
     }
 }

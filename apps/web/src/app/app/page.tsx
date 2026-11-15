@@ -6,10 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 
+import { PortfolioSummary } from "@/components/analytics/portfolio-summary";
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { CircleCover, EmptyArt } from "@/components/art";
-import { Button, StateView } from "@/components/kit";
+import { Button, ErrorBoundary, StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { CIRCLES_PAGE_SIZE, type CircleSummary, useMyCircles } from "@/lib/circle";
@@ -92,18 +93,14 @@ function Portfolio() {
     );
   }
 
-  const totalStake = q.circles.reduce((sum, c) => sum + c.stake, 0n);
-
   return (
     <>
       {header}
-      <p className="mb-10 text-[14.5px] text-muted-foreground">
-        Your stake on this page:{" "}
-        <span className="font-display text-[22px] text-foreground tabular">
-          {formatAvax(totalStake)}
-        </span>{" "}
-        AVAX
-      </p>
+      <div className="mb-14">
+        <ErrorBoundary preset="widget" name="Your portfolio">
+          <PortfolioSummary />
+        </ErrorBoundary>
+      </div>
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {q.circles.map((c) => (
           <CircleCard key={c.address} circle={c} />
@@ -138,6 +135,11 @@ function CircleCard({ circle: c }: { circle: CircleSummary }) {
           {formatAvax(c.stake)}
           <small className="ml-1.5 font-sans text-[13px] text-muted-foreground">AVAX</small>
         </span>
+        {c.totalAssets > 0n && c.stake > 0n && (
+          <span className="text-[12.5px] text-muted-foreground">
+            {(Number((c.stake * 10_000n) / c.totalAssets) / 100).toFixed(1)}% of the circle
+          </span>
+        )}
       </div>
       <div className="flex items-center justify-between gap-3 text-[13px]">
         {!c.isMember ? (

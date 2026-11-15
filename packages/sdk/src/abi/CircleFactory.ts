@@ -149,6 +149,11 @@ export const circleFactoryAbi = [
             type: "uint8",
             internalType: "uint8",
           },
+          {
+            name: "minPaidToVote",
+            type: "uint8",
+            internalType: "uint8",
+          },
         ],
       },
       {

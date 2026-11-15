@@ -36,7 +36,25 @@ test.describe("create a circle and pay", () => {
     // Chain time may already be past the due day; either way, next month is payable after a warp.
     await warpToNextMonth();
     await page.reload();
-    await page.getByRole("button", { name: /^Pay .* AVAX$/ }).click();
-    await expect(page.getByText(/You're all paid up/)).toBeVisible();
+    // Right after a reload the wallet reconnects and React may swap the button node, which can
+    // swallow one click (seen 2 in 4 runs). Retry until the payment starts; a second payment is
+    // impossible because the button disappears and advance payments revert.
+    await expect(async () => {
+      const pay = page.getByRole("button", { name: /^Pay .* AVAX$/ });
+      if (await pay.isVisible()) await pay.click();
+      await expect(page.getByText(/You're all paid up/)).toBeVisible({ timeout: 4000 });
+    }).toPass({ timeout: 20_000 });
+  });
+
+  test("S-E2E-14 a circle name that looks like a web address is refused before anything is sent", async ({
+    page,
+  }) => {
+    await page.goto("/app/new/");
+    await page.getByRole("button", { name: "Connect Core" }).first().click();
+    await page.waitForURL("**/app/new/");
+    await page.getByLabel("Circle name").fill("Claim refund: wealthkart-help.app");
+    await page.getByRole("button", { name: "Create circle" }).click();
+    await expect(page.getByText(/can't contain web addresses or dots/)).toBeVisible();
+    await expect(page).toHaveURL(/\/app\/new\/$/);
   });
 });

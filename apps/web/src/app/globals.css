@@ -97,8 +97,11 @@
   --input: #e7e6e1;
   --ring: #2c4596;
 
-  --chart-1: #2c4596;
-  --chart-2: #2d6a4f;
+  /* Categorical series, validated with the dataviz checks (lightness band, chroma, CVD
+     dE 10.2 protan, normal dE 18.9, contrast >= 3:1 on white). Status colours stay reserved
+     for state (heatmap), never for series. */
+  --chart-1: #4f6bc4;
+  --chart-2: #c0729f;
   --chart-3: #a8701a;
   --chart-4: #c2391f;
   --chart-5: #9a9ca2;

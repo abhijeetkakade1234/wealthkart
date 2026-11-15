@@ -5,9 +5,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-/** Reads `?page=` (1-based). Garbage or out-of-range values fall back safely (S-WEB-15). */
-export function usePageParam(): number {
-  const raw = useSearchParams().get("page");
+/**
+ * Reads `?page=` (or another param, for a second list on the same page), 1-based.
+ * Garbage or out-of-range values fall back safely (S-WEB-15).
+ */
+export function usePageParam(param = "page"): number {
+  const raw = useSearchParams().get(param);
   const n = raw ? Number.parseInt(raw, 10) : 1;
   return Number.isFinite(n) && n >= 1 ? n : 1;
 }
@@ -34,11 +37,14 @@ export function Pagination({
   pageSize,
   total,
   noun = "items",
+  param = "page",
 }: {
   page: number;
   pageSize: number;
   total: number;
   noun?: string;
+  /** URL param this list pages with; set it when a page has two paginated lists. */
+  param?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -50,8 +56,8 @@ export function Pagination({
 
   const go = (p: number) => {
     const next = new URLSearchParams(params.toString());
-    if (p <= 1) next.delete("page");
-    else next.set("page", String(p));
+    if (p <= 1) next.delete(param);
+    else next.set(param, String(p));
     const qs = next.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };

@@ -6,6 +6,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {PeriodMath} from "./libraries/PeriodMath.sol";
 import {SharesMath} from "./libraries/SharesMath.sol";
 import {FeeMath} from "./libraries/FeeMath.sol";
+import {CircleName} from "./libraries/CircleName.sol";
 import {Membership} from "./modules/Membership.sol";
 
 /// @title CircleVault
@@ -26,7 +27,8 @@ contract CircleVault is ReentrancyGuard {
     // ------------------------------------------------------------------ types
 
     struct Config {
-        /// @dev Circle name shown in the app, 1..48 bytes (public on-chain; no personal data).
+        /// @dev Circle name shown in the app: 3..48 safe characters, no links (ADR 0033, RT-26).
+        ///      Public on-chain; no personal data.
         string name;
         /// @dev Fixed installment per period, in wei (ADR 0002).
         uint128 installment;
@@ -48,6 +50,8 @@ contract CircleVault is ReentrancyGuard {
         uint16 maxMembers;
         /// @dev Missed installments before a dormant vote is allowed, 1..12 (ADR 0032).
         uint8 dormantAfter;
+        /// @dev Installments a member admitted by vote must pay before voting, 0..6 (ADR 0033).
+        uint8 minPaidToVote;
     }
 
     // ------------------------------------------------------------------ constants
@@ -57,13 +61,15 @@ contract CircleVault is ReentrancyGuard {
     ///         Phase 2) and contracts are immutable, so deploying it on mainnet would lock funds.
     uint256 public constant AVALANCHE_MAINNET_CHAIN_ID = 43_114;
     uint8 public constant MAX_HOLIDAYS_PER_YEAR = 12;
-    uint256 public constant MAX_NAME_BYTES = 48;
+    uint256 public constant MAX_NAME_BYTES = CircleName.MAX_BYTES;
     uint32 public constant MIN_VOTING_WINDOW = 1 hours;
     uint32 public constant MAX_VOTING_WINDOW = 14 days;
     uint8 public constant MIN_QUORUM_PCT = 20;
     uint8 public constant MAX_QUORUM_PCT = 100;
     uint16 public constant MIN_MAX_MEMBERS = 3;
     uint8 public constant MAX_DORMANT_AFTER = 12;
+    uint8 public constant MAX_MIN_PAID_TO_VOTE = 6;
+    uint256 public constant MAX_OPEN_PER_MEMBER = Membership.MAX_OPEN_PER_MEMBER;
     uint256 public constant ADMISSION_PASS_PCT = Membership.ADMISSION_PASS_PCT;
     uint256 public constant DORMANT_PASS_PCT = Membership.DORMANT_PASS_PCT;
     uint256 public constant MAX_OPEN_REQUESTS = Membership.MAX_OPEN_REQUESTS;
@@ -83,8 +89,11 @@ contract CircleVault is ReentrancyGuard {
     uint8 public immutable quorumPct;
     uint16 public immutable maxMembers;
     uint8 public immutable dormantAfter;
+    uint8 public immutable minPaidToVote;
     /// @notice First period the creator owes an installment for.
     uint32 public immutable startPeriod;
+    /// @notice Block the circle was created in: where the app starts reading its events.
+    uint64 public immutable createdAtBlock;
     address public immutable factory;
     address public immutable creator;
 
@@ -141,9 +150,11 @@ contract CircleVault is ReentrancyGuard {
         quorumPct = cfg.quorumPct;
         maxMembers = cfg.maxMembers;
         dormantAfter = cfg.dormantAfter;
+        minPaidToVote = cfg.minPaidToVote;
         name = cfg.name;
         factory = msg.sender;
         creator = creator_;
+        createdAtBlock = SafeCast.toUint64(block.number);
 
         // Immutables can't be read during construction, so build the params from `cfg`.
         startPeriod = _m.init(
@@ -153,7 +164,8 @@ contract CircleVault is ReentrancyGuard {
                 votingWindow: cfg.votingWindow,
                 quorumPct: cfg.quorumPct,
                 maxMembers: cfg.maxMembers,
-                dormantAfter: cfg.dormantAfter
+                dormantAfter: cfg.dormantAfter,
+                minPaidToVote: cfg.minPaidToVote
             }),
             creator_,
             invitees
@@ -186,6 +198,7 @@ contract CircleVault is ReentrancyGuard {
         totalShares += minted;
         m.shares += SafeCast.toUint128(minted);
         m.nextPeriod = SafeCast.toUint32(period + 1);
+        Membership.recordPayment(_m, msg.sender, minPaidToVote);
 
         emit Contributed(msg.sender, period, installment, fees, minted);
     }
@@ -307,6 +320,21 @@ contract CircleVault is ReentrancyGuard {
         return _m.dormantCount;
     }
 
+    /// @notice Members who can vote right now (the quorum base, ADR 0033).
+    function voterCount() external view returns (uint256) {
+        return _m.voterCount;
+    }
+
+    /// @notice Open requests naming `member` as inviter or proposer (at most 3).
+    function openRequestsBy(address member) external view returns (uint256) {
+        return _m.openBy[member];
+    }
+
+    /// @notice Members admitted with `member` as their confirmed inviter.
+    function admittedVia(address member) external view returns (uint256) {
+        return _m.admittedVia[member];
+    }
+
     /// @notice Installments `member` has missed (past their fee-free deadline and unpaid).
     function periodsOverdue(address member) external view returns (uint256) {
         return Membership.periodsOverdue(_m, member, dueDay);
@@ -426,9 +454,8 @@ contract CircleVault is ReentrancyGuard {
     // ------------------------------------------------------------------ internals
 
     function _validate(Config memory cfg, uint256 invited) internal pure {
-        uint256 nameLen = bytes(cfg.name).length;
-        if (nameLen == 0 || nameLen > MAX_NAME_BYTES) {
-            revert InvalidConfig("name must be 1..48 bytes");
+        if (!CircleName.isValid(cfg.name)) {
+            revert InvalidConfig("name must be 3..48 letters, digits, spaces or _-'& (no links)");
         }
         if (cfg.installment == 0) revert InvalidConfig("installment must be > 0");
         if (uint256(cfg.fee1) * 2 > cfg.installment || uint256(cfg.fee2) * 2 > cfg.installment) {
@@ -450,6 +477,9 @@ contract CircleVault is ReentrancyGuard {
         if (cfg.dormantAfter < 1 || cfg.dormantAfter > MAX_DORMANT_AFTER) {
             revert InvalidConfig("dormantAfter must be 1..12");
         }
+        if (cfg.minPaidToVote > MAX_MIN_PAID_TO_VOTE) {
+            revert InvalidConfig("minPaidToVote must be 0..6");
+        }
         if (
             cfg.maxMembers != 0
                 && (cfg.maxMembers < MIN_MAX_MEMBERS || cfg.maxMembers < invited + 1)
@@ -465,7 +495,8 @@ contract CircleVault is ReentrancyGuard {
             votingWindow: votingWindow,
             quorumPct: quorumPct,
             maxMembers: maxMembers,
-            dormantAfter: dormantAfter
+            dormantAfter: dormantAfter,
+            minPaidToVote: minPaidToVote
         });
     }
 

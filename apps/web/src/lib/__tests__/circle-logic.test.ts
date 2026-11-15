@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { formatTimeLeft } from "@/components/app/countdown-utc";
 import { pageWindow } from "@/components/app/pagination";
 import { parseCircleId } from "@/lib/circle";
-import { DEFAULTS, validate } from "@/lib/circle-form";
+import { circleNameProblem, DEFAULTS, validate } from "@/lib/circle-form";
 
 const SELF = "0x1111111111111111111111111111111111111111" as const;
 const FRIEND = "0x2222222222222222222222222222222222222222";
@@ -53,9 +53,9 @@ describe("create-circle validation (mirrors ADR 0022 bounds)", () => {
     expect(v.founders).toHaveLength(2);
   });
 
-  it("rejects names over 48 bytes, counting multi-byte characters", () => {
+  it("rejects names over 48 characters and anything outside plain ASCII (RT-26)", () => {
     expect(validate({ ...DEFAULTS, name: "a".repeat(49) }, SELF).errors.name).toMatch(/48/);
-    expect(validate({ ...DEFAULTS, name: "ü".repeat(25) }, SELF).errors.name).toMatch(/48/); // 50 bytes
+    expect(validate({ ...DEFAULTS, name: "ü".repeat(5) }, SELF).errors.name).toMatch(/Use only/);
   });
 });
 
@@ -109,5 +109,31 @@ describe("create-circle settings added for membership (ADR 0028, 0030)", () => {
     expect(v.invitees).toEqual([FRIEND]);
     expect(v.cfg?.quorumPct).toBe(50);
     expect(v.cfg?.votingWindow).toBe(172_800);
+  });
+});
+
+describe("circle names and voting rights (ADR 0033)", () => {
+  it("S-RT-34 circle names can't carry links or domains", () => {
+    for (const bad of [
+      "Claim refund: wealthkart-help.app",
+      "www.core-support",
+      "https://evil",
+      "Core Support.io",
+    ]) {
+      expect(circleNameProblem(bad), bad).toMatch(/web addresses/);
+    }
+    expect(circleNameProblem("ab")).toMatch(/at least 3/);
+    expect(circleNameProblem("Two  spaces")).toMatch(/single spaces/);
+    expect(circleNameProblem("Emoji ok?")).toMatch(/Use only/);
+    for (const good of ["College Gang", "Abhi's Circle", "Friends & Family-2"]) {
+      expect(circleNameProblem(good), good).toBeNull();
+    }
+  });
+
+  it("S-RT-05 payments-before-voting must be 0 to 6", () => {
+    expect(
+      validate({ ...DEFAULTS, name: "Gang", minPaidToVote: "7" }, undefined).errors.minPaidToVote,
+    ).toBe("Pick 0 to 6.");
+    expect(validate({ ...DEFAULTS, name: "Gang" }, undefined).cfg?.minPaidToVote).toBe(2);
   });
 });

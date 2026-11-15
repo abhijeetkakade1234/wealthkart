@@ -53,7 +53,9 @@ test.describe("membership", () => {
 
     await alice.reload();
     await expect(alice.getByText(/^2 members/)).toBeVisible();
-    await expect(alice.getByRole("cell", { name: /0x3C44…93BC/ })).toBeVisible();
+    await expect(
+      alice.getByRole("table", { name: "Members" }).getByRole("cell", { name: /0x3C44…93BC/ }),
+    ).toBeVisible();
   });
 
   test("S-E2E-05 a friend asks to join from an invite link and the members vote them in", async ({
@@ -73,8 +75,12 @@ test.describe("membership", () => {
       await open(voter, `/app/circle/votes/?id=${circle}`);
       const card = voter.getByRole("article", { name: /Join request from Carol_C/ });
       await expect(card).toBeVisible();
-      if (account === ACCOUNTS.alice)
+      if (account === ACCOUNTS.alice) {
         await expect(card.getByText("Not confirmed yet")).toBeVisible();
+        await expect(card.getByTestId("inviter-stats")).toHaveText(
+          "1 open invite (max 3) · hasn't brought anyone in yet",
+        );
+      }
       await card.getByRole("button", { name: "Vote yes" }).click();
       await expect(voter.getByText("Vote counted: yes.")).toBeVisible();
     }
@@ -83,7 +89,11 @@ test.describe("membership", () => {
     await expect(carol.getByTestId("join-result")).toContainText("You're in.");
     await open(carol, `/app/circle/?id=${circle}`);
     await expect(carol.getByTestId("my-name")).toHaveText("Carol_C");
-    await expect(carol.getByRole("cell", { name: /Carol_C/ })).toBeVisible();
+    await expect(
+      carol.getByRole("table", { name: "Members" }).getByRole("cell", { name: /Carol_C/ }),
+    ).toBeVisible();
+    // Voted in, so she votes only after two payments (ADR 0033, RT-03).
+    await expect(carol.getByText("New member · can vote after 2 more payments")).toBeVisible();
   });
 
   test("S-E2E-06 a request nobody votes on expires and anyone can settle it", async ({

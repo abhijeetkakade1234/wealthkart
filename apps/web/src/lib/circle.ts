@@ -139,6 +139,7 @@ export function useCircle(id: Address | null) {
       { ...vault, functionName: "openRequestCount" },
       { ...vault, functionName: "dormantAfter" },
       { ...vault, functionName: "dormantCount" },
+      { ...vault, functionName: "minPaidToVote" },
     ] as const,
     query: { enabled },
   });
@@ -194,6 +195,7 @@ export function useCircle(id: Address | null) {
           openRequestCount: Number(ok<bigint>(21) ?? 0n),
           dormantAfter: ok<number>(22) ?? 3,
           dormantCount: Number(ok<bigint>(23) ?? 0n),
+          minPaidToVote: ok<number>(24) ?? 2,
           /** The circle voted this wallet dormant (ADR 0032); paying or waking ends it. */
           iAmDormant: me?.dormant ?? false,
         }
@@ -253,12 +255,22 @@ export function useCircleMembers(id: Address | null, page: number) {
       const [mo, st, nm, od, dv] = info.data?.slice(i * 5, i * 5 + 5) ?? [];
       const member =
         mo?.status === "success"
-          ? (mo.result as { active: boolean; dormant: boolean; nextPeriod: number; shares: bigint })
+          ? (mo.result as {
+              active: boolean;
+              dormant: boolean;
+              voter: boolean;
+              paid: number;
+              nextPeriod: number;
+              shares: bigint;
+            })
           : null;
       return {
         address: m,
         active: member?.active ?? true,
         dormant: member?.dormant ?? false,
+        /** Has voting rights (ADR 0033); false while a newcomer is still paying in. */
+        voter: member?.voter ?? true,
+        paid: member?.paid ?? 0,
         overdue: od?.status === "success" ? Number(od.result as bigint) : 0,
         openDormantId: dv?.status === "success" ? (dv.result as bigint) : 0n,
         name: nm?.status === "success" ? (nm.result as string) : "",
@@ -290,6 +302,10 @@ export interface JoinRequestView {
   inviterName: string;
   /** Dormant: the member's display name (join requests carry `displayName`). */
   accountName: string;
+  /** Open requests naming the same inviter or proposer (at most 3, ADR 0033). */
+  inviterOpen: number;
+  /** Members admitted with this inviter confirmed. */
+  inviterAdmitted: number;
   inviterConfirmed: boolean;
   yes: number;
   no: number;
@@ -315,7 +331,10 @@ type RawRequest = {
 function toView(
   id: bigint,
   r: RawRequest,
-): Omit<JoinRequestView, "inviterName" | "accountName" | "canVote" | "hasVoted"> {
+): Omit<
+  JoinRequestView,
+  "inviterName" | "accountName" | "inviterOpen" | "inviterAdmitted" | "canVote" | "hasVoted"
+> {
   return {
     id,
     kind: requestKind(Number(r.kind)),
@@ -370,18 +389,32 @@ export function useJoinRequests(id: Address | null, page: number) {
         functionName: "nameOf",
         args: [raws[i]?.account ?? ZERO],
       } as const,
+      {
+        ...vault,
+        address: id!,
+        functionName: "openRequestsBy",
+        args: [raws[i]?.invitedBy ?? ZERO],
+      } as const,
+      {
+        ...vault,
+        address: id!,
+        functionName: "admittedVia",
+        args: [raws[i]?.invitedBy ?? ZERO],
+      } as const,
     ]),
     query: { enabled: enabled && ids.length > 0, placeholderData: (prev) => prev },
   });
 
   const requests: JoinRequestView[] = ids.map((rid, i) => {
-    const e = extra.data?.slice(i * 4, i * 4 + 4) ?? [];
+    const e = extra.data?.slice(i * 6, i * 6 + 6) ?? [];
     return {
       ...toView(rid, raws[i]!),
       canVote: e[0]?.status === "success" ? (e[0].result as boolean) : false,
       hasVoted: e[1]?.status === "success" ? (e[1].result as boolean) : false,
       inviterName: e[2]?.status === "success" ? (e[2].result as string) : "",
       accountName: e[3]?.status === "success" ? (e[3].result as string) : "",
+      inviterOpen: e[4]?.status === "success" ? Number(e[4].result as bigint) : 0,
+      inviterAdmitted: e[5]?.status === "success" ? Number(e[5].result as bigint) : 0,
     };
   });
 
@@ -420,4 +453,89 @@ export function useJoinRequest(id: Address | null, requestId: bigint | null) {
 export function useChainNow(): number {
   const block = useBlock({ query: { refetchInterval: 15_000 } });
   return block.data ? Number(block.data.timestamp) : Math.floor(Date.now() / 1000);
+}
+
+/** Circles summed on the portfolio header; more than this shows a note instead of a wrong total. */
+export const PORTFOLIO_MAX = 100;
+
+export interface PortfolioRow {
+  address: Address;
+  name: string;
+  stake: bigint;
+  /** Installments this wallet has paid here, times the installment (late fees not included). */
+  paidIn: bigint;
+  /** This wallet's share of the circle, in basis points (0..10000). */
+  shareBps: number;
+}
+
+/**
+ * Totals across every circle this wallet is in (PLAN.md D7, "My portfolio"): value, what was
+ * paid in, gain, and the split by circle. Reads up to PORTFOLIO_MAX circles.
+ */
+export function usePortfolio() {
+  const { address } = useCoreWallet();
+  const factory = useFactory();
+  const enabled = Boolean(factory && address);
+
+  const list = useReadContract({
+    abi: circleFactoryAbi,
+    address: factory ?? undefined,
+    functionName: "circlesOf",
+    args: address ? [address, 0n, BigInt(PORTFOLIO_MAX)] : undefined,
+    query: { enabled },
+  });
+  const count = useReadContract({
+    abi: circleFactoryAbi,
+    address: factory ?? undefined,
+    functionName: "circlesOfCount",
+    args: address ? [address] : undefined,
+    query: { enabled },
+  });
+  const circles = (list.data ?? []) as readonly Address[];
+  const details = useReadContracts({
+    allowFailure: true,
+    contracts: circles.flatMap((c) => [
+      { abi: circleVaultAbi, address: c, functionName: "name" } as const,
+      { abi: circleVaultAbi, address: c, functionName: "stakeOf", args: [address!] } as const,
+      { abi: circleVaultAbi, address: c, functionName: "memberOf", args: [address!] } as const,
+      { abi: circleVaultAbi, address: c, functionName: "installment" } as const,
+      { abi: circleVaultAbi, address: c, functionName: "totalAssets" } as const,
+    ]),
+    query: { enabled: enabled && circles.length > 0 },
+  });
+
+  const rows: PortfolioRow[] = circles.map((c, i) => {
+    const r = details.data?.slice(i * 5, i * 5 + 5) ?? [];
+    const ok = <T>(j: number): T | undefined =>
+      r[j]?.status === "success" ? (r[j]!.result as T) : undefined;
+    const stake = ok<bigint>(1) ?? 0n;
+    const paid = ok<{ paid: number }>(2)?.paid ?? 0;
+    const installment = ok<bigint>(3) ?? 0n;
+    const assets = ok<bigint>(4) ?? 0n;
+    return {
+      address: c,
+      name: ok<string>(0) ?? "Circle",
+      stake,
+      paidIn: BigInt(paid) * installment,
+      shareBps: assets > 0n ? Number((stake * 10_000n) / assets) : 0,
+    };
+  });
+  const value = rows.reduce((s, r) => s + r.stake, 0n);
+  const paidIn = rows.reduce((s, r) => s + r.paidIn, 0n);
+  const total = count.data === undefined ? undefined : Number(count.data);
+
+  return {
+    rows,
+    value,
+    paidIn,
+    gain: value - paidIn,
+    total,
+    truncated: total !== undefined && total > PORTFOLIO_MAX,
+    isPending: enabled && (list.isPending || (circles.length > 0 && details.isPending)),
+    isError: list.isError || details.isError,
+    refetch: () => {
+      void list.refetch();
+      void details.refetch();
+    },
+  };
 }
