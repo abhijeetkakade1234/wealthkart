@@ -107,6 +107,7 @@ library Exits {
     error ExitAlreadyPending(uint256 maturesAt);
     error NoExitPending();
     error ExitNotReady(uint256 maturesAt);
+    error ExitGasTooLow();
     error MemberFrozen(address member);
     error HasLoanTies(address member, uint256 ties);
     error NotGuardian();
@@ -366,7 +367,13 @@ library Exits {
         bool blocked = false;
         address who = s.first;
         for (uint256 n = 0; n < maxCount && who != address(0); ++n) {
-            if (gasleft() < MIN_GAS_PER_EXIT) break;
+            if (gasleft() < MIN_GAS_PER_EXIT) {
+                // A claim must reach the claimant, and a batch must make progress; otherwise
+                // revert so a wallet's gas estimate finds a limit that works instead of a run
+                // that succeeds while paying nobody. A batch that already settled some stops.
+                if (target != address(0) || n == 0) revert ExitGasTooLow();
+                break;
+            }
             address nextWho = s.entries[who].next;
             Outcome outcome = _settle(s, ledger, ms, r, who, !blocked);
             if (outcome == Outcome.Paid) {

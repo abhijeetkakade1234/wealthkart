@@ -173,6 +173,8 @@ export const messages = {
   notInDefault: () => "This loan isn't in default.",
   alreadyDefaulted: () => "This loan is already marked as in default.",
   settleOpen: () => "A vote to settle this loan is already open.",
+  exitGasTooLow: () =>
+    "There wasn't enough gas to reach your place in the queue. Try again; your wallet will ask for a bit more.",
   tooManyOpenRequestsBy: () =>
     "That member already has 3 open invites or proposals. Ask them to wait until one is decided, or ask another member to invite you.",
 
@@ -257,6 +259,7 @@ export type FriendlyErrorCode =
   | "not-overdue-enough"
   | "no-other-voters"
   | "too-many-requests-by"
+  | "exit-gas-too-low"
   | "loan-loans-closed"
   | "loan-loans-paused"
   | "loan-not-a-voter"
@@ -498,6 +501,7 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NotOverdueEnough", "not-overdue-enough", messages.notOverdueEnough],
     ["NoOtherVoters", "no-other-voters", messages.noOtherVoters],
     ["TooManyOpenRequestsBy", "too-many-requests-by", messages.tooManyOpenRequestsBy],
+    ["ExitGasTooLow", "exit-gas-too-low", messages.exitGasTooLow],
     // Loans (ADR 0038).
     ["LoansClosed", "loan-loans-closed", messages.loansClosed],
     ["LoansPaused", "loan-loans-paused", messages.loansPaused],

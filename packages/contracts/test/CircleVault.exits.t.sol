@@ -179,6 +179,32 @@ contract CircleVaultExitsTest is CircleVaultBase {
         _assertSharesSum(vault);
     }
 
+    function test_S_EXIT_14_claimWithTooLittleGasRevertsInsteadOfPayingNobody() public {
+        address a = members[5];
+        address b = members[6];
+        address c = members[7];
+        _requestExit(a);
+        _requestExit(b);
+        _requestExit(c);
+        vm.warp(block.timestamp + NOTICE);
+
+        // Enough gas for one exit but not to reach c: the claim reverts, so a wallet's gas
+        // estimate keeps searching instead of landing on a run that pays nobody.
+        vm.prank(c);
+        vm.expectRevert(Exits.ExitGasTooLow.selector);
+        vault.claimExit{gas: 260_000}();
+        assertTrue(vault.isMember(c));
+
+        // With normal gas the queue is settled in order and c is paid.
+        uint256 before = c.balance;
+        vm.prank(c);
+        assertTrue(vault.claimExit());
+        assertGt(c.balance, before);
+        assertFalse(vault.isMember(a));
+        assertFalse(vault.isMember(b));
+        _assertBooks(vault);
+    }
+
     function test_S_EXIT_01_onlyMembersOncePerMember() public {
         vm.prank(outsider);
         vm.expectRevert(abi.encodeWithSelector(Membership.NotAMember.selector, outsider));

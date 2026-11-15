@@ -4535,6 +4535,11 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "ExitGasTooLow",
+    inputs: [],
+  },
+  {
+    type: "error",
     name: "ExitNotReady",
     inputs: [
       {
