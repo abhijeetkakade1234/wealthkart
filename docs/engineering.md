@@ -17,6 +17,8 @@ Every folder has a `README.md` with:
 
 A PR that adds a folder without a README fails review. A PR that changes what a folder contains updates its README.
 
+Exceptions: Next.js route folders that hold a single `page.tsx` or `route.ts` (the parent route README describes them), git submodules under `packages/contracts/lib/`, and `__tests__/` folders.
+
 ## 2. Decisions → ADRs
 
 Architecture, money flow, security, data or scope decisions get an ADR in `docs/decisions/` before merge. See its README.

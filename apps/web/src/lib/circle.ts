@@ -2,17 +2,22 @@
 
 import { DEPLOYMENTS, circleFactoryAbi, circleVaultAbi } from "@wealthkart/sdk";
 import { type Address, isAddress } from "viem";
-import { useReadContract, useReadContracts } from "wagmi";
+import { useBlock, useReadContract, useReadContracts } from "wagmi";
 
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 
 export const CIRCLES_PAGE_SIZE = 12;
 export const MEMBERS_PAGE_SIZE = 10;
 
+/** Build-time override for E2E runs against a local chain. Unset in real builds. */
+const FACTORY_OVERRIDE = process.env.NEXT_PUBLIC_FACTORY_OVERRIDE;
+
 /** The factory for the wallet's current chain, or null if not deployed there yet. */
 export function useFactory(): Address | null {
   const { chainId } = useCoreWallet();
-  return chainId ? (DEPLOYMENTS[chainId]?.circleFactory ?? null) : null;
+  if (!chainId) return null;
+  if (FACTORY_OVERRIDE && isAddress(FACTORY_OVERRIDE)) return FACTORY_OVERRIDE;
+  return DEPLOYMENTS[chainId]?.circleFactory ?? null;
 }
 
 /** Parses `?id=` safely; anything that isn't an address becomes null ("circle not found"). */
@@ -122,19 +127,38 @@ export function useCircle(id: Address | null) {
       { ...vault, functionName: "isMember", args: [address!] },
       { ...vault, functionName: "stakeOf", args: [address!] },
       { ...vault, functionName: "amountDue", args: [address!] },
+      { ...vault, functionName: "votingWindow" },
+      { ...vault, functionName: "quorumPct" },
+      { ...vault, functionName: "maxMembers" },
+      { ...vault, functionName: "memberListLength" },
+      { ...vault, functionName: "nameOf", args: [address!] },
+      { ...vault, functionName: "memberOf", args: [address!] },
+      { ...vault, functionName: "founderInviteExpiry", args: [address!] },
+      { ...vault, functionName: "openRequestOf", args: [address!] },
+      { ...vault, functionName: "openRequestCount" },
     ] as const,
     query: { enabled },
   });
+  const registry = useIsCircle(id);
 
   const r = q.data;
   const ok = <T>(i: number): T | undefined =>
     r?.[i]?.status === "success" ? (r[i].result as T) : undefined;
   const due = ok<readonly [bigint, bigint, bigint, boolean]>(12);
 
+  const me = ok<{ active: boolean; nextPeriod: number; seq: number; nameChangedAt: bigint }>(18);
+
   return {
     ...q,
+    refetch: () => {
+      void registry.refetch();
+      return q.refetch();
+    },
+    isPending: q.isPending || registry.isPending,
+    /** The factory says this address isn't one of its circles (RT-01): never pay it. */
+    notACircle: registry.isCircle === false,
     // name failing means the address isn't a WealthKart circle on this network
-    notFound: Boolean(r && r[0]?.status !== "success"),
+    notFound: registry.isCircle === false || Boolean(r && r[0]?.status !== "success"),
     data: r
       ? {
           name: ok<string>(0) ?? "",
@@ -150,12 +174,45 @@ export function useCircle(id: Address | null) {
           isMember: ok<boolean>(10) ?? false,
           stake: ok<bigint>(11) ?? 0n,
           due: due ? { period: due[0], amount: due[1], fees: due[2], payable: due[3] } : null,
+          votingWindow: ok<number>(13) ?? 0,
+          quorumPct: ok<number>(14) ?? 50,
+          maxMembers: ok<number>(15) ?? 0,
+          memberListLength: ok<bigint>(16) ?? 0n,
+          myName: ok<string>(17) ?? "",
+          myNameChangedAt: me ? Number(me.nameChangedAt) : 0,
+          founderInviteExpiry: Number(ok<bigint>(19) ?? 0n),
+          openRequestId: ok<bigint>(20) ?? 0n,
+          openRequestCount: Number(ok<bigint>(21) ?? 0n),
         }
       : undefined,
   };
 }
 
-/** One page of a circle's members with their share balances. */
+/**
+ * Asks the factory whether `id` is one of its circles (RT-01). A look-alike contract
+ * that answers name() is still refused. `isCircle` is undefined while loading or when
+ * no factory is known for this network.
+ */
+export function useIsCircle(id: Address | null) {
+  const factory = useFactory();
+  const q = useReadContract({
+    abi: circleFactoryAbi,
+    address: factory ?? undefined,
+    functionName: "isCircle",
+    args: id ? [id] : undefined,
+    query: { enabled: Boolean(factory && id) },
+  });
+  return {
+    isCircle: q.data as boolean | undefined,
+    isPending: Boolean(factory && id) && q.isPending,
+    refetch: q.refetch,
+  };
+}
+
+/**
+ * One page of the circle's member list (everyone who ever joined, so page with
+ * `memberListLength`, not `memberCount`), with names and share balances.
+ */
 export function useCircleMembers(id: Address | null, page: number) {
   const list = useReadContract({
     abi: circleVaultAbi,
@@ -170,20 +227,24 @@ export function useCircleMembers(id: Address | null, page: number) {
     contracts: members.flatMap((m) => [
       { abi: circleVaultAbi, address: id!, functionName: "memberOf", args: [m] } as const,
       { abi: circleVaultAbi, address: id!, functionName: "stakeOf", args: [m] } as const,
+      { abi: circleVaultAbi, address: id!, functionName: "nameOf", args: [m] } as const,
     ]),
     query: { enabled: Boolean(id) && members.length > 0, placeholderData: (prev) => prev },
   });
   return {
     ...list,
     rows: members.map((m, i) => {
-      const mo = info.data?.[i * 2];
-      const st = info.data?.[i * 2 + 1];
+      const mo = info.data?.[i * 3];
+      const st = info.data?.[i * 3 + 1];
+      const nm = info.data?.[i * 3 + 2];
       const member =
         mo?.status === "success"
           ? (mo.result as { active: boolean; nextPeriod: number; shares: bigint })
           : null;
       return {
         address: m,
+        active: member?.active ?? true,
+        name: nm?.status === "success" ? (nm.result as string) : "",
         nextPeriod: member ? BigInt(member.nextPeriod) : null,
         shares: member?.shares ?? 0n,
         stake: st?.status === "success" ? (st.result as bigint) : 0n,
@@ -191,4 +252,136 @@ export function useCircleMembers(id: Address | null, page: number) {
     }),
     isPending: list.isPending || (members.length > 0 && info.isPending),
   };
+}
+
+export const REQUESTS_PAGE_SIZE = 10;
+
+export interface JoinRequestView {
+  id: bigint;
+  applicant: Address;
+  deadline: number;
+  eligible: number;
+  invitedBy: Address;
+  inviterName: string;
+  inviterConfirmed: boolean;
+  yes: number;
+  no: number;
+  status: number;
+  displayName: string;
+  canVote: boolean;
+  hasVoted: boolean;
+}
+
+type RawRequest = {
+  applicant: Address;
+  deadline: bigint;
+  eligible: number;
+  invitedBy: Address;
+  yes: number;
+  no: number;
+  status: number;
+  inviterConfirmed: boolean;
+  displayName: string;
+};
+
+function toView(
+  id: bigint,
+  r: RawRequest,
+): Omit<JoinRequestView, "inviterName" | "canVote" | "hasVoted"> {
+  return {
+    id,
+    applicant: r.applicant,
+    deadline: Number(r.deadline),
+    eligible: Number(r.eligible),
+    invitedBy: r.invitedBy,
+    inviterConfirmed: r.inviterConfirmed,
+    yes: Number(r.yes),
+    no: Number(r.no),
+    status: Number(r.status),
+    displayName: r.displayName,
+  };
+}
+
+const ZERO = "0x0000000000000000000000000000000000000000";
+
+/** One page of open join requests, with whether the connected wallet can still vote on each. */
+export function useJoinRequests(id: Address | null, page: number) {
+  const { address } = useCoreWallet();
+  const enabled = Boolean(id && address);
+  const vault = { abi: circleVaultAbi, address: id ?? undefined } as const;
+
+  const count = useReadContract({
+    ...vault,
+    functionName: "openRequestCount",
+    query: { enabled, refetchInterval: 15_000 },
+  });
+  const list = useReadContract({
+    ...vault,
+    functionName: "openRequestsPage",
+    args: [BigInt((page - 1) * REQUESTS_PAGE_SIZE), BigInt(REQUESTS_PAGE_SIZE)],
+    query: { enabled, refetchInterval: 15_000, placeholderData: (prev) => prev },
+  });
+  const ids = (list.data?.[0] ?? []) as readonly bigint[];
+  const raws = (list.data?.[1] ?? []) as readonly RawRequest[];
+
+  const extra = useReadContracts({
+    allowFailure: true,
+    contracts: ids.flatMap((rid, i) => [
+      { ...vault, address: id!, functionName: "canVote", args: [rid, address!] } as const,
+      { ...vault, address: id!, functionName: "hasVoted", args: [rid, address!] } as const,
+      {
+        ...vault,
+        address: id!,
+        functionName: "nameOf",
+        args: [raws[i]?.invitedBy ?? ZERO],
+      } as const,
+    ]),
+    query: { enabled: enabled && ids.length > 0, placeholderData: (prev) => prev },
+  });
+
+  const requests: JoinRequestView[] = ids.map((rid, i) => {
+    const e = extra.data?.slice(i * 3, i * 3 + 3) ?? [];
+    return {
+      ...toView(rid, raws[i]!),
+      canVote: e[0]?.status === "success" ? (e[0].result as boolean) : false,
+      hasVoted: e[1]?.status === "success" ? (e[1].result as boolean) : false,
+      inviterName: e[2]?.status === "success" ? (e[2].result as string) : "",
+    };
+  });
+
+  return {
+    total: count.data === undefined ? undefined : Number(count.data),
+    requests,
+    isPending: enabled && (count.isPending || list.isPending),
+    isError: count.isError || list.isError,
+    refetch: () => {
+      void count.refetch();
+      void list.refetch();
+      void extra.refetch();
+    },
+  };
+}
+
+/** One join request by id (e.g. the applicant's own), polled while it may still change. */
+export function useJoinRequest(id: Address | null, requestId: bigint | null) {
+  const q = useReadContract({
+    abi: circleVaultAbi,
+    address: id ?? undefined,
+    functionName: "getRequest",
+    args: requestId ? [requestId] : undefined,
+    query: { enabled: Boolean(id && requestId), refetchInterval: 15_000 },
+  });
+  return {
+    ...q,
+    request: q.data && requestId ? toView(requestId, q.data as RawRequest) : null,
+  };
+}
+
+/**
+ * Chain time (latest block timestamp, seconds). Deadlines are judged by the chain, not the
+ * device clock, so "voting has ended" matches what the contract will decide.
+ */
+export function useChainNow(): number {
+  const block = useBlock({ query: { refetchInterval: 15_000 } });
+  return block.data ? Number(block.data.timestamp) : Math.floor(Date.now() / 1000);
 }

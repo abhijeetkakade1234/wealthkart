@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { useBalance, useWriteContract } from "wagmi";
 
 import { CountdownUTC } from "@/components/app/countdown-utc";
+import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
 import { Button, InlineAlert, StateView, TxTracker } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,15 +41,7 @@ function Pay() {
   const payTx = useTx();
   const holidayTx = useTx();
 
-  if (!id || c.notFound) {
-    return (
-      <StateView
-        state="empty"
-        message="We couldn't find this circle. Check the link, or make sure your wallet is on the right network."
-        action={{ label: "Go to your circles", onAction: () => router.push("/app/") }}
-      />
-    );
-  }
+  if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
   if (c.isPending || !c.data) {
     return (
       <StateView

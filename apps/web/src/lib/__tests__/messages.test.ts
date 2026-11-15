@@ -1,3 +1,4 @@
+import { circleFactoryAbi, circleVaultAbi } from "@wealthkart/sdk";
 import { describe, expect, it } from "vitest";
 
 import { messages, toFriendlyError } from "../messages";
@@ -91,6 +92,58 @@ describe("toFriendlyError", () => {
       const fe = toFriendlyError({ name: "ContractFunctionRevertedError", data: { errorName } });
       expect(fe.message).toBe(expected);
       expect(fe.code).not.toBe("unknown");
+    }
+  });
+
+  it("S-MEM-19 every membership error has its own plain-language message", () => {
+    const cases: Array<[string, string]> = [
+      ["NotACircle", messages.notACircle()],
+      ["NoFounderInvite", messages.noFounderInvite()],
+      ["FounderInviteExpired", messages.founderInviteExpired()],
+      ["AlreadyMember", messages.alreadyMember()],
+      ["RequestAlreadyOpen", messages.requestAlreadyOpen()],
+      ["TooManyOpenRequests", messages.tooManyOpenRequests()],
+      ["CircleFull", messages.circleFull()],
+      ["InvitedByNotAMember", messages.inviterNotMember()],
+      ["InvalidDisplayName", messages.invalidDisplayName()],
+      ["NameTaken", messages.nameTaken()],
+      ["NameChangeTooSoon", messages.nameChangeTooSoon()],
+      ["RequestNotOpen", messages.requestNotOpen()],
+      ["VotingClosed", messages.voteClosed()],
+      ["NotEligibleToVote", messages.notEligibleToVote()],
+      ["AlreadyVoted", messages.alreadyVoted()],
+      ["NotDecidedYet", messages.notDecidedYet()],
+      ["NoOpenRequest", messages.noOpenRequest()],
+    ];
+    for (const [errorName, expected] of cases) {
+      const fe = toFriendlyError({ name: "ContractFunctionRevertedError", data: { errorName } });
+      expect(fe.message, errorName).toBe(expected);
+    }
+    expect(
+      toFriendlyError({ data: { errorName: "NameChangeTooSoon" } }, { nameChangeAt: "14 Dec" })
+        .message,
+    ).toContain("14 Dec");
+  });
+
+  it("S-MEM-19 no user-reachable contract error falls through to the generic message", () => {
+    // Errors only the create form can hit (it validates first) or that no button can trigger.
+    const creationOnly = new Set([
+      "InvalidConfig",
+      "InvalidDueDay",
+      "TooManyFounders",
+      "DuplicateMember",
+      "ZeroAddressMember",
+      "DirectTransferNotAllowed",
+      "SafeCastOverflowedUintDowncast",
+      "ReentrancyGuardReentrantCall",
+    ]);
+    const names = [...circleVaultAbi, ...circleFactoryAbi]
+      .filter((item) => item.type === "error")
+      .map((item) => item.name)
+      .filter((n) => !creationOnly.has(n));
+    expect(names.length).toBeGreaterThan(15);
+    for (const errorName of names) {
+      expect(toFriendlyError({ data: { errorName } }).code, errorName).not.toBe("unknown");
     }
   });
 

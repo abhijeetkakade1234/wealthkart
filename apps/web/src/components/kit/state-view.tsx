@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { EmptyArt } from "@/components/art";
 import { messages } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -320,23 +321,14 @@ function StateIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: "bad" | "bran
 }
 
 /**
- * Placeholder spot illustration until the cut-paper set lands in `components/art`
- * (ADR 0025). Art palette only; decorative.
+ * Default empty-state spot: the cut-paper "generic" scene from `components/art`
+ * (ADR 0025). Decorative. Pass `illustration={<EmptyArt variant="loans" />}` for a
+ * page-specific one.
  */
 export function SpotPlaceholder({ className }: { className?: string }) {
   return (
-    <svg
-      width="88"
-      height="72"
-      viewBox="0 0 88 72"
-      className={className}
-      aria-hidden
-      data-testid="spot-placeholder"
-    >
-      <circle cx="44" cy="40" r="28" fill="var(--art-cream)" />
-      <path d="M22 54 Q44 22 66 54 Z" fill="var(--art-cobalt)" />
-      <circle cx="62" cy="20" r="7" fill="var(--art-mustard)" />
-      <path d="M18 30 q8 -10 16 0 q-8 6 -16 0 Z" fill="var(--art-forest)" />
-    </svg>
+    <span className={className} data-testid="spot-placeholder">
+      <EmptyArt variant="generic" />
+    </span>
   );
 }

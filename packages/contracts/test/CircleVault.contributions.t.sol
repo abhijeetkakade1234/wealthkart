@@ -95,16 +95,14 @@ contract CircleVaultContributionsTest is CircleVaultBase {
     }
 
     function test_nonMemberCannotPay() public {
-        address stranger = makeAddr("stranger");
-        vm.deal(stranger, AVAX);
-        vm.prank(stranger);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.NotAMember.selector, stranger));
+        vm.prank(outsider);
+        vm.expectRevert(abi.encodeWithSelector(CircleVault.NotAMember.selector, outsider));
         vault.contribute{value: AVAX / 2}();
     }
 
     function test_S_PAY_08_missedMonthsArePaidOldestFirstWithFees() public {
         // Member skips Dec, Jan, Feb; pays on 2027-03-05.
-        vm.warp(1_804_204_800); // 2027-03-05T00:00:00Z
+        _warpTo(2027, 3, 5, 0, 0, 0);
         address a = members[0];
         uint256 expectedPeriod = DEC_2026;
         for (uint256 i = 0; i < 3; ++i) {
@@ -139,7 +137,7 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         address[] memory two = new address[](2);
         two[0] = members[0];
         two[1] = members[1];
-        CircleVault other = CircleVault(payable(factory.createCircle(_cfg(), two)));
+        CircleVault other = _createCircle(_cfg(), two);
         _pay(members[0]);
         assertEq(other.totalAssets(), 0);
         (uint256 period,,,) = other.amountDue(members[0]);
@@ -235,6 +233,80 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         c.holidaysPerYear = 13;
         vm.expectRevert();
         factory.createCircle(c, one);
+
+        c = _cfg();
+        c.votingWindow = 59 minutes;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CircleVault.InvalidConfig.selector, "votingWindow must be 1 hour..14 days"
+            )
+        );
+        factory.createCircle(c, one);
+
+        c = _cfg();
+        c.votingWindow = 14 days + 1;
+        vm.expectRevert();
+        factory.createCircle(c, one);
+
+        c = _cfg();
+        c.quorumPct = 19;
+        vm.expectRevert(
+            abi.encodeWithSelector(CircleVault.InvalidConfig.selector, "quorumPct must be 20..100")
+        );
+        factory.createCircle(c, one);
+
+        c = _cfg();
+        c.quorumPct = 101;
+        vm.expectRevert();
+        factory.createCircle(c, one);
+
+        c = _cfg();
+        c.maxMembers = 2; // below 3
+        vm.expectRevert();
+        factory.createCircle(c, one);
+
+        c = _cfg();
+        c.maxMembers = 11; // fewer than the 12 founders
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CircleVault.InvalidConfig.selector, "maxMembers must be 0 or >= 3 and >= founders"
+            )
+        );
+        factory.createCircle(c, members);
+    }
+
+    // ---------------------------------------------------------------- first due period
+
+    /// A circle created after this month's due moment starts next month: nobody starts late.
+    function test_S_MEM_10_circleCreatedAfterDueDayStartsNextMonth() public {
+        _warpTo(2026, 12, 11, 0, 0, 0);
+        CircleVault v = _createCircle(_cfg(), members);
+        assertEq(v.startPeriod(), DEC_2026 + 1);
+        (uint256 period,,, bool due) = v.amountDue(honest);
+        assertEq(period, DEC_2026 + 1);
+        assertFalse(due);
+    }
+
+    // ---------------------------------------------------------------- contract wallets
+
+    /// A Safe-like wallet that refuses plain AVAX can still be a member and pay.
+    function test_S_MEM_11_contractWalletMemberCanPay() public {
+        address[] memory founders = new address[](2);
+        founders[0] = honest;
+        founders[1] = address(_smartWallet(honest));
+        CircleVault v = _createCircle(_cfg(), founders);
+        vm.prank(honest);
+        (bool ok,) = founders[1].call(
+            abi.encodeWithSignature(
+                "exec(address,uint256,bytes)",
+                address(v),
+                AVAX / 2,
+                abi.encodeCall(CircleVault.contribute, ())
+            )
+        );
+        assertTrue(ok);
+        assertEq(v.totalAssets(), AVAX / 2);
+        assertGt(v.memberOf(founders[1]).shares, 0);
     }
 
     function test_duplicateOrZeroFoundersAreRejected() public {
@@ -292,7 +364,7 @@ contract CircleVaultContributionsTest is CircleVaultBase {
 
     function test_S_MEM_09_contributionGasIsFlatWith200Members() public {
         address[] memory big = _makeMembers(200);
-        CircleVault v = CircleVault(payable(factory.createCircle(_cfg(), big)));
+        CircleVault v = _createCircle(_cfg(), big);
 
         vm.prank(big[0]);
         uint256 g0 = gasleft();
