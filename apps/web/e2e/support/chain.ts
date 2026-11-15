@@ -41,18 +41,54 @@ export async function warpToNextMonth(day = 2) {
  * For test setup only (accepting invites, paying), so the UI under test stays the focus.
  */
 export async function send(tx: { from: string; to: string; data: string; value?: bigint }) {
+  // Simulate first, so a revert reports its reason (custom error data) instead of only a hash.
+  try {
+    await rpc("eth_call", [
+      {
+        from: tx.from,
+        to: tx.to,
+        data: tx.data,
+        value: tx.value === undefined ? undefined : `0x${tx.value.toString(16)}`,
+      },
+      "latest",
+    ]);
+  } catch (e) {
+    throw new Error(
+      `Setup transaction would revert (to ${tx.to}, data ${tx.data.slice(0, 10)}): ${String(e)}`,
+    );
+  }
+  const estimate = BigInt(
+    await rpc<string>("eth_estimateGas", [
+      {
+        from: tx.from,
+        to: tx.to,
+        data: tx.data,
+        value: tx.value === undefined ? undefined : `0x${tx.value.toString(16)}`,
+      },
+    ]),
+  );
   const hash = await rpc<string>("eth_sendTransaction", [
     {
       from: tx.from,
       to: tx.to,
       data: tx.data,
+      // Wallets add headroom over the estimate; nested calls get only 63/64 of the gas left.
+      gas: `0x${((estimate * 3n) / 2n).toString(16)}`,
       value: tx.value === undefined ? undefined : `0x${tx.value.toString(16)}`,
     },
   ]);
   for (let i = 0; i < 50; i++) {
-    const receipt = await rpc<{ status: string } | null>("eth_getTransactionReceipt", [hash]);
+    const receipt = await rpc<{ status: string; gasUsed: string } | null>(
+      "eth_getTransactionReceipt",
+      [hash],
+    );
     if (receipt) {
-      if (receipt.status !== "0x1") throw new Error(`Setup transaction reverted: ${hash}`);
+      if (receipt.status !== "0x1") {
+        const sent = await rpc<{ gas: string }>("eth_getTransactionByHash", [hash]);
+        throw new Error(
+          `Setup transaction reverted: ${hash} (call ${tx.data.slice(0, 10)}, gas used ${Number(receipt.gasUsed)} of ${Number(sent.gas)})`,
+        );
+      }
       return;
     }
     await new Promise((r) => setTimeout(r, 100));

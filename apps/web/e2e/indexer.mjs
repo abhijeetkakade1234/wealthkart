@@ -15,6 +15,16 @@ const shell = process.platform === "win32";
 
 rmSync(persist, { recursive: true, force: true });
 
+// The Worker imports @wealthkart/sdk's built output; a fresh checkout (CI) hasn't built it yet,
+// and this server starts before the web build that would.
+const sdk = spawnSync("pnpm", ["--filter", "@wealthkart/sdk", "build"], {
+  cwd: join(here, "..", "..", ".."),
+  env,
+  stdio: "inherit",
+  shell,
+});
+if (sdk.status !== 0) process.exit(sdk.status ?? 1);
+
 const migrate = spawnSync(
   "pnpm",
   [

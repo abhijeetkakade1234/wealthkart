@@ -4,11 +4,11 @@ import { circleVaultAbi } from "@wealthkart/sdk";
 import { PauseCircle, Sunrise } from "lucide-react";
 import Link from "next/link";
 import type { Address } from "viem";
-import { useWriteContract } from "wagmi";
 
 import { Button, InlineAlert, TxTracker } from "@/components/kit";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 /**
  * Shown to a member the circle voted dormant (ADR 0032). Their savings are untouched; waking
@@ -16,7 +16,7 @@ import { useTx } from "@/lib/use-tx";
  * Paying from the Pay page also wakes them (RT-11).
  */
 export function DormantNotice({ circle, onWoke }: { circle: Address; onWoke: () => void }) {
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const working = tx.status === "confirm" || tx.status === "sending";
 
@@ -85,7 +85,7 @@ export function ProposeDormantButton({
   name: string;
   onProposed: () => void;
 }) {
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const working = tx.status === "confirm" || tx.status === "sending";
 

@@ -5,7 +5,6 @@ import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { parseEventLogs } from "viem";
-import { useWriteContract } from "wagmi";
 
 import { PageHeader } from "@/components/app/page-header";
 import { Button, InlineAlert, TxTracker } from "@/components/kit";
@@ -14,6 +13,7 @@ import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { useFactory } from "@/lib/circle";
 import { DEFAULTS, type FormState, validate } from "@/lib/circle-form";
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 export default function NewCirclePage() {
   return (
@@ -27,7 +27,7 @@ function NewCircle() {
   const router = useRouter();
   const { address } = useCoreWallet();
   const factory = useFactory();
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [touched, setTouched] = useState(false);

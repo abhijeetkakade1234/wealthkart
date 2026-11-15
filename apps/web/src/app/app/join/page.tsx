@@ -5,7 +5,7 @@ import { ArrowRight, Check, LogIn, Undo2, UserPlus, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { type Address, isAddress } from "viem";
-import { useReadContract, useWriteContract } from "wagmi";
+import { useReadContract } from "wagmi";
 
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { Deadline } from "@/components/app/deadline";
@@ -26,6 +26,7 @@ import {
 } from "@/lib/membership";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 export default function JoinPage() {
   return (
@@ -231,7 +232,7 @@ function FounderInvite({
   chainNow: number;
   onDone: () => void;
 }) {
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const acceptTx = useTx();
   const declineTx = useTx();
   const busy = (t: { status: string }) => t.status === "confirm" || t.status === "sending";
@@ -316,7 +317,7 @@ function RequestForm({
 }) {
   const [name, setName] = useState("");
   const check = useNameCheck(circle, me, name);
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const busy = tx.status === "confirm" || tx.status === "sending";
 
@@ -422,7 +423,7 @@ function RequestStatus({
 }) {
   const router = useRouter();
   const q = useJoinRequest(circle, requestId);
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const busy = tx.status === "confirm" || tx.status === "sending";
 

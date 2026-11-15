@@ -2,9 +2,9 @@
 
 import { circleVaultAbi } from "@wealthkart/sdk";
 import type { Address, ContractFunctionArgs, ContractFunctionName, TransactionReceipt } from "viem";
-import { useWriteContract } from "wagmi";
 
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 type VaultWrite = ContractFunctionName<typeof circleVaultAbi, "nonpayable" | "payable">;
 
@@ -13,7 +13,7 @@ type VaultWrite = ContractFunctionName<typeof circleVaultAbi, "nonpayable" | "pa
  * [id, true])`, `send("repay", [], amount)`. Resolves to the receipt, or null when it failed (the tracker explains why).
  */
 export function useVaultAction(circle: Address) {
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const working = tx.status === "confirm" || tx.status === "sending";
 
