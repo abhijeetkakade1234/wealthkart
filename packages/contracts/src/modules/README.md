@@ -9,5 +9,7 @@
 - `Governance.sol`: circle proposals (rule change with delay and rage-quit window, fee waiver with a fixed reason, dissolve and pro-rata claims, guardian off). The vault forwards its calldata raw (`_govForward`). ADR 0040.
 - `Ledger.sol` (internal) and `Rules.sol`: shared money books and vote-changeable settings. ADR 0037.
 - `Exits.sol`: exit requests, notice, payout at NAV minus the exit fee, FIFO queue and `Ledger.exitsWaiting`, Chainlink upkeep, self-claim, guardian pause (`Ledger.pausedUntil`). ADR 0039.
+- `LoanBook.sol`: loan requests, guarantor accept, loan votes, payout, lazy O(1) interest with tenor step-ups, late fees, rule 17, default, cure, and settle votes that use frozen shares. Keeps `loanTies` and `frozen` exact for Exits. ADR 0038.
+- `Ledger.sol` (internal): the shared money struct and push-then-pull payouts. `Rules.sol`: rule settings and bounds. ADR 0037.
 
 Rules: a module reads and writes only the `Store` it is given and the arguments it is passed; events and errors are declared in the module and merged into the vault ABI by `packages/sdk/scripts/gen-abi.mjs` (add new modules to its `MERGE` map).

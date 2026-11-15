@@ -12,6 +12,7 @@ import {Ledger} from "./modules/Ledger.sol";
 import {Rules} from "./modules/Rules.sol";
 import {Governance} from "./modules/Governance.sol";
 import {Exits} from "./modules/Exits.sol";
+import {LoanBook} from "./modules/LoanBook.sol";
 
 /// @title CircleVault
 /// @notice One savings circle: members contribute a fixed AVAX installment each month and receive
@@ -25,9 +26,11 @@ import {Exits} from "./modules/Exits.sol";
 ///      `address(this).balance` (ADR 0006). All times are UTC (ADR 0014).
 ///      Membership: ADR 0028. Display names: ADR 0029. Fee caps: ADR 0030. Dormant: ADR 0032.
 ///      Loans, exits and governance follow in Phase 2.
+// slither-disable-next-line missing-inheritance (ILoanBookViews only documents the forwarded outputs)
 contract CircleVault is ReentrancyGuard {
     using Membership for Membership.Store;
     using Ledger for Ledger.Store;
+    using LoanBook for LoanBook.Store;
 
     // ------------------------------------------------------------------ types
 
@@ -118,6 +121,8 @@ contract CircleVault is ReentrancyGuard {
     Governance.Store internal _gov;
     /// @dev Exit queue and guardian pause bookkeeping (ADR 0039).
     Exits.Store internal _exits;
+    /// @dev Loan requests, loans, guarantees and settle votes (LoanBook, ADR 0038).
+    LoanBook.Store internal _loans;
 
     // ------------------------------------------------------------------ events
 
@@ -313,6 +318,171 @@ contract CircleVault is ReentrancyGuard {
     // ================================================================== LOANS (LoanBook)
     // Phase 2 module: loan request -> vote -> disbursal, interest, repayment, tenors, default.
     // Entry points for the LoanBook library go in this section only (ADR 0037).
+
+    /// @notice Ask the circle for a loan (ADR 0007, 0038). You must be able to vote, not be
+    ///         frozen, and have no loan or open request. The amount must fit the fund cap, k x
+    ///         (your stake + your guarantor's stake) and lendable cash after the reserve. The
+    ///         guarantor (or address(0)) must accept with `acceptGuarantee` before it can pass.
+    /// @return id The loan request id.
+    function requestLoan(uint256 amount, bool medical, address guarantor)
+        external
+        nonReentrant
+        returns (uint256 id)
+    {
+        return _loans.requestLoan(_m, _ledger, _rules, _loanCtx(), amount, medical, guarantor);
+    }
+
+    /// @notice Agree to guarantee `borrower`'s open loan request. You can't exit until the loan
+    ///         is repaid or settled, and your shares are at risk if it defaults.
+    function acceptGuarantee(address borrower) external nonReentrant {
+        _loans.acceptGuarantee(_m, _ledger, _rules, _loanCtx(), borrower);
+    }
+
+    /// @notice Vote on a loan or settle request. A loan that passes is paid out in this call.
+    function voteLoan(uint256 id, bool support) external nonReentrant {
+        _loans.vote(_m, _ledger, _rules, _loanCtx(), id, support);
+    }
+
+    /// @notice Settle a loan or settle request once decided or its window ended. Anyone can call.
+    function finalizeLoan(uint256 id) external nonReentrant {
+        _loans.finalize(_m, _ledger, _rules, _loanCtx(), id);
+    }
+
+    /// @notice Withdraw your own open loan request.
+    function cancelLoanRequest() external nonReentrant {
+        _loans.cancel(_m);
+    }
+
+    /// @notice Pay all interest and late fees owed on your loan (see `interestDue`), exactly.
+    function payInterest() external payable nonReentrant {
+        _loans.payInterest(_m, _ledger, _rules, _loanCtx(), msg.value);
+    }
+
+    /// @notice Repay principal with the AVAX sent. Closing the loan needs interest paid first and
+    ///         may add one month's interest (rule 17): send `payoffDue` to close it.
+    function repay() external payable nonReentrant {
+        _loans.repay(_m, _ledger, _rules, _loanCtx(), msg.value);
+    }
+
+    /// @notice Mark a loan in default once it qualifies; freezes borrower and guarantor.
+    function markDefault(address borrower) external nonReentrant {
+        _loans.markDefault(_m, _rules, _loanCtx(), borrower);
+    }
+
+    /// @notice Propose using a defaulted borrower's shares (then the guarantor's) to repay.
+    /// @return id The settle request id.
+    function proposeSettle(address borrower) external nonReentrant returns (uint256 id) {
+        return _loans.proposeSettle(_m, _ledger, _rules, _loanCtx(), borrower);
+    }
+
+    // ---- loan views. Each forwards a LoanBook view's raw output (see `_loanView`). The three
+    // that return structs declare no return type here to save code size; their real return
+    // types are in `ILoanBookViews`, and the SDK ABI carries them (ADR 0038).
+
+    /// @notice `borrower`'s loan (principal 0 = no loan). Returns `LoanBook.Loan`.
+    function loanOf(address borrower) external view {
+        _loanView(abi.encodeWithSelector(LoanBook.loanOf.selector, _loansSlot(), borrower));
+    }
+
+    /// @notice What `payInterest` needs now: interest, late fees, and overdue months.
+    function interestDue(address borrower)
+        external
+        view
+        returns (uint256 interest, uint256 fees, uint256 overdueMonths)
+    {
+        _loanView(
+            abi.encodeWithSelector(
+                LoanBook.interestDue.selector, _loansSlot(), _rulesSlot(), _loanCtx(), borrower
+            )
+        );
+    }
+
+    /// @notice What `repay` needs to close the loan now (after interest is paid).
+    function payoffDue(address borrower) external view returns (uint256) {
+        _loanView(
+            abi.encodeWithSelector(
+                LoanBook.payoffDue.selector, _loansSlot(), _rulesSlot(), borrower
+            )
+        );
+    }
+
+    /// @notice Loan or settle request `id`. Returns `LoanBook.Request`.
+    function loanRequest(uint256 id) external view {
+        _loanView(abi.encodeWithSelector(LoanBook.loanRequest.selector, _loansSlot(), id));
+    }
+
+    function loanRequestCount() external view returns (uint256) {
+        return _loans.requests.length;
+    }
+
+    /// @notice `borrower`'s open loan request id, or 0.
+    function pendingLoanOf(address borrower) external view returns (uint256) {
+        return _loans.pendingOf[borrower];
+    }
+
+    /// @notice Paginated open loan and settle requests (order changes as requests close).
+    ///         Returns `(uint256[] ids, LoanBook.Request[] page)`.
+    function openLoanRequestsPage(uint256 offset, uint256 limit) external view {
+        _loanView(abi.encodeWithSelector(LoanBook.openPage.selector, _loansSlot(), offset, limit));
+    }
+
+    function canVoteLoan(uint256 id, address voter) external view returns (bool) {
+        return _loans.canVote(_m, id, voter);
+    }
+
+    /// @notice Cash that can be lent right now (cash minus the reserve, rule 12).
+    function lendableCash() external view returns (uint256) {
+        return LoanBook.lendableCash(_ledger, _rules);
+    }
+
+    function _loanCtx() internal view returns (LoanBook.Ctx memory) {
+        return LoanBook.Ctx({dueDay: dueDay, votingWindow: votingWindow, quorumPct: quorumPct});
+    }
+
+    function _loansSlot() internal pure returns (uint256 slot) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            slot := _loans.slot
+        }
+    }
+
+    function _rulesSlot() internal pure returns (uint256 slot) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            slot := _rules.slot
+        }
+    }
+
+    /// @dev Runs a LoanBook view with DELEGATECALL and returns its ABI output unchanged as the
+    ///      calling function's output. The vault then never decodes and re-encodes the big loan
+    ///      structs, which saves about 2 KB of runtime code (ADR 0038). The library is linked at
+    ///      build time and the selector and arguments are fixed by the caller, so nothing here is
+    ///      user-controlled. The view cast is sound: the target is a `view` library function, and
+    ///      in an `eth_call`/STATICCALL context any write would revert anyway.
+    function _loanView(bytes memory data) internal view {
+        function(bytes memory) internal fwd = _delegateLoanBook;
+        function(bytes memory) internal view asView;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            asView := fwd
+        }
+        asView(data);
+    }
+
+    /// @dev Never returns to its caller: ends the call with the library's output or revert.
+    ///      Only reached through the view cast in `_loanView`.
+    // slither-disable-next-line dead-code (called through a function pointer in _loanView)
+    function _delegateLoanBook(bytes memory data) internal {
+        // solhint-disable avoid-low-level-calls
+        // slither-disable-next-line low-level-calls,controlled-delegatecall (fixed linked library, fixed selector)
+        (bool ok, bytes memory ret) = address(LoanBook).delegatecall(data);
+        // solhint-enable avoid-low-level-calls
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            if iszero(ok) { revert(add(ret, 32), mload(ret)) }
+            return(add(ret, 32), mload(ret))
+        }
+    }
 
     // ================================================================== end LOANS
 

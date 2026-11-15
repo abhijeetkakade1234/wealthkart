@@ -429,6 +429,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "acceptGuarantee",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "acceptInvite",
     inputs: [],
     outputs: [],
@@ -520,6 +533,30 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "canVoteLoan",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "canVoteProposal",
     inputs: [
       {
@@ -552,6 +589,13 @@ export const circleVaultAbi = [
   {
     type: "function",
     name: "cancelJoinRequest",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cancelLoanRequest",
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
@@ -907,6 +951,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "finalizeLoan",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "finalizeProposal",
     inputs: [
       {
@@ -1126,6 +1183,35 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "interestDue",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "interest",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "fees",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "overdueMonths",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "isMember",
     inputs: [
       {
@@ -1169,6 +1255,209 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "lendableCash",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "loanOf",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct LoanBook.Loan",
+        components: [
+          {
+            name: "guarantor",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "disbursedPeriod",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "paidThrough",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "bookedThrough",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "principal",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "amount",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "carried",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "rate1",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "rate2",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "rate3",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "freeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "medical",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "defaulted",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "charged",
+            type: "bool",
+            internalType: "bool",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "loanRequest",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct LoanBook.Request",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum LoanBook.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum LoanBook.Status",
+          },
+          {
+            name: "medical",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "guarantorAccepted",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "borrower",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "guarantor",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "amount",
+            type: "uint128",
+            internalType: "uint128",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "loanRequestCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "loansOutstanding",
     inputs: [],
     outputs: [
@@ -1179,6 +1468,19 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "markDefault",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -1406,6 +1708,97 @@ export const circleVaultAbi = [
         name: "",
         type: "uint256",
         internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "openLoanRequestsPage",
+    inputs: [
+      {
+        name: "offset",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "ids",
+        type: "uint256[]",
+        internalType: "uint256[]",
+      },
+      {
+        name: "page",
+        type: "tuple[]",
+        internalType: "struct LoanBook.Request[]",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum LoanBook.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum LoanBook.Status",
+          },
+          {
+            name: "medical",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "guarantorAccepted",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "borrower",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "guarantor",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "amount",
+            type: "uint128",
+            internalType: "uint128",
+          },
+        ],
       },
     ],
     stateMutability: "view",
@@ -1654,6 +2047,51 @@ export const circleVaultAbi = [
         name: "",
         type: "uint64",
         internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "payInterest",
+    inputs: [],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "payoffDue",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "pendingLoanOf",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
       },
     ],
     stateMutability: "view",
@@ -2226,6 +2664,25 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "proposeSettle",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "quorumPct",
     inputs: [],
     outputs: [
@@ -2252,6 +2709,13 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "repay",
+    inputs: [],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
     name: "requestCount",
     inputs: [],
     outputs: [
@@ -2268,6 +2732,35 @@ export const circleVaultAbi = [
     name: "requestExit",
     inputs: [],
     outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "requestLoan",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "medical",
+        type: "bool",
+        internalType: "bool",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
     stateMutability: "nonpayable",
   },
   {
@@ -2498,6 +2991,24 @@ export const circleVaultAbi = [
   {
     type: "function",
     name: "vote",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "support",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "voteLoan",
     inputs: [
       {
         name: "id",
@@ -3986,5 +4497,652 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "event",
+    name: "GuaranteeAccepted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "InterestPaid",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "interest",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "fees",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "throughPeriod",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanCured",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanDefaulted",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "overdueMonths",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanDisbursed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanRepaid",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "principal",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "minInterest",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "remaining",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanRequestClosed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "kind",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum LoanBook.Kind",
+      },
+      {
+        name: "status",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum LoanBook.Status",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanRequested",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "medical",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanSettled",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "fromBorrower",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "fromGuarantor",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "writtenOff",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanVoted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "support",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "SettleProposed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "proposer",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "AlreadyDefaulted",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "AlreadyGuaranteeing",
+    inputs: [
+      {
+        name: "guarantor",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "AlreadyVotedOnLoan",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "AmountTooLarge",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "CannotVoteOnLoan",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "DisbursalBlocked",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuaranteeNotAccepted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuarantorRequired",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "InterestOverdue",
+    inputs: [
+      {
+        name: "months",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "InterestOwed",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "InvalidGuarantor",
+    inputs: [
+      {
+        name: "guarantor",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanActive",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanNotDecidedYet",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanRequestNotOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanRequestOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanVotingClosed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoansClosed",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "LoansPaused",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "MedicalLoanThisYear",
+    inputs: [
+      {
+        name: "year",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "MedicalLoansOff",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoLoan",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NoLoanRequest",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoOtherLoanVoters",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotAVoter",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotInDefault",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotYourGuarantee",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NothingOwed",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "SettleOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TooFewMembers",
+    inputs: [
+      {
+        name: "members",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "required",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "WrongLoanAmount",
+    inputs: [
+      {
+        name: "expected",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "sent",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ZeroAmount",
+    inputs: [],
   },
 ] as const;
