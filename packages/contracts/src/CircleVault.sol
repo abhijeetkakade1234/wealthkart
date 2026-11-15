@@ -11,6 +11,7 @@ import {Membership} from "./modules/Membership.sol";
 import {Ledger} from "./modules/Ledger.sol";
 import {Rules} from "./modules/Rules.sol";
 import {Governance} from "./modules/Governance.sol";
+import {Exits} from "./modules/Exits.sol";
 
 /// @title CircleVault
 /// @notice One savings circle: members contribute a fixed AVAX installment each month and receive
@@ -115,6 +116,8 @@ contract CircleVault is ReentrancyGuard {
     /// @dev Circle proposals: rule changes, fee waivers, dissolution, guardian off (ADR 0040).
     // slither-disable-next-line uninitialized-state (written by the library through its slot)
     Governance.Store internal _gov;
+    /// @dev Exit queue and guardian pause bookkeeping (ADR 0039).
+    Exits.Store internal _exits;
 
     // ------------------------------------------------------------------ events
 
@@ -258,6 +261,7 @@ contract CircleVault is ReentrancyGuard {
         nonReentrant
         returns (uint256 id)
     {
+        if (_ledger.paused()) revert Exits.CirclePaused(_ledger.pausedUntil);
         return _m.requestToJoin(_params(), displayName, invitedBy);
     }
 
@@ -315,6 +319,84 @@ contract CircleVault is ReentrancyGuard {
     // ================================================================== EXITS (Exits)
     // Phase 2 module: exit notice -> NAV snapshot -> payout, Chainlink Automation, guardian pause.
     // Entry points for the Exits library go in this section only (ADR 0037).
+
+    /// @notice Ask to leave. You are paid your shares at NAV once the notice ends (none during
+    ///         a rage-quit window), minus the exit fee. Not while frozen or tied to a loan.
+    function requestExit() external nonReentrant {
+        Exits.requestExit(_exits, _ledger, _m, _rules);
+    }
+
+    /// @notice Withdraw your exit request before it is paid.
+    function cancelExit() external nonReentrant {
+        Exits.cancelExit(_exits, _ledger);
+    }
+
+    /// @notice Collect your own exit after the notice (works even if automation is down).
+    /// @return paid False if other exits are waiting for cash first; you keep your place.
+    function claimExit() external nonReentrant returns (bool paid) {
+        return Exits.claimExit(_exits, _ledger, _m, _rules);
+    }
+
+    /// @notice Pay matured exits in order, looking at up to `maxCount` queue slots. Anyone can
+    ///         call it; never blocked by the guardian pause.
+    function processExits(uint256 maxCount) external nonReentrant returns (uint256 paid) {
+        return Exits.processExits(_exits, _ledger, _m, _rules, maxCount);
+    }
+
+    /// @notice Chainlink Automation check (AutomationCompatibleInterface).
+    function checkUpkeep(bytes calldata)
+        external
+        view
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
+        return (Exits.upkeepNeeded(_exits, _ledger, _m, _rules), "");
+    }
+
+    /// @notice Chainlink Automation action: process one batch of the exit queue.
+    function performUpkeep(bytes calldata) external nonReentrant {
+        // slither-disable-next-line unused-return (the count is only for direct callers)
+        Exits.processExits(_exits, _ledger, _m, _rules, Exits.UPKEEP_BATCH);
+    }
+
+    /// @notice Guardian (the creator): pause new loans and joins for 14 days, once per 90 days.
+    function pause() external {
+        Exits.pause(_exits, _ledger, _m, creator);
+    }
+
+    /// @notice End the pause early (the guardian, or anyone once the guardian is gone).
+    function unpause() external {
+        Exits.unpause(_ledger, _m, creator);
+    }
+
+    /// @notice `member`'s pending exit (slot 0 = none).
+    function exitOf(address member) external view returns (Exits.Entry memory) {
+        return _exits.entries[member];
+    }
+
+    /// @notice Queue slots from the front, settled ones included (see `exitQueuePage`).
+    function exitQueueLength() external view returns (uint256) {
+        return _exits.queue.length - _exits.head;
+    }
+
+    /// @notice Paginated exit queue from the front; settled slots are address(0).
+    function exitQueuePage(uint256 offset, uint256 limit) external view returns (address[] memory) {
+        return Exits.queuePage(_exits, offset, limit);
+    }
+
+    /// @notice What `member` would be paid right now, after the exit fee.
+    function exitValue(address member) external view returns (uint256) {
+        return Exits.exitValue(_exits, _ledger, _m, _rules, member);
+    }
+
+    /// @notice Exits whose notice ended and that wait for cash; no new loans while > 0.
+    function exitsWaiting() external view returns (uint256) {
+        return _ledger.exitsWaiting;
+    }
+
+    /// @notice End of the guardian pause (in the past = not paused).
+    function pausedUntil() external view returns (uint64) {
+        return _ledger.pausedUntil;
+    }
 
     // ================================================================== end EXITS
 
