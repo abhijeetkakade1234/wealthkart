@@ -91,14 +91,25 @@ Known gaps:
 - S-LOAN-07 Interest starts next month; repaying mid-month doesn't cut this month's interest
 - S-LOAN-08 Loan taken and repaid in the same month → minimum one month's interest (rule 17)
 - S-LOAN-09 Medical loan → 3 interest-free months, then the normal rate
-- S-LOAN-10 Partial interest payments over a month → totals correct, "left to pay" correct
+- S-LOAN-10 Partial interest payments over a month → totals correct, "left to pay" correct (Phase 2, ADR 0038: interest is paid in full only, so a part payment is rejected and "left to pay" is unchanged)
 - S-LOAN-11 Overpaying repayment → rejected or capped, never lost
-- S-LOAN-12 Two open loans; repayment → chosen loan first, then oldest
+- S-LOAN-12 Two open loans; repayment → chosen loan first, then oldest (Phase 2, ADR 0037: one active loan and one pending request per member, so a second request is rejected)
 - S-LOAN-13 Interest missed → fee; 2 months missed → default, borrower + guarantor shares frozen
 - S-LOAN-14 Tenor 1 → 2 → 3 rate steps; after tenor 3 the loan is due; vote → frozen shares repay
 - S-LOAN-15 Guarantor tries to exit while guaranteeing → blocked
 - S-LOAN-16 AVAX price crashes 60% mid-loan → nothing in the contract depends on price (sanity)
 - S-LOAN-17 G1 replay: a month with no loan movements → each member's Debit cell equals 1% of their start-of-month balance
+- S-LOAN-18 Loan with a guarantor → can't pass until the guarantor accepts; accepting after a passing vote pays out at once; never accepted by the window end → closed as failed
+- S-LOAN-19 Circle requires a guarantor (rule 11) → request without one, naming yourself, or naming a non-member → rejected
+- S-LOAN-20 Borrower cancels the request → borrower and guarantor ties released; the guarantor can back someone else
+- S-LOAN-21 Settle vote on a default → borrower's shares, then the guarantor's, repay at NAV; the rest is written off; loans out back to 0; neither is frozen any more
+- S-LOAN-22 Borrower cures, or repays in full, while a settle vote runs → the settle vote closes as cancelled
+- S-LOAN-23 Guardian pause → no new requests, a passed loan waits; dissolved circle → no new loans, a passed loan fails
+- S-LOAN-24 Borrower's wallet refuses AVAX → the loan is recorded, the AVAX waits in `withdrawable`, the vote doesn't revert
+- S-LOAN-25 Borrower contract re-enters the vault while receiving the loan → re-entry blocked
+- S-LOAN-26 Request checks: non-member, zero amount, fewer members than `minMembersForLoans`, bad ids; open requests page
+- S-LOAN-27 Fuzz: interest for any number of months equals the month-by-month tenor schedule (1% / 1.5% / 2%, rounded up)
+- S-LOAN-28 Invariants: AVAX held = cash + refused payouts; loans out = sum of principal; `loanTies` and `frozen` exactly match open requests, loans and accepted guarantees
 
 ### Exits (S-EXIT)
 

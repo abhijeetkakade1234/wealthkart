@@ -17,7 +17,12 @@ const CONTRACTS = ["CircleVault", "CircleFactory"];
  * delegatecalls them, so their logs and reverts come from the vault's address; viem needs them
  * in the vault's ABI to decode them.
  */
-const MERGE = { CircleVault: ["Membership", "Rules"] };
+const MERGE = { CircleVault: ["Membership", "Rules", "LoanBook"] };
+/**
+ * Views a contract declares without return types because it forwards a library's ABI output
+ * unchanged (ADR 0038, saves code size). Their real outputs come from this interface.
+ */
+const OUTPUTS = { CircleVault: "ILoanBookViews" };
 
 const read = (name) =>
   JSON.parse(readFileSync(join(outDir, `${name}.sol`, `${name}.json`), "utf8"));
@@ -34,6 +39,14 @@ for (const name of CONTRACTS) {
         seen.add(sig(entry));
         artifact.abi.push(entry);
       }
+    }
+  }
+  const outputsFrom = OUTPUTS[name];
+  if (outputsFrom) {
+    for (const fn of read(outputsFrom).abi.filter((e) => e.type === "function")) {
+      const entry = artifact.abi.find((e) => e.type === "function" && sig(e) === sig(fn));
+      if (!entry) throw new Error(`${name} has no ${sig(fn)} to take outputs from ${outputsFrom}`);
+      entry.outputs = fn.outputs;
     }
   }
   const constName = `${name.charAt(0).toLowerCase()}${name.slice(1)}Abi`;

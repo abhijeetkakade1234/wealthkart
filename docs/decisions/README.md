@@ -47,3 +47,4 @@
 | [0035](0035-no-circle-to-circle-lending.md)             | No circle-to-circle lending: a circle lends only to its own members                              | Accepted                           |
 | [0036](0036-indexer-cloudflare-worker-d1.md)            | Indexer: Cloudflare Worker + D1 caching public circle events; RPC stays the fallback             | Accepted                           |
 | [0037](0037-phase2-architecture.md)                     | Phase 2 architecture: blueprint factory, shared Ledger, Rules in storage, one module per feature | Accepted                           |
+| [0038](0038-loans.md)                                   | Loans: LoanBook module, lazy O(1) interest, guarantor accept, default and settle by vote         | Accepted                           |
