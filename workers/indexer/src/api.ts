@@ -1,11 +1,13 @@
 import { decode } from "./codec";
 import { type ChainReader, type Config, indexStep } from "./indexer";
+import { openAlerts } from "./monitor";
 import { checkedAt, circleLogs, type Db, indexedTo, isKnownCircle, markChecked } from "./store";
 
 /**
  * HTTP API (ADR 0036). Read-only, public chain data, so CORS is open and nothing is secret.
  *
  *   GET /v1/health
+ *   GET /v1/alerts           open monitoring alerts (ADR 0041)
  *   GET /v1/circles/:address/logs?fromBlock=&fromLogIndex=&limit=
  */
 
@@ -59,6 +61,10 @@ export async function handle(
   if (url.pathname === "/v1/health") {
     const to = await indexedTo(db);
     return json({ chainId: cfg.chainId, indexedTo: to === null ? null : to.toString() });
+  }
+
+  if (url.pathname === "/v1/alerts") {
+    return json({ chainId: cfg.chainId, alerts: await openAlerts(db) });
   }
 
   const m = url.pathname.match(/^\/v1\/circles\/([^/]+)\/logs$/);

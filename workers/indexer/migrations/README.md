@@ -6,3 +6,4 @@
 **Key files**
 
 - `0001_init.sql`: `meta`, `circles`, `logs`
+- `0002_alerts.sql`: `alerts` (contract monitoring, ADR 0041)

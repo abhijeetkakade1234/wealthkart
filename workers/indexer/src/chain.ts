@@ -3,7 +3,28 @@ import { createPublicClient, decodeEventLog, http, type Address } from "viem";
 
 import { encode } from "./codec";
 import type { ChainReader } from "./indexer";
+import type { MonitorReader } from "./monitor";
 import type { StoredLog } from "./store";
+
+/** viem-backed solvency reads for monitoring (ADR 0041). */
+export function viemMonitor(rpcUrl: string): MonitorReader {
+  const client = createPublicClient({ transport: http(rpcUrl) });
+  return {
+    async solvency(circle) {
+      const address = circle as Address;
+      const [balance, totalAssets, loansOutstanding] = await Promise.all([
+        client.getBalance({ address }),
+        client.readContract({ address, abi: circleVaultAbi, functionName: "totalAssets" }),
+        client.readContract({ address, abi: circleVaultAbi, functionName: "loansOutstanding" }),
+      ]);
+      return {
+        balance,
+        totalAssets: totalAssets as bigint,
+        loansOutstanding: loansOutstanding as bigint,
+      };
+    },
+  };
+}
 
 /** viem-backed chain reader for the indexer. Unknown logs are skipped, never stored raw. */
 export function viemReader(rpcUrl: string, factory: string): ChainReader {

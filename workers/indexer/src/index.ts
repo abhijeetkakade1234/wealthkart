@@ -1,6 +1,7 @@
 import { handle } from "./api";
-import { viemReader } from "./chain";
+import { viemMonitor, viemReader } from "./chain";
 import { type Config, indexStep } from "./indexer";
+import { checkCircles, notify } from "./monitor";
 import type { Db } from "./store";
 
 /**
@@ -16,6 +17,8 @@ export interface Env {
   FROM_BLOCK: string;
   LOG_CHUNK: string;
   CONFIRMATIONS: string;
+  /** Optional Slack/Discord-style webhook for contract alerts (ADR 0041). Set as a secret. */
+  ALERT_WEBHOOK_URL?: string;
 }
 
 /** Chunks one cron run may index (each is one factory + one circle getLogs per 100 circles). */
@@ -45,11 +48,10 @@ export default {
 
   async scheduled(_event: ScheduledController, env: Env): Promise<void> {
     const cfg = config(env);
-    await indexStep(
-      env.DB as unknown as Db,
-      viemReader(env.RPC_URL, cfg.factory),
-      cfg,
-      CRON_CHUNKS,
-    );
+    const db = env.DB as unknown as Db;
+    await indexStep(db, viemReader(env.RPC_URL, cfg.factory), cfg, CRON_CHUNKS);
+    // Monitoring after indexing, so newly created circles are checked too.
+    const alerts = await checkCircles(db, viemMonitor(env.RPC_URL), Date.now());
+    await notify(env.ALERT_WEBHOOK_URL, alerts);
   },
 } satisfies ExportedHandler<Env>;

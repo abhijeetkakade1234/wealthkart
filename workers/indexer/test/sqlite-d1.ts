@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
 
@@ -14,7 +14,12 @@ const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
 
 export function memoryDb(): Db {
   const db = new DatabaseSync(":memory:");
-  db.exec(readFileSync(join(__dirname, "..", "migrations", "0001_init.sql"), "utf8"));
+  const dir = join(__dirname, "..", "migrations");
+  for (const f of readdirSync(dir)
+    .filter((n) => n.endsWith(".sql"))
+    .sort()) {
+    db.exec(readFileSync(join(dir, f), "utf8"));
+  }
 
   const stmt = (sql: string, values: unknown[] = []): Stmt & { exec: () => void } => ({
     bind: (...v: unknown[]) => stmt(sql, v),
