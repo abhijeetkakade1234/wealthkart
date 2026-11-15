@@ -104,7 +104,7 @@ How to use this file:
 - [x] Late fees 1 and 2 (lazy), capped at half the installment (ADR 0030)
 - [x] Dormant-member vote (ADR 0032): propose after N missed months, >50% yes, pay or `wake()` to return; members table action, Votes card, dormant notice; forge S-MEM-07/08, S-RT-18, S-TRUST-03, invariants I-12/I-13; E2E S-E2E-11/12
 - [x] Vault split into linked libraries (ADR 0031): `Membership` module; factory 18.4 KB (was 23.99 KB)
-- [ ] Red-team leftovers for membership: vote only after N installments (RT-03), drop behind-on-dues members from the quorum count (RT-07), circle-name phishing check (RT-26), per-inviter request cap
+- [x] Red-team leftovers for membership (ADR 0033): voting rights after N payments with a running voter count as the quorum base (RT-03), 3 open requests per member and inviter stats on join cards (RT-03, RT-05), circle names without links (RT-26); RT-07's quorum part is handled by the dormant vote. Forge S-RT-05/06/34, invariant I-12b; E2E S-E2E-14
 - [ ] Portfolio across circles; circle overview charts; contribution heatmap
 - [ ] Activity feed + Snowtrace links
 - [ ] Indexer (AvaCloud Data API / The Graph / Worker cache)

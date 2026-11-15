@@ -142,35 +142,37 @@ Fees can be waived only by member vote, with a reason recorded on-chain.
 
 Rule **logic** is fixed in audited code; each circle picks the **numbers** in the Create-circle wizard (G1's values pre-filled). Changes: proposal → vote → 7-day delay with rage-quit (ADR 0019) → applies from the next period. All times UTC (ADR 0014).
 
-| Group       | Setting                                | Default                                                   | Bounds                          |
-| ----------- | -------------------------------------- | --------------------------------------------------------- | ------------------------------- |
-| Installment | Amount                                 | creator sets (e.g. 0.5 AVAX)                              | > 0                             |
-|             | Due day (23:59:59 UTC)                 | 10                                                        | 1–28                            |
-|             | Late fee 1 (after due day)             | 0.01 AVAX                                                 | 0–50% of installment (ADR 0030) |
-|             | Late fee 2 (after day 20)              | 0.01 AVAX                                                 | 0–50% of installment            |
-|             | Payment holidays per year (ADR 0017)   | 3                                                         | 0–12                            |
-|             | Missed months before dormant vote      | 3                                                         | 1–12                            |
-| Loans       | Interest per month                     | 1%                                                        | 0–5%                            |
-|             | Tenors (rule 15)                       | on: 6 months, 1% → 1.5% → 2%, max 3                       | 1–24 months per tenor           |
-|             | Reserve (rule 12)                      | 20% of fund                                               | 0–80%                           |
-|             | Max loan per member (rule 13)          | 40% of fund                                               | 1–100%                          |
-|             | Loan cap vs stake, k (ADR 0018)        | 2× (own + guarantor stake)                                | 1–10×                           |
-|             | Minimum one month's interest (rule 17) | on                                                        | on/off                          |
-|             | Medical loans (rule 18)                | cap set by creator, 3 interest-free months, once per year | 0–12 months                     |
-|             | Guarantor required (rule 11)           | off                                                       | on/off                          |
-|             | Interest late fee                      | 0.01 AVAX                                                 | ≥ 0                             |
-|             | Missed interest months → default       | 2                                                         | 1–6                             |
-| Voting      | Voting window                          | 48 h (medical 24 h)                                       | 1 h–14 days                     |
-|             | Quorum (of active members)             | 50%                                                       | 20–100%                         |
-|             | Pass mark (loans, rules)               | > 50%                                                     | 50–100%                         |
-|             | Dissolution pass mark (ADR 0021)       | 66%                                                       | 50–100%                         |
-|             | Rule-change delay (ADR 0019)           | 7 days                                                    | 3–30 days                       |
-| Membership  | Max members                            | unlimited                                                 | ≥ 3                             |
-|             | Admission pass mark (ADR 0028)         | 66% of votes cast, fixed                                  | fixed                           |
-|             | Min members to allow loans             | 3                                                         | ≥ 3                             |
-|             | Exit notice period                     | 30 days                                                   | 0–90 days                       |
-|             | Exit fee                               | 0%                                                        | 0–10%                           |
-| Safety      | Guardian pause (ADR 0020)              | on (max 14 days, never blocks exits)                      | circle can vote it off          |
+| Group       | Setting                                       | Default                                                   | Bounds                          |
+| ----------- | --------------------------------------------- | --------------------------------------------------------- | ------------------------------- |
+| Installment | Amount                                        | creator sets (e.g. 0.5 AVAX)                              | > 0                             |
+|             | Due day (23:59:59 UTC)                        | 10                                                        | 1–28                            |
+|             | Late fee 1 (after due day)                    | 0.01 AVAX                                                 | 0–50% of installment (ADR 0030) |
+|             | Late fee 2 (after day 20)                     | 0.01 AVAX                                                 | 0–50% of installment            |
+|             | Payment holidays per year (ADR 0017)          | 3                                                         | 0–12                            |
+|             | Missed months before dormant vote             | 3                                                         | 1–12                            |
+| Loans       | Interest per month                            | 1%                                                        | 0–5%                            |
+|             | Tenors (rule 15)                              | on: 6 months, 1% → 1.5% → 2%, max 3                       | 1–24 months per tenor           |
+|             | Reserve (rule 12)                             | 20% of fund                                               | 0–80%                           |
+|             | Max loan per member (rule 13)                 | 40% of fund                                               | 1–100%                          |
+|             | Loan cap vs stake, k (ADR 0018)               | 2× (own + guarantor stake)                                | 1–10×                           |
+|             | Minimum one month's interest (rule 17)        | on                                                        | on/off                          |
+|             | Medical loans (rule 18)                       | cap set by creator, 3 interest-free months, once per year | 0–12 months                     |
+|             | Guarantor required (rule 11)                  | off                                                       | on/off                          |
+|             | Interest late fee                             | 0.01 AVAX                                                 | ≥ 0                             |
+|             | Missed interest months → default              | 2                                                         | 1–6                             |
+| Voting      | Voting window                                 | 48 h (medical 24 h)                                       | 1 h–14 days                     |
+|             | Quorum (of active members)                    | 50%                                                       | 20–100%                         |
+|             | Pass mark (loans, rules)                      | > 50%                                                     | 50–100%                         |
+|             | Dissolution pass mark (ADR 0021)              | 66%                                                       | 50–100%                         |
+|             | Rule-change delay (ADR 0019)                  | 7 days                                                    | 3–30 days                       |
+| Membership  | Max members                                   | unlimited                                                 | ≥ 3                             |
+|             | Admission pass mark (ADR 0028)                | 66% of votes cast, fixed                                  | fixed                           |
+|             | Payments before a new member votes (ADR 0033) | 2 (founders vote at once)                                 | 0–6                             |
+|             | Open requests naming one member (ADR 0033)    | 3, fixed                                                  | fixed                           |
+|             | Min members to allow loans                    | 3                                                         | ≥ 3                             |
+|             | Exit notice period                            | 30 days                                                   | 0–90 days                       |
+|             | Exit fee                                      | 0%                                                        | 0–10%                           |
+| Safety      | Guardian pause (ADR 0020)                     | on (max 14 days, never blocks exits)                      | circle can vote it off          |
 
 ### D5. Privacy: zero personal data
 

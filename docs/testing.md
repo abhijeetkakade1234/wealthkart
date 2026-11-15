@@ -235,6 +235,7 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-10 A crafted `next` link on the sign-in page can't send you outside the app
 - S-E2E-11 Circle created with "missed months before a dormant vote" = 1; a member stops paying; another member sees "Missed N months" and starts a vote from the members table; a third member's yes settles it; the table shows "Dormant, payments paused"
 - S-E2E-12 The dormant member sees "Your payments are paused", the Pay page explains paying brings them back, and "I'm back" wakes them
+- S-E2E-14 A circle name that looks like a web address is refused by the create form before anything is sent; a member voted in shows "can vote after 2 more payments"; a join card shows the inviter's open invites
 - S-E2E-13 The sign-in page fits one screen with no scrolling on a small phone, a laptop and a desktop; Back returns to the previous page on this site, or home
 
 ## Gates in CI
@@ -253,8 +254,8 @@ From [`redteam/2026-11-plan-redteam.md`](redteam/2026-11-plan-redteam.md). Each 
 - S-RT-02 (RT-01, RT-27) Join page for a non-factory address → no rules shown, verified-circle line absent; for a real circle → "Verified WealthKart circle" with Snowtrace link
 - S-RT-03 (RT-02) Creator lists 3 other founders → they are invited, not members; `memberCount` = 1 and they don't count in quorum until each calls `acceptInvite()`
 - S-RT-04 (RT-02) Founder invite not accepted within 14 days → expires; the circle never appears in that wallet's `circlesOf`
-- S-RT-05 (RT-03) Member admitted today votes on a loan proposal created yesterday → rejected (snapshot); can't vote at all until N installments paid
-- S-RT-06 (RT-03) Admission vote with 60% yes when the pass mark is 66% → fails; one member with more than a third of open invites → warning shown on the request
+- S-RT-05 (RT-03) Member admitted today votes on a loan proposal created yesterday → rejected (snapshot); can't vote at all until N installments paid; founders vote from the start; N = 0 votes on admission; rights survive dormancy and return on wake; quorum base counts only voters
+- S-RT-06 (RT-03) Admission vote with 60% yes when the pass mark is 66% → fails; one member with more than a third of open invites → warning shown on the request; a 4th open request naming the same member → reverts; only confirmed invites count as "brought in"
 - S-RT-07 (RT-04) Attacker copies an address-bound invite from the mempool and calls `requestJoin` from another wallet → reverts; the invitee's request still succeeds
 - S-RT-08 (RT-05) Same address opens a second join request while one is pending → reverts; expired requests leave the open list and reads stay bounded
 - S-RT-09 (RT-06) Name with a Cyrillic look-alike letter, zero-width space, RTL mark, leading/trailing space, or differing only by case from an existing name → rejected
