@@ -139,6 +139,7 @@ export function useCircle(id: Address | null) {
       { ...vault, functionName: "openRequestCount" },
       { ...vault, functionName: "dormantAfter" },
       { ...vault, functionName: "dormantCount" },
+      { ...vault, functionName: "minPaidToVote" },
     ] as const,
     query: { enabled },
   });
@@ -194,6 +195,7 @@ export function useCircle(id: Address | null) {
           openRequestCount: Number(ok<bigint>(21) ?? 0n),
           dormantAfter: ok<number>(22) ?? 3,
           dormantCount: Number(ok<bigint>(23) ?? 0n),
+          minPaidToVote: ok<number>(24) ?? 2,
           /** The circle voted this wallet dormant (ADR 0032); paying or waking ends it. */
           iAmDormant: me?.dormant ?? false,
         }
@@ -253,12 +255,22 @@ export function useCircleMembers(id: Address | null, page: number) {
       const [mo, st, nm, od, dv] = info.data?.slice(i * 5, i * 5 + 5) ?? [];
       const member =
         mo?.status === "success"
-          ? (mo.result as { active: boolean; dormant: boolean; nextPeriod: number; shares: bigint })
+          ? (mo.result as {
+              active: boolean;
+              dormant: boolean;
+              voter: boolean;
+              paid: number;
+              nextPeriod: number;
+              shares: bigint;
+            })
           : null;
       return {
         address: m,
         active: member?.active ?? true,
         dormant: member?.dormant ?? false,
+        /** Has voting rights (ADR 0033); false while a newcomer is still paying in. */
+        voter: member?.voter ?? true,
+        paid: member?.paid ?? 0,
         overdue: od?.status === "success" ? Number(od.result as bigint) : 0,
         openDormantId: dv?.status === "success" ? (dv.result as bigint) : 0n,
         name: nm?.status === "success" ? (nm.result as string) : "",
@@ -290,6 +302,10 @@ export interface JoinRequestView {
   inviterName: string;
   /** Dormant: the member's display name (join requests carry `displayName`). */
   accountName: string;
+  /** Open requests naming the same inviter or proposer (at most 3, ADR 0033). */
+  inviterOpen: number;
+  /** Members admitted with this inviter confirmed. */
+  inviterAdmitted: number;
   inviterConfirmed: boolean;
   yes: number;
   no: number;
@@ -315,7 +331,10 @@ type RawRequest = {
 function toView(
   id: bigint,
   r: RawRequest,
-): Omit<JoinRequestView, "inviterName" | "accountName" | "canVote" | "hasVoted"> {
+): Omit<
+  JoinRequestView,
+  "inviterName" | "accountName" | "inviterOpen" | "inviterAdmitted" | "canVote" | "hasVoted"
+> {
   return {
     id,
     kind: requestKind(Number(r.kind)),
@@ -370,18 +389,32 @@ export function useJoinRequests(id: Address | null, page: number) {
         functionName: "nameOf",
         args: [raws[i]?.account ?? ZERO],
       } as const,
+      {
+        ...vault,
+        address: id!,
+        functionName: "openRequestsBy",
+        args: [raws[i]?.invitedBy ?? ZERO],
+      } as const,
+      {
+        ...vault,
+        address: id!,
+        functionName: "admittedVia",
+        args: [raws[i]?.invitedBy ?? ZERO],
+      } as const,
     ]),
     query: { enabled: enabled && ids.length > 0, placeholderData: (prev) => prev },
   });
 
   const requests: JoinRequestView[] = ids.map((rid, i) => {
-    const e = extra.data?.slice(i * 4, i * 4 + 4) ?? [];
+    const e = extra.data?.slice(i * 6, i * 6 + 6) ?? [];
     return {
       ...toView(rid, raws[i]!),
       canVote: e[0]?.status === "success" ? (e[0].result as boolean) : false,
       hasVoted: e[1]?.status === "success" ? (e[1].result as boolean) : false,
       inviterName: e[2]?.status === "success" ? (e[2].result as string) : "",
       accountName: e[3]?.status === "success" ? (e[3].result as string) : "",
+      inviterOpen: e[4]?.status === "success" ? Number(e[4].result as bigint) : 0,
+      inviterAdmitted: e[5]?.status === "success" ? Number(e[5].result as bigint) : 0,
     };
   });
 

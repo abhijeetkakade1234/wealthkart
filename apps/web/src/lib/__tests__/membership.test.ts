@@ -10,8 +10,11 @@ import {
   quorumVotes,
   tallyLine,
   voteOutcome,
+  invitedTooMany,
+  inviterStats,
   memberStatus,
   requestKind,
+  votingRightsNote,
   settledLine,
 } from "@/lib/membership";
 
@@ -134,5 +137,17 @@ describe("join vote outcome (mirrors CircleVault._outcome)", () => {
       expect(memberStatus({ dormant: true, overdue: 0 })).toBe("dormant");
       expect(memberStatus({ dormant: false, overdue: 2 })).toBe("late");
     });
+  });
+
+  it("S-RT-06 inviter stats and the third-of-the-circle warning", () => {
+    expect(inviterStats(1, 0)).toBe("1 open invite (max 3) · hasn't brought anyone in yet");
+    expect(inviterStats(2, 3)).toBe("2 open invites (max 3) · brought in 3 members so far");
+    expect(invitedTooMany(4, 12)).toBe(false);
+    expect(invitedTooMany(5, 12)).toBe(true);
+  });
+
+  it("S-RT-05 says how many payments a newcomer has left before voting", () => {
+    expect(votingRightsNote(0, 2)).toBe("New member · can vote after 2 more payments");
+    expect(votingRightsNote(1, 2)).toBe("New member · can vote after 1 more payment");
   });
 });

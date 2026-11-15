@@ -118,6 +118,7 @@ describe("toFriendlyError", () => {
       ["NotDormant", messages.notDormant()],
       ["NotOverdueEnough", messages.notOverdueEnough()],
       ["NoOtherVoters", messages.noOtherVoters()],
+      ["TooManyOpenRequestsBy", messages.tooManyOpenRequestsBy()],
     ];
     for (const [errorName, expected] of cases) {
       const fe = toFriendlyError({ name: "ContractFunctionRevertedError", data: { errorName } });

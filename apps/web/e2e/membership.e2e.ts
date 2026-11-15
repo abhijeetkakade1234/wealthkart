@@ -73,8 +73,12 @@ test.describe("membership", () => {
       await open(voter, `/app/circle/votes/?id=${circle}`);
       const card = voter.getByRole("article", { name: /Join request from Carol_C/ });
       await expect(card).toBeVisible();
-      if (account === ACCOUNTS.alice)
+      if (account === ACCOUNTS.alice) {
         await expect(card.getByText("Not confirmed yet")).toBeVisible();
+        await expect(card.getByTestId("inviter-stats")).toHaveText(
+          "1 open invite (max 3) · hasn't brought anyone in yet",
+        );
+      }
       await card.getByRole("button", { name: "Vote yes" }).click();
       await expect(voter.getByText("Vote counted: yes.")).toBeVisible();
     }
@@ -84,6 +88,8 @@ test.describe("membership", () => {
     await open(carol, `/app/circle/?id=${circle}`);
     await expect(carol.getByTestId("my-name")).toHaveText("Carol_C");
     await expect(carol.getByRole("cell", { name: /Carol_C/ })).toBeVisible();
+    // Voted in, so she votes only after two payments (ADR 0033, RT-03).
+    await expect(carol.getByText("New member · can vote after 2 more payments")).toBeVisible();
   });
 
   test("S-E2E-06 a request nobody votes on expires and anyone can settle it", async ({
