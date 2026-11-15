@@ -8,4 +8,5 @@
 - `PeriodMath.sol`: UTC periods and due moments (ADR 0014)
 - `FeeMath.sol`: late fees 1 and 2 with the holiday shift
 - `SharesMath.sol`: shares and NAV with virtual offsets (ADR 0006)
+- `CircleName.sol`: circle-name charset and length, no dots or links (ADR 0033)
 - `DisplayName.sol`: display-name charset, length and case-insensitive key (ADR 0029)

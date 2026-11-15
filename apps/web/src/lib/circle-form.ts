@@ -19,6 +19,8 @@ export interface FormState {
   holidays: string;
   /** Missed installments before a dormant vote is allowed (ADR 0032). */
   dormantAfter: string;
+  /** Installments a member admitted by vote pays before voting (ADR 0033). */
+  minPaidToVote: string;
   founders: string;
 }
 
@@ -31,6 +33,7 @@ export const DEFAULTS: FormState = {
   secondFeeDay: "20",
   holidays: "3",
   dormantAfter: "3",
+  minPaidToVote: "2",
   founders: "",
 };
 
@@ -43,12 +46,32 @@ export function parseAvax(v: string): bigint | null {
   }
 }
 
+const CIRCLE_NAME_CHARS = /^[A-Za-z0-9 _'&-]+$/;
+
+/**
+ * Plain-language problem with a circle name, or null. Mirrors CircleName.sol (ADR 0033,
+ * RT-26): 3-48 letters, digits, spaces and _ - ' &, single spaces, no dots, colons or
+ * slashes, so a name can never carry a link or a web address.
+ */
+export function circleNameProblem(name: string): string | null {
+  if (name.length === 0) return "Give the circle a name.";
+  if (/[.:/]/.test(name)) {
+    return "Circle names can't contain web addresses or dots, so nobody can use one as a fake link.";
+  }
+  if (!CIRCLE_NAME_CHARS.test(name)) {
+    return "Use only letters, numbers, spaces and _ - ' &.";
+  }
+  if (name.length < 3) return "Use at least 3 characters.";
+  if (name.length > 48) return "Keep the name to 48 characters or fewer.";
+  if (name.includes("  ")) return "Use single spaces between words.";
+  return null;
+}
+
 /** Client-side checks that mirror the contract (ADR 0022), in plain words. */
 export function validate(f: FormState, self: Address | undefined) {
   const errors: Partial<Record<keyof FormState, string>> = {};
-  const nameBytes = new TextEncoder().encode(f.name.trim()).length;
-  if (nameBytes === 0) errors.name = "Give the circle a name.";
-  else if (nameBytes > 48) errors.name = "Keep the name under 48 characters.";
+  const nameProblem = circleNameProblem(f.name.trim());
+  if (nameProblem) errors.name = nameProblem;
 
   const installment = parseAvax(f.installment);
   if (installment === null || installment === 0n)
@@ -77,6 +100,9 @@ export function validate(f: FormState, self: Address | undefined) {
   const dormantAfter = Number(f.dormantAfter);
   if (!Number.isInteger(dormantAfter) || dormantAfter < 1 || dormantAfter > 12)
     errors.dormantAfter = "Pick 1 to 12.";
+  const minPaidToVote = Number(f.minPaidToVote);
+  if (!Number.isInteger(minPaidToVote) || minPaidToVote < 0 || minPaidToVote > 6)
+    errors.minPaidToVote = "Pick 0 to 6.";
 
   const lines = f.founders
     .split(/[\s,]+/)
@@ -110,6 +136,7 @@ export function validate(f: FormState, self: Address | undefined) {
             quorumPct: DEFAULT_QUORUM_PCT,
             maxMembers: DEFAULT_MAX_MEMBERS,
             dormantAfter,
+            minPaidToVote,
           }
         : null,
   };

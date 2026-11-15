@@ -82,7 +82,7 @@ function NewCircle() {
         <Section title="The basics">
           <Field
             label="Circle name"
-            hint="Shown to members. It's public on the blockchain, so don't use personal details."
+            hint="Shown to members. Letters, numbers and spaces; no web addresses. It's public on the blockchain, so don't use personal details."
             error={err("name")}
           >
             <input
@@ -171,6 +171,19 @@ function NewCircle() {
                 inputMode="numeric"
                 value={form.dormantAfter}
                 onChange={set("dormantAfter")}
+              />
+            </Field>
+            <Field
+              label="Payments before a new member can vote"
+              hint="Friends you start with vote straight away. Someone voted in later votes after paying this many months, so nobody can stack the circle with spare wallets."
+              error={err("minPaidToVote")}
+            >
+              <input
+                id="minPaidToVote"
+                className={inputCls}
+                inputMode="numeric"
+                value={form.minPaidToVote}
+                onChange={set("minPaidToVote")}
               />
             </Field>
           </div>

@@ -55,7 +55,12 @@ function Votes() {
         subtitle={`${d.name} · people asking to join, and members the circle may mark dormant. At least ${d.quorumPct}% of members must vote. A newcomer needs 66% yes; pausing someone's payments needs more than half. Each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
       />
       <ErrorBoundary preset="widget" name="Open votes">
-        <RequestList id={id} quorumPct={d.quorumPct} onChanged={() => void c.refetch()} />
+        <RequestList
+          id={id}
+          quorumPct={d.quorumPct}
+          memberCount={Number(d.memberCount)}
+          onChanged={() => void c.refetch()}
+        />
       </ErrorBoundary>
     </div>
   );
@@ -64,10 +69,12 @@ function Votes() {
 function RequestList({
   id,
   quorumPct,
+  memberCount,
   onChanged,
 }: {
   id: Address;
   quorumPct: number;
+  memberCount: number;
   onChanged: () => void;
 }) {
   const router = useRouter();
@@ -109,6 +116,7 @@ function RequestList({
             circle={id}
             request={r}
             quorumPct={quorumPct}
+            memberCount={memberCount}
             chainNow={chainNow}
             onChanged={() => {
               q.refetch();

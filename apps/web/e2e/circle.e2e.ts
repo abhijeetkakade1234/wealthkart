@@ -39,4 +39,16 @@ test.describe("create a circle and pay", () => {
     await page.getByRole("button", { name: /^Pay .* AVAX$/ }).click();
     await expect(page.getByText(/You're all paid up/)).toBeVisible();
   });
+
+  test("S-E2E-14 a circle name that looks like a web address is refused before anything is sent", async ({
+    page,
+  }) => {
+    await page.goto("/app/new/");
+    await page.getByRole("button", { name: "Connect Core" }).first().click();
+    await page.waitForURL("**/app/new/");
+    await page.getByLabel("Circle name").fill("Claim refund: wealthkart-help.app");
+    await page.getByRole("button", { name: "Create circle" }).click();
+    await expect(page.getByText(/can't contain web addresses or dots/)).toBeVisible();
+    await expect(page).toHaveURL(/\/app\/new\/$/);
+  });
 });

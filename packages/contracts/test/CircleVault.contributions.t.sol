@@ -341,14 +341,10 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         one[0] = members[0];
         CircleVault.Config memory c = _cfg();
         c.name = "";
-        vm.expectRevert(
-            abi.encodeWithSelector(CircleVault.InvalidConfig.selector, "name must be 1..48 bytes")
-        );
+        vm.expectRevert(abi.encodeWithSelector(CircleVault.InvalidConfig.selector, NAME_RULE));
         factory.createCircle(c, one);
         c.name = "0123456789012345678901234567890123456789012345678"; // 49 bytes
-        vm.expectRevert(
-            abi.encodeWithSelector(CircleVault.InvalidConfig.selector, "name must be 1..48 bytes")
-        );
+        vm.expectRevert(abi.encodeWithSelector(CircleVault.InvalidConfig.selector, NAME_RULE));
         factory.createCircle(c, one);
     }
 

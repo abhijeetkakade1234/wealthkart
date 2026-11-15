@@ -1,7 +1,7 @@
 "use client";
 
 import { circleVaultAbi, shortAddress } from "@wealthkart/sdk";
-import { BadgeCheck, Gavel, PauseCircle, ThumbsDown, ThumbsUp } from "lucide-react";
+import { BadgeCheck, Gavel, PauseCircle, ThumbsDown, ThumbsUp, TriangleAlert } from "lucide-react";
 import type { Address } from "viem";
 import { useWriteContract } from "wagmi";
 
@@ -9,7 +9,13 @@ import { Deadline } from "@/components/app/deadline";
 import { Avatar } from "@/components/art";
 import { Button, TxTracker } from "@/components/kit";
 import type { JoinRequestView } from "@/lib/circle";
-import { settledLine, tallyLine, voteOutcome } from "@/lib/membership";
+import {
+  invitedTooMany,
+  inviterStats,
+  settledLine,
+  tallyLine,
+  voteOutcome,
+} from "@/lib/membership";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
 
@@ -23,12 +29,15 @@ export function RequestCard({
   circle,
   request: r,
   quorumPct,
+  memberCount,
   chainNow,
   onChanged,
 }: {
   circle: Address;
   request: JoinRequestView;
   quorumPct: number;
+  /** Members right now, for the "invited more than a third" warning (RT-03). */
+  memberCount: number;
   chainNow: number;
   onChanged: () => void;
 }) {
@@ -149,7 +158,20 @@ export function RequestCard({
               </span>
             )}
           </p>
-        ) : (
+        ) : null}
+        {!dormant && hasInviter && (
+          <p className="text-muted-foreground" data-testid="inviter-stats">
+            {inviterStats(r.inviterOpen, r.inviterAdmitted)}
+          </p>
+        )}
+        {!dormant && hasInviter && invitedTooMany(r.inviterAdmitted, memberCount) && (
+          <p className="flex items-start gap-2 text-warn">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} aria-hidden />
+            This member has brought in more than a third of the circle. Make sure each newcomer is
+            someone the group knows.
+          </p>
+        )}
+        {!dormant && !hasInviter && (
           <p className="text-muted-foreground">No inviter named. Make sure someone knows them.</p>
         )}
         <p className="tabular" data-testid="tally">

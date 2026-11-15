@@ -183,7 +183,7 @@ contract CircleVaultMembershipInvariantTest is CircleVaultBase {
         }
     }
 
-    /// I-12: the dormant count matches the members flagged dormant, and never exceeds members.
+    /// I-12: the dormant and voter counts match the member flags; dormant never exceeds members.
     function invariant_I12_dormantCountMatchesFlags() public view {
         uint256 len = vault.memberListLength();
         address[] memory all = vault.membersPage(0, len);
@@ -192,6 +192,12 @@ contract CircleVaultMembershipInvariantTest is CircleVaultBase {
             if (vault.memberOf(all[i]).dormant) dormant++;
         }
         assertEq(vault.dormantCount(), dormant);
+        uint256 voters;
+        for (uint256 i = 0; i < all.length; ++i) {
+            Membership.Member memory m = vault.memberOf(all[i]);
+            if (m.active && m.voter && !m.dormant) voters++;
+        }
+        assertEq(vault.voterCount(), voters); // I-12b: the quorum base matches the members
         assertLe(vault.dormantCount(), vault.memberCount());
     }
 

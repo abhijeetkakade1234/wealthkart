@@ -26,6 +26,7 @@ import {
   useCircle,
   useCircleMembers,
 } from "@/lib/circle";
+import { votingRightsNote } from "@/lib/membership";
 import type { Address } from "viem";
 
 export default function CirclePage() {
@@ -205,6 +206,7 @@ function CircleOverview() {
             total={Number(d.memberListLength)}
             canPropose={d.isMember && !d.iAmDormant}
             dormantAfter={d.dormantAfter}
+            minPaidToVote={d.minPaidToVote}
             onChanged={() => void c.refetch()}
           />
         </ErrorBoundary>
@@ -218,6 +220,7 @@ function MembersTable({
   total,
   canPropose,
   dormantAfter,
+  minPaidToVote,
   onChanged,
 }: {
   id: Address;
@@ -225,6 +228,7 @@ function MembersTable({
   /** The viewer is an active member, so they may start a dormant vote. */
   canPropose: boolean;
   dormantAfter: number;
+  minPaidToVote: number;
   onChanged: () => void;
 }) {
   const page = usePageParam();
@@ -305,6 +309,11 @@ function MembersTable({
                         >
                           <span className="size-1.5 rounded-full bg-current" aria-hidden />
                           {r.nextPeriod === 0n ? "Not started" : periodLabel(r.nextPeriod - 1n)}
+                        </span>
+                      )}
+                      {r.active && !r.dormant && !r.voter && (
+                        <span className="mt-1 block text-[12px] text-muted-foreground">
+                          {votingRightsNote(r.paid, minPaidToVote)}
                         </span>
                       )}
                       {behind && !r.dormant && (

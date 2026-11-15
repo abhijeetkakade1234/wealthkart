@@ -182,3 +182,27 @@ export function dormantHint(overdue: number, dormantAfter: number): string {
   }
   return "";
 }
+
+/** Same as CircleVault.MAX_OPEN_PER_MEMBER (ADR 0033). */
+export const MAX_OPEN_PER_MEMBER = 3;
+
+/** Inviter line on a join card: open invites and members already brought in (RT-03). */
+export function inviterStats(open: number, admitted: number): string {
+  const o = `${open} open ${open === 1 ? "invite" : "invites"} (max ${MAX_OPEN_PER_MEMBER})`;
+  const a =
+    admitted === 0
+      ? "hasn't brought anyone in yet"
+      : `brought in ${admitted} ${admitted === 1 ? "member" : "members"} so far`;
+  return `${o} · ${a}`;
+}
+
+/** Warn when one member has brought in more than a third of the circle (RT-03). */
+export function invitedTooMany(admitted: number, memberCount: number): boolean {
+  return memberCount > 0 && admitted * 3 > memberCount;
+}
+
+/** Members-table note for someone voted in who can't vote yet (ADR 0033). */
+export function votingRightsNote(paid: number, minPaidToVote: number): string {
+  const left = Math.max(minPaidToVote - paid, 0);
+  return `New member · can vote after ${left} more ${left === 1 ? "payment" : "payments"}`;
+}

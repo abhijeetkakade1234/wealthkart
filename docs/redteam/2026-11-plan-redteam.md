@@ -52,6 +52,7 @@ These belong to the join flow, member votes and display names being built now. T
   4. Each join request shows who invited the wallet and how many invites that member has open, plus a warning when one member has invited more than a third of the circle.
   5. **One open invite per member at a time** (circle setting).
 - **Needs:** plan change (D2, D4c), new ADR "Voting eligibility and snapshots", tests S-RT-05, S-RT-06.
+- **Status (2026-11-15):** fixed by ADRs 0028 and 0033: snapshots, 66% admission, voting rights after N payments, inviter stats and a third-of-the-circle warning, at most 3 open requests per member (instead of 1).
 
 ### RT-04. Invite codes can be front-run or leaked
 
@@ -74,6 +75,7 @@ These belong to the join flow, member votes and display names being built now. T
 - **Impact:** voter fatigue, unreadable UI, pagination on lists that never shrink. A gas cost on the attacker's side only, and that cost is tiny on C-Chain.
 - **Fix:** at most one pending join request per address per circle. Requests expire after the voting window plus 7 days, and expired ones drop out of the "open" index. Keep open requests in a swap-and-pop array so reads stay bounded (ADR 0015). Cap open proposals per member (e.g. 2) and per circle (e.g. 20). Never iterate requests in a write path.
 - **Needs:** test S-RT-08.
+- **Status (2026-11-15):** fixed: one request per address, 20 open per circle, 3 per member (ADR 0033).
 
 ### RT-06. Display-name impersonation (look-alike characters, name recycling)
 
@@ -100,6 +102,7 @@ These belong to the join flow, member votes and display names being built now. T
 - **Impact:** people with no money at stake decide how everyone else's money is lent. Quorum gets harder to reach, because absent non-payers sit in the denominator.
 - **Fix:** voting eligibility requires being **at most 1 period behind** (`nextPeriod >= currentPeriod - 1`). Members further behind don't count in quorum for proposals created while they're behind. They get their vote back the moment they catch up. Dormant members (ADR 0010) are excluded the same way.
 - **Needs:** voting ADR (with RT-03), test S-RT-11.
+- **Status (2026-11-15):** voting part fixed (ADR 0028). Quorum part handled by the dormant vote (ADRs 0032, 0033); a time-varying "behind" count can't be kept without loops.
 
 ### RT-08. Late joiners buy in below fair value (lazy interest not in NAV)
 
@@ -312,6 +315,7 @@ These belong to the join flow, member votes and display names being built now. T
 - **Impact:** social-engineering bait inside our own UI.
 - **Fix:** restrict circle names to the same safe character set as display names plus spaces. Reject anything containing `://`, `www.` or a dot followed by letters (a domain pattern) in the UI validator and the contract. RT-02's acceptance step stops unwanted circles from appearing at all.
 - **Needs:** test S-RT-34.
+- **Status (2026-11-15):** fixed by ADR 0033 (`CircleName.sol` + create form).
 
 ### RT-27. Invite links leading to a look-alike site
 
