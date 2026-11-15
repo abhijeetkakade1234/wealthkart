@@ -143,4 +143,4 @@ How to use this file:
 
 ## Phase 5: USDC vaults + WealthKart L1
 
-## Phase 6: Ecosystem (circle-to-circle lending, credit lines)
+## Phase 6: Ecosystem (credit lines, reserve yield by vote; no circle-to-circle lending, ADR 0035)

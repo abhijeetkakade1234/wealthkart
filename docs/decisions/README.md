@@ -44,3 +44,4 @@
 | [0032](0032-dormant-members.md)                         | Dormant members: vote after N missed months, >50% yes, pay or wake to return                  | Accepted                           |
 | [0033](0033-voting-rights-invite-cap-circle-names.md)   | Voting rights after N payments, 3 open requests per member, circle names without links        | Accepted                           |
 | [0034](0034-charts-from-chain-events.md)                | Charts read circle events from the chain (chunked from `createdAtBlock`) until the indexer    | Accepted                           |
+| [0035](0035-no-circle-to-circle-lending.md)             | No circle-to-circle lending: a circle lends only to its own members                           | Accepted                           |

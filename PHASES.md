@@ -13,7 +13,7 @@ Last updated: 2026-11-15
 | 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | Not started                                  |
 | 4     | Growth: reminders, circle templates, Hindi and Marathi, onboarding                 | Not started                                  |
 | 5     | USDC vaults and a WealthKart L1                                                    | Later                                        |
-| 6     | Ecosystem: circle-to-circle lending, credit lines                                  | Later                                        |
+| 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                        |
 
 **When is it finished?** The full product is done at the end of **Phase 4**: Phase 3 puts it live on mainnet after an external audit, and Phase 4 adds the growth features. Phases 5 and 6 are optional expansion.
 
