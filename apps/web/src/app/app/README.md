@@ -8,10 +8,10 @@
 | `/app/new/`                 | `new/page.tsx`             | Create a circle (rules + founders), validated like the contract                                                    |
 | `/app/circle/?id=`          | `circle/page.tsx`          | Overview: value, my stake, dues with UTC countdown, charts and payments heatmap, paginated members                 |
 | `/app/circle/pay/?id=`      | `circle/pay/page.tsx`      | Pay the installment (with fees) or take a payment holiday                                                          |
-| `/app/circle/votes/?id=`    | `circle/votes/page.tsx`    | Open join and dormant votes (paginated): tally, deadline, vote yes/no, settle                                      |
+| `/app/circle/votes/?id=`    | `circle/votes/page.tsx`    | Circle proposals (`?ppage=`) with "New proposal", then join and dormant votes (`?page=`): tally, vote, settle      |
 | `/app/circle/activity/?id=` | `circle/activity/page.tsx` | Activity feed: every event as a sentence, filters, search, Snowtrace links (ADR 0034)                              |
 | `/app/join/?id=&by=`        | `join/page.tsx`            | Invite link: circle facts, accept a founder invite, or pick a name and ask to join; then request status and result |
 
-Every circle page checks `factory.isCircle(id)` first (RT-01) and shows a "don't pay this" warning for look-alike contracts. Overview also has "Your name in this circle" and "Invite a friend" (`src/components/membership/`).
+Every circle page checks `factory.isCircle(id)` first (RT-01) and shows a "don't pay this" warning for look-alike contracts. Overview also has "Your name in this circle" and "Invite a friend" (`src/components/membership/`), "Circle rules", "Leaving the circle" and the guardian's Pause (`src/components/exits/`, `src/components/governance/`), plus banners for a guardian pause (also on Pay and Activity), a rule change waiting to apply, a closing circle and AVAX waiting to be withdrawn.
 
 **Open this when:** adding or changing an app screen. Data hooks live in `src/lib/circle.ts`; transactions go through `src/lib/use-tx.ts`.

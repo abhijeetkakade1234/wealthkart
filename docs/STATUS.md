@@ -122,6 +122,7 @@ How to use this file:
 - [ ] Interest late fees; default after 2 missed months; share freeze (borrower + guarantor)
 - [x] Governance contracts (ADR 0040): rule change (delay, then next period; rage-quit window), fee waiver with a fixed reason, dissolve + pro-rata claims, guardian off; admit member and dormant votes live in Membership. Risky-parameter supermajority (RT-12) still open
 - [ ] Exit: notice → NAV snapshot → Chainlink Automation payout + permissionless fallback
+- [x] Exits and governance screens: leave with notice, collect, waiting-for-cash and rage-quit notes, guardian pause banner and button, withdraw refused payouts; proposals on Votes (rule change with before/after and apply, fee waiver, dissolve + claim, guardian off) with a "New proposal" dialog checked against `Rules.validate` bounds; E2E S-E2E-18..22
 - [ ] Charts: loans, inflows, NAV per share, vote tallies
 - [ ] **Milestone:** full rulebook on-chain; test report published
 

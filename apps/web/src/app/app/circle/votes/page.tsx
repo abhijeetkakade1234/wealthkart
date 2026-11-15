@@ -7,9 +7,15 @@ import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { ErrorBoundary, StateView } from "@/components/kit";
+import { PauseBanner } from "@/components/exits/pause";
+import { DissolvedNotice, RuleChangeBanner } from "@/components/governance/circle-notices";
+import { NewProposalButton } from "@/components/governance/new-proposal-dialog";
+import { ProposalCard } from "@/components/governance/proposal-card";
 import { RequestCard } from "@/components/membership/request-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
+import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { type CircleGov, PROPOSALS_PAGE_SIZE, useCircleGov, useProposals } from "@/lib/gov-hooks";
 import {
   parseCircleId,
   REQUESTS_PAGE_SIZE,
@@ -32,6 +38,9 @@ export default function VotesPage() {
 function Votes() {
   const id = parseCircleId(useSearchParams().get("id"));
   const c = useCircle(id);
+  const g = useCircleGov(id);
+  const chainNow = useChainNow();
+  const { address } = useCoreWallet();
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
   if (c.isPending || !c.data) {
@@ -47,21 +56,142 @@ function Votes() {
   if (!c.data.isMember) return <StateView state="access" reason="not-member" />;
 
   const d = c.data;
+  const gov = g.data;
   const hours = Math.round(d.votingWindow / 3600);
+  const refetchAll = () => {
+    void c.refetch();
+    void g.refetch();
+  };
   return (
     <div className="max-w-[760px]">
       <PageHeader
         title="Votes"
-        subtitle={`${d.name} · people asking to join, and members the circle may mark dormant. At least ${d.quorumPct}% of members must vote. A newcomer needs 66% yes; pausing someone's payments needs more than half. Each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
+        subtitle={`${d.name} · proposals, people asking to join, and members the circle may mark dormant. At least ${d.quorumPct}% of members must vote, and each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
+        actions={
+          gov?.rules && !gov.dissolved ? (
+            <NewProposalButton
+              circle={id}
+              rules={gov.rules}
+              installment={d.installment}
+              guardianDisabled={gov.guardianDisabled}
+              chainNow={chainNow}
+              me={address}
+              onCreated={refetchAll}
+            />
+          ) : undefined
+        }
       />
-      <ErrorBoundary preset="widget" name="Open votes">
-        <RequestList
-          id={id}
-          quorumPct={d.quorumPct}
-          memberCount={Number(d.memberCount)}
-          onChanged={() => void c.refetch()}
-        />
-      </ErrorBoundary>
+      {gov && (
+        <div className="mb-12 grid gap-5 empty:hidden">
+          <PauseBanner circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
+          <DissolvedNotice
+            circle={id}
+            gov={gov}
+            isMember={d.isMember}
+            share={d.stake}
+            onChanged={refetchAll}
+          />
+          <RuleChangeBanner circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
+        </div>
+      )}
+      <section aria-labelledby="proposals-heading" className="mb-16 grid gap-6">
+        <h2
+          id="proposals-heading"
+          className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground"
+        >
+          Circle proposals
+        </h2>
+        <ErrorBoundary preset="widget" name="Proposals">
+          <ProposalList
+            id={id}
+            gov={gov}
+            quorumPct={d.quorumPct}
+            chainNow={chainNow}
+            onChanged={refetchAll}
+          />
+        </ErrorBoundary>
+      </section>
+      <section aria-labelledby="requests-heading" className="grid gap-6">
+        <h2
+          id="requests-heading"
+          className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground"
+        >
+          Joining and dormant members
+        </h2>
+        <ErrorBoundary preset="widget" name="Open votes">
+          <RequestList
+            id={id}
+            quorumPct={d.quorumPct}
+            memberCount={Number(d.memberCount)}
+            onChanged={() => void c.refetch()}
+          />
+        </ErrorBoundary>
+      </section>
+    </div>
+  );
+}
+
+function ProposalList({
+  id,
+  gov,
+  quorumPct,
+  chainNow,
+  onChanged,
+}: {
+  id: Address;
+  gov: CircleGov | undefined;
+  quorumPct: number;
+  chainNow: number;
+  onChanged: () => void;
+}) {
+  const page = usePageParam("ppage");
+  const q = useProposals(id, page);
+  const { address } = useCoreWallet();
+
+  if (q.isPending) {
+    return (
+      <StateView
+        state="loading"
+        label="Loading proposals"
+        skeleton={<Skeleton className="h-52 rounded-[14px]" />}
+      />
+    );
+  }
+  if (q.isError) return <StateView state="error" onRetry={q.refetch} />;
+  if (q.proposals.length === 0) {
+    return (
+      <StateView
+        state="empty"
+        message="No proposals open. Use New proposal to suggest a rule change, a fee waiver, closing the circle or switching off the guardian."
+      />
+    );
+  }
+  return (
+    <div className="grid gap-8">
+      <div className="grid gap-6">
+        {q.proposals.map((p) => (
+          <ProposalCard
+            key={String(p.id)}
+            circle={id}
+            proposal={p}
+            quorumPct={quorumPct}
+            chainNow={chainNow}
+            rules={gov?.rules ?? null}
+            me={address}
+            onChanged={() => {
+              q.refetch();
+              onChanged();
+            }}
+          />
+        ))}
+      </div>
+      <Pagination
+        page={page}
+        pageSize={PROPOSALS_PAGE_SIZE}
+        total={q.total}
+        noun="proposals"
+        param="ppage"
+      />
     </div>
   );
 }
