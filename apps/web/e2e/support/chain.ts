@@ -70,3 +70,8 @@ export async function warpToDayThisMonth(day: number) {
   await rpc("evm_setNextBlockTimestamp", [target]);
   await rpc("evm_mine");
 }
+
+/** AVAX balance of an address in wei. */
+export async function balanceOf(address: string): Promise<bigint> {
+  return BigInt(await rpc<string>("eth_getBalance", [address, "latest"]));
+}
