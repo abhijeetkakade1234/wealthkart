@@ -23,6 +23,7 @@ packages/contracts/lcov.info
 
 # cloudflare
 .wrangler/
+.wrangler-e2e/
 
 # os / editor
 .DS_Store

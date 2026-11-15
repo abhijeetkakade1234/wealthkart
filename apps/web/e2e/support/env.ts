@@ -2,6 +2,9 @@
 export const ANVIL_PORT = 8546;
 export const ANVIL_URL = `http://127.0.0.1:${ANVIL_PORT}`;
 export const WEB_PORT = 4310;
+/** Local indexer Worker (wrangler dev) reading the anvil chain (ADR 0036). */
+export const INDEXER_PORT = 8787;
+export const INDEXER_URL = `http://127.0.0.1:${INDEXER_PORT}`;
 /** Fuji's chain id, so the app treats the local chain as its target network. */
 export const CHAIN_ID = 43113;
 
