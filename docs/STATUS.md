@@ -120,7 +120,7 @@ How to use this file:
 - [ ] Interest, partial payments, repayment allocation, auto-close
 - [ ] Tenors (rule 15), minimum interest (rule 17), medical loans (rule 18), cap (rule 13), reserve (rule 12)
 - [ ] Interest late fees; default after 2 missed months; share freeze (borrower + guarantor)
-- [ ] Generic proposals: rule change, fee waiver, admit member, dormant
+- [x] Governance contracts (ADR 0040): rule change (delay, then next period; rage-quit window), fee waiver with a fixed reason, dissolve + pro-rata claims, guardian off; admit member and dormant votes live in Membership. Risky-parameter supermajority (RT-12) still open
 - [ ] Exit: notice → NAV snapshot → Chainlink Automation payout + permissionless fallback
 - [ ] Charts: loans, inflows, NAV per share, vote tallies
 - [ ] **Milestone:** full rulebook on-chain; test report published

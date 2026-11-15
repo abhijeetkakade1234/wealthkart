@@ -90,6 +90,42 @@ export const messages = {
     "Your wallet didn't accept the AVAX. Try again from a wallet that can receive AVAX.",
   insufficientCash: () =>
     "The circle doesn't have enough cash for this right now. Some of its money is lent out.",
+  notAllowedToPropose: () => "Only members who can vote right now can start a proposal.",
+  tooManyOpenProposals: () =>
+    "There are already 10 open proposals. Wait for some to be decided first.",
+  tooManyOpenProposalsBy: () => "You already have 2 open proposals. Wait until one is decided.",
+  noEligibleVoters: () => "There's nobody who could vote on this yet.",
+  ruleChangeInProgress: () =>
+    "A rule change is already being voted on or waiting to apply. One at a time.",
+  noPendingRuleChange: () => "There's no rule change waiting to apply.",
+  ruleChangeNotDue: () => "The new rules can't apply yet. They start once the waiting period ends.",
+  invalidWaiver: () =>
+    "That month can't be waived: it must be a started, unpaid month that isn't waived already.",
+  guardianAlreadyOff: () => "The guardian is already switched off for this circle.",
+  proposalNotOpen: () => "This proposal is already decided or was withdrawn.",
+  proposalVotingClosed: () => "Voting on this proposal has closed.",
+  cannotVoteOnProposal: () =>
+    "You can't vote on this one: only members who could vote when it started, and are up to date, can.",
+  alreadyVotedOnProposal: () => "You've already voted on this proposal.",
+  proposalNotDecided: () =>
+    "The vote isn't decided yet. It can be settled once the voting time ends.",
+  notProposer: () => "Only the member who started this proposal can withdraw it.",
+  circleDissolved: () =>
+    "This circle has voted to close. Payments have stopped; members can claim their share.",
+  notDissolved: () => "The circle hasn't voted to close, so there's nothing to claim yet.",
+  loansStillOutstanding: () => "Claims open once every loan is repaid or settled.",
+  exitAlreadyPending: () => "You've already asked to leave this circle.",
+  noExitPending: () => "You haven't asked to leave this circle.",
+  exitNotReady: () => "Your notice period isn't over yet. You can collect your share when it ends.",
+  memberFrozen: () =>
+    "Your share is frozen because of an unpaid loan. Pay what's owed to unfreeze it.",
+  hasLoanTies: () => "You can't leave while you have a loan, a loan request or a guarantee open.",
+  notGuardian: () => "Only the circle's guardian can do this.",
+  guardianOff: () => "The circle voted the guardian off, so pausing isn't possible.",
+  pauseTooSoon: () => "The guardian can pause at most once every 90 days.",
+  notPaused: () => "The circle isn't paused.",
+  circlePaused: () =>
+    "The circle is paused for a short time, so new members and loans wait. Leaving and paying still work.",
   tooManyOpenRequestsBy: () =>
     "That member already has 3 open invites or proposals. Ask them to wait until one is decided, or ask another member to invite you.",
 
@@ -174,6 +210,34 @@ export type FriendlyErrorCode =
   | "not-overdue-enough"
   | "no-other-voters"
   | "too-many-requests-by"
+  | "not-allowed-to-propose"
+  | "too-many-proposals"
+  | "too-many-proposals-by"
+  | "no-eligible-voters"
+  | "rule-change-in-progress"
+  | "no-pending-rule-change"
+  | "rule-change-not-due"
+  | "invalid-waiver"
+  | "guardian-already-off"
+  | "proposal-not-open"
+  | "proposal-voting-closed"
+  | "cannot-vote-on-proposal"
+  | "already-voted-on-proposal"
+  | "proposal-not-decided"
+  | "not-proposer"
+  | "circle-dissolved"
+  | "not-dissolved"
+  | "loans-still-outstanding"
+  | "exit-already-pending"
+  | "no-exit-pending"
+  | "exit-not-ready"
+  | "member-frozen"
+  | "has-loan-ties"
+  | "not-guardian"
+  | "guardian-off"
+  | "pause-too-soon"
+  | "not-paused"
+  | "circle-paused"
   | "nothing-to-withdraw"
   | "withdraw-failed"
   | "insufficient-cash"
@@ -351,6 +415,35 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NotOverdueEnough", "not-overdue-enough", messages.notOverdueEnough],
     ["NoOtherVoters", "no-other-voters", messages.noOtherVoters],
     ["TooManyOpenRequestsBy", "too-many-requests-by", messages.tooManyOpenRequestsBy],
+    // Governance (ADR 0040) and exits (ADR 0039).
+    ["NotAllowedToPropose", "not-allowed-to-propose", messages.notAllowedToPropose],
+    ["TooManyOpenProposals", "too-many-proposals", messages.tooManyOpenProposals],
+    ["TooManyOpenProposalsBy", "too-many-proposals-by", messages.tooManyOpenProposalsBy],
+    ["NoEligibleVoters", "no-eligible-voters", messages.noEligibleVoters],
+    ["RuleChangeInProgress", "rule-change-in-progress", messages.ruleChangeInProgress],
+    ["NoPendingRuleChange", "no-pending-rule-change", messages.noPendingRuleChange],
+    ["RuleChangeNotDue", "rule-change-not-due", messages.ruleChangeNotDue],
+    ["InvalidWaiver", "invalid-waiver", messages.invalidWaiver],
+    ["GuardianAlreadyOff", "guardian-already-off", messages.guardianAlreadyOff],
+    ["ProposalNotOpen", "proposal-not-open", messages.proposalNotOpen],
+    ["ProposalVotingClosed", "proposal-voting-closed", messages.proposalVotingClosed],
+    ["CannotVoteOnProposal", "cannot-vote-on-proposal", messages.cannotVoteOnProposal],
+    ["AlreadyVotedOnProposal", "already-voted-on-proposal", messages.alreadyVotedOnProposal],
+    ["ProposalNotDecided", "proposal-not-decided", messages.proposalNotDecided],
+    ["NotProposer", "not-proposer", messages.notProposer],
+    ["CircleDissolved", "circle-dissolved", messages.circleDissolved],
+    ["NotDissolved", "not-dissolved", messages.notDissolved],
+    ["LoansStillOutstanding", "loans-still-outstanding", messages.loansStillOutstanding],
+    ["ExitAlreadyPending", "exit-already-pending", messages.exitAlreadyPending],
+    ["NoExitPending", "no-exit-pending", messages.noExitPending],
+    ["ExitNotReady", "exit-not-ready", messages.exitNotReady],
+    ["MemberFrozen", "member-frozen", messages.memberFrozen],
+    ["HasLoanTies", "has-loan-ties", messages.hasLoanTies],
+    ["NotGuardian", "not-guardian", messages.notGuardian],
+    ["GuardianOff", "guardian-off", messages.guardianOff],
+    ["PauseTooSoon", "pause-too-soon", messages.pauseTooSoon],
+    ["NotPaused", "not-paused", messages.notPaused],
+    ["CirclePaused", "circle-paused", messages.circlePaused],
     // Payouts and cash (ADR 0037).
     ["NothingToWithdraw", "nothing-to-withdraw", messages.nothingToWithdraw],
     ["WithdrawFailed", "withdraw-failed", messages.withdrawFailed],

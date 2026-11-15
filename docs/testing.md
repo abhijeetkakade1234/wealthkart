@@ -41,6 +41,7 @@ Known gaps:
 - I-9 `memberCount` = creator + accepted founders + admitted members; the member list never holds duplicates
 - I-10 A display name in use maps back to exactly one member, ignoring case
 - I-11 Open join requests stay ≤ 20, each is Open and indexed by its applicant
+- I-12 Vault balance = total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets)
 
 ## Scenario catalogue
 
@@ -117,7 +118,15 @@ Known gaps:
 - S-GOV-01 Rule change passes → applies from the next period, not retroactively
 - S-GOV-02 Timelock: a passed change can't execute early
 - S-GOV-03 Proposal spam by one member → rate limited
-- S-GOV-04 Fee waiver vote passes → fee removed, NAV adjusted correctly
+- S-GOV-04 Fee waiver vote passes → fee removed, NAV adjusted correctly; the member it is about can't vote on it; unpaid started periods only
+- S-GOV-05 Rule change outside the bounds → refused when proposed
+- S-GOV-06 One rule change at a time: a second is refused while one is open or waiting; a due one is applied first
+- S-GOV-07 Only current voters propose (non-members and members two periods behind can't)
+- S-GOV-08 Quorum and pass mark: no quorum → expired; quorum but no majority → rejected; majority at the end → passes
+- S-GOV-09 Vote guards: twice, outsider, after the window, unknown id → revert
+- S-GOV-10 Proposer cancels an open proposal; nobody else can
+- S-GOV-11 Guardian voted off → pause cleared and can't be voted off twice
+- S-GOV-12 Snapshot: a member who gains a vote after the proposal opened can't vote on it
 
 ### Math and time (S-MATH)
 
