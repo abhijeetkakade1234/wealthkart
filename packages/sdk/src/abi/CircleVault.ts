@@ -489,6 +489,13 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "applyRuleChange",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "canVote",
     inputs: [
       {
@@ -513,8 +520,45 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "canVoteProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "ok",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "cancelJoinRequest",
     inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cancelProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
     outputs: [],
     stateMutability: "nonpayable",
   },
@@ -530,6 +574,13 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "claimDissolution",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -590,6 +641,19 @@ export const circleVaultAbi = [
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "dissolved",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -672,6 +736,19 @@ export const circleVaultAbi = [
   {
     type: "function",
     name: "finalize",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "finalizeProposal",
     inputs: [
       {
         name: "id",
@@ -773,6 +850,19 @@ export const circleVaultAbi = [
             internalType: "string",
           },
         ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "guardianDisabled",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
       },
     ],
     stateMutability: "view",
@@ -1163,6 +1253,97 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "openProposalsPage",
+    inputs: [
+      {
+        name: "offset",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "ids",
+        type: "uint256[]",
+        internalType: "uint256[]",
+      },
+      {
+        name: "page",
+        type: "tuple[]",
+        internalType: "struct Governance.Proposal[]",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum Governance.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum Governance.Status",
+          },
+          {
+            name: "reason",
+            type: "uint8",
+            internalType: "enum Governance.Reason",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "proposer",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "subject",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "period",
+            type: "uint32",
+            internalType: "uint32",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "openRequestCount",
     inputs: [],
     outputs: [
@@ -1300,6 +1481,121 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "pendingRuleChange",
+    inputs: [],
+    outputs: [
+      {
+        name: "rules_",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+      {
+        name: "effectiveAt",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "periodsOverdue",
     inputs: [
       {
@@ -1316,6 +1612,229 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "p",
+        type: "tuple",
+        internalType: "struct Governance.Proposal",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum Governance.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum Governance.Status",
+          },
+          {
+            name: "reason",
+            type: "uint8",
+            internalType: "enum Governance.Reason",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "proposer",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "subject",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "period",
+            type: "uint32",
+            internalType: "uint32",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposalCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposalRules",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "r",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposeDissolve",
+    inputs: [],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -1338,6 +1857,164 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "proposeFeeWaiver",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        internalType: "enum Governance.Reason",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "proposeGuardianOff",
+    inputs: [],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "proposeRuleChange",
+    inputs: [
+      {
+        name: "newRules",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "quorumPct",
     inputs: [],
     outputs: [
@@ -1345,6 +2022,19 @@ export const circleVaultAbi = [
         name: "",
         type: "uint8",
         internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "rageQuitUntil",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
       },
     ],
     stateMutability: "view",
@@ -1600,6 +2290,24 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "voteProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "support",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "voterCount",
     inputs: [],
     outputs: [
@@ -1760,6 +2468,11 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "CircleDissolved",
+    inputs: [],
   },
   {
     type: "error",
@@ -2411,6 +3124,399 @@ export const circleVaultAbi = [
         name: "reason",
         type: "string",
         internalType: "string",
+      },
+    ],
+  },
+  {
+    type: "event",
+    name: "CircleDissolving",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "DissolutionClaimed",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "shares",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "FeeWaived",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Reason",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "GuardianDisabled",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "PayoutQueued",
+    inputs: [
+      {
+        name: "to",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ProposalClosed",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "kind",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Kind",
+      },
+      {
+        name: "status",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Status",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ProposalCreated",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "kind",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Kind",
+      },
+      {
+        name: "proposer",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "subject",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Reason",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ProposalVoted",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "support",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RuleChangeApplied",
+    inputs: [
+      {
+        name: "effectiveAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RuleChangeScheduled",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "effectiveAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "AlreadyVotedOnProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "CannotVoteOnProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuardianAlreadyOff",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "InvalidWaiver",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoansStillOutstanding",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NoEligibleVoters",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoPendingRuleChange",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotAllowedToPropose",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotDissolved",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotProposer",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalNotDecided",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalNotOpen",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalVotingClosed",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "RuleChangeInProgress",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "RuleChangeNotDue",
+    inputs: [
+      {
+        name: "effectiveAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TooManyOpenProposals",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "TooManyOpenProposalsBy",
+    inputs: [
+      {
+        name: "proposer",
+        type: "address",
+        internalType: "address",
       },
     ],
   },

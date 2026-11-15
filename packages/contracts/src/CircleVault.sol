@@ -10,6 +10,7 @@ import {CircleName} from "./libraries/CircleName.sol";
 import {Membership} from "./modules/Membership.sol";
 import {Ledger} from "./modules/Ledger.sol";
 import {Rules} from "./modules/Rules.sol";
+import {Governance} from "./modules/Governance.sol";
 
 /// @title CircleVault
 /// @notice One savings circle: members contribute a fixed AVAX installment each month and receive
@@ -111,6 +112,9 @@ contract CircleVault is ReentrancyGuard {
     Ledger.Store internal _ledger;
     /// @dev Current rules; Governance changes them after the delay (ADR 0019).
     Rules.Params internal _rules;
+    /// @dev Circle proposals: rule changes, fee waivers, dissolution, guardian off (ADR 0040).
+    // slither-disable-next-line uninitialized-state (written by the library through its slot)
+    Governance.Store internal _gov;
 
     // ------------------------------------------------------------------ events
 
@@ -186,6 +190,7 @@ contract CircleVault is ReentrancyGuard {
     ///         A dormant member who pays is woken first and pays the current period (RT-11).
     /// @dev `msg.value` must equal exactly `installment + lateFees` (see `amountDue`).
     function contribute() external payable nonReentrant {
+        if (_ledger.dissolved) revert Governance.CircleDissolved();
         Membership.Member storage m = _m.members[msg.sender];
         if (!m.active) revert Membership.NotAMember(msg.sender);
         if (m.dormant) _m.wakeToPay();
@@ -315,7 +320,174 @@ contract CircleVault is ReentrancyGuard {
 
     // ================================================================== GOVERNANCE (Governance)
     // Phase 2 module: rule changes with delay and rage-quit, fee waivers, dissolution.
-    // Entry points for the Governance library go in this section only (ADR 0037).
+    // Entry points for the Governance library go in this section only (ADR 0037, 0040).
+
+    // Each entry point forwards its own calldata to the library function with the same
+    // arguments (`_govForward`); the library does the work and its return data is passed back
+    // as is. This keeps the vault small (ADR 0040). The bare names in these bodies only mark
+    // parameters and return values as used: the values travel in calldata and return data.
+
+    // slither-disable-start incorrect-return,redundant-statements (intended: see above)
+    /// @notice Propose new rules (within the bounds of `Rules.validate`). If it passes, it
+    ///         applies after the delay, from the next period; until then members may exit with
+    ///         no notice (ADR 0019). Your yes vote is counted.
+    function proposeRuleChange(Rules.Params calldata newRules) external returns (uint256 id) {
+        _govForward(Governance.proposeRuleChange.selector, true);
+        (newRules, id);
+    }
+
+    /// @notice Ask the circle to waive the late fees on `member`'s unpaid installment for
+    ///         `period`, with a fixed reason. `member` may ask for themselves but can't vote.
+    function proposeFeeWaiver(address member, uint256 period, Governance.Reason reason)
+        external
+        returns (uint256 id)
+    {
+        _govForward(Governance.proposeFeeWaiver.selector, true);
+        (member, period, reason, id);
+    }
+
+    /// @notice Propose dissolving the circle (ADR 0021), at the dissolve pass mark.
+    function proposeDissolve() external returns (uint256 id) {
+        _govForward(Governance.proposeDissolve.selector, true);
+        id;
+    }
+
+    /// @notice Propose removing the guardian's pause power for good (ADR 0020).
+    function proposeGuardianOff() external returns (uint256 id) {
+        _govForward(Governance.proposeGuardianOff.selector, true);
+        id;
+    }
+
+    /// @notice Vote on an open circle proposal; the deciding vote settles it.
+    function voteProposal(uint256 id, bool support) external {
+        _govForward(Governance.vote.selector, true);
+        (id, support);
+    }
+
+    /// @notice Settle a proposal once its outcome is certain or its window ended. Anyone.
+    function finalizeProposal(uint256 id) external {
+        _govForward(Governance.finalize.selector, true);
+        id;
+    }
+
+    /// @notice Withdraw your own open proposal.
+    function cancelProposal(uint256 id) external {
+        _govForward(Governance.cancel.selector, true);
+        id;
+    }
+
+    /// @notice Put a passed rule change into force once its time has come. Anyone.
+    function applyRuleChange() external {
+        _govForward(Governance.applyRuleChange.selector, true);
+    }
+
+    /// @notice After a dissolve vote and once no loans are out, take your share at NAV and
+    ///         leave. A refused payout waits for `withdraw`.
+    function claimDissolution() external nonReentrant {
+        // Returns normally so `nonReentrant` can release its lock.
+        _govForward(Governance.claimDissolution.selector, false);
+    }
+
+    function proposal(uint256 id) external view returns (Governance.Proposal memory p) {
+        _govView(Governance.proposal.selector);
+        (id, p);
+    }
+
+    /// @notice The rules a rule-change proposal asks for.
+    function proposalRules(uint256 id) external view returns (Rules.Params memory r) {
+        _govView(Governance.proposalRules.selector);
+        (id, r);
+    }
+
+    /// @notice A passed rule change waiting to apply; `effectiveAt` 0 means none.
+    function pendingRuleChange()
+        external
+        view
+        returns (Rules.Params memory rules_, uint64 effectiveAt)
+    {
+        _govView(Governance.pendingRuleChange.selector);
+        (rules_, effectiveAt);
+    }
+
+    /// @notice Paginated open proposals (order changes as proposals close).
+    function openProposalsPage(uint256 offset, uint256 limit)
+        external
+        view
+        returns (uint256[] memory ids, Governance.Proposal[] memory page)
+    {
+        _govView(Governance.openPage.selector);
+        (offset, limit, ids, page);
+    }
+
+    function canVoteProposal(uint256 id, address voter) external view returns (bool ok) {
+        _govView(Governance.canVote.selector);
+        (id, voter, ok);
+    }
+
+    // slither-disable-end incorrect-return,redundant-statements
+
+    function proposalCount() external view returns (uint256) {
+        return _gov.proposals.length;
+    }
+
+    /// @notice Until this time members may exit with no notice (a rule change is pending).
+    function rageQuitUntil() external view returns (uint64) {
+        return _ledger.rageQuitUntil;
+    }
+
+    function dissolved() external view returns (bool) {
+        return _ledger.dissolved;
+    }
+
+    function guardianDisabled() external view returns (bool) {
+        return _ledger.guardianDisabled;
+    }
+
+    /// @dev Delegatecalls the Governance library function `sel` with the vault's storage slots
+    ///      and settings first, then this call's own arguments (all static, so the encoding
+    ///      matches). Reverts are passed on unchanged. With `ret`, the library's return data is
+    ///      returned straight to the caller and this call ends here.
+    function _govForward(bytes4 sel, bool ret) internal {
+        address lib = address(Governance);
+        uint256 inst = installment;
+        uint256 window = votingWindow;
+        uint256 quorum = quorumPct;
+        // Raw forward keeps the vault small (see the section comment).
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            if iszero(extcodesize(lib)) { revert(0, 0) }
+            let ptr := mload(0x40)
+            mstore(ptr, sel)
+            mstore(add(ptr, 0x04), _gov.slot)
+            mstore(add(ptr, 0x24), _m.slot)
+            mstore(add(ptr, 0x44), _ledger.slot)
+            mstore(add(ptr, 0x64), _rules.slot)
+            mstore(add(ptr, 0x84), inst)
+            mstore(add(ptr, 0xa4), window)
+            mstore(add(ptr, 0xc4), quorum)
+            let n := sub(calldatasize(), 4)
+            calldatacopy(add(ptr, 0xe4), 4, n)
+            let ok := delegatecall(gas(), lib, ptr, add(0xe4, n), 0, 0)
+            if or(iszero(ok), ret) {
+                returndatacopy(ptr, 0, returndatasize())
+                if iszero(ok) { revert(ptr, returndatasize()) }
+                return(ptr, returndatasize())
+            }
+        }
+    }
+
+    /// @dev `_govForward` for views. The library's view functions write nothing, so the call is
+    ///      read-only; the cast only tells the compiler so.
+    function _govView(bytes4 sel) internal view {
+        function(bytes4, bool) internal f = _govForward;
+        function(bytes4, bool) internal view v;
+        // Function-type cast only: no memory or state touched.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            v := f
+        }
+        v(sel, true);
+    }
 
     // ================================================================== end GOVERNANCE
 

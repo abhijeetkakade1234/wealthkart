@@ -6,5 +6,6 @@
 **Key files**
 
 - `Membership.sol`: founder invites, join and dormant requests, voting (quorum, snapshots, pass marks), wake, display names. ADRs 0028, 0029, 0032.
+- `Governance.sol`: circle proposals (rule change with delay and rage-quit window, fee waiver with a fixed reason, dissolve and pro-rata claims, guardian off). The vault forwards its calldata raw (`_govForward`). ADR 0040.
 
 Rules: a module reads and writes only the `Store` it is given and the arguments it is passed; events and errors are declared in the module and merged into the vault ABI by `packages/sdk/scripts/gen-abi.mjs` (add new modules to its `MERGE` map).
