@@ -92,6 +92,8 @@ contract CircleVault is ReentrancyGuard {
     uint8 public immutable minPaidToVote;
     /// @notice First period the creator owes an installment for.
     uint32 public immutable startPeriod;
+    /// @notice Block the circle was created in: where the app starts reading its events.
+    uint64 public immutable createdAtBlock;
     address public immutable factory;
     address public immutable creator;
 
@@ -152,6 +154,7 @@ contract CircleVault is ReentrancyGuard {
         name = cfg.name;
         factory = msg.sender;
         creator = creator_;
+        createdAtBlock = SafeCast.toUint64(block.number);
 
         // Immutables can't be read during construction, so build the params from `cfg`.
         startPeriod = _m.init(

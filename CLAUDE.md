@@ -54,7 +54,7 @@ Super admin, admins, members (see guide §1). Auth: mobile + 6-digit PIN, salted
 
 - **Every folder has a `README.md`**: what's here, when to open it, key files. Check the README before opening a folder; update it when the contents change. Format in `docs/engineering.md` §1.
 - **Every decision gets an ADR** in `docs/decisions/` (next number, template 0000), plus a row in its README index. Never rewrite an accepted ADR; supersede it.
-- **`docs/STATUS.md` is the phase + todo tracker.** Read it at session start; tick items and update the current phase as work lands.
+- **`docs/STATUS.md` is the phase + todo tracker.** Read it at session start; tick items and update the current phase as work lands. **Root `PHASES.md` (phase table) and `TODO.md` (open items) are the user's quick views** (user rule, 2026-11-15): update them in the same commit whenever STATUS.md changes.
 - **Tests model real production scenarios** (`docs/testing.md` catalogue, IDs like `S-PAY-02` in test names), plus fuzz, invariants and a G1 history replay. A new bug means a new scenario first.
 - **Every user-facing feature ships with a Playwright E2E test** (user rule, 2026-11-14): `apps/web/e2e/`, real app against a local anvil chain with a test wallet; scenario IDs in test names.
 - Husky + lint + CI/CD per `docs/engineering.md`.

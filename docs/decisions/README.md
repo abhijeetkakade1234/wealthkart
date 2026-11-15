@@ -43,3 +43,4 @@
 | [0031](0031-vault-modules-linked-libraries.md)          | Vault logic in linked external libraries (Membership first); fixes factory size, no proxies   | Accepted                           |
 | [0032](0032-dormant-members.md)                         | Dormant members: vote after N missed months, >50% yes, pay or wake to return                  | Accepted                           |
 | [0033](0033-voting-rights-invite-cap-circle-names.md)   | Voting rights after N payments, 3 open requests per member, circle names without links        | Accepted                           |
+| [0034](0034-charts-from-chain-events.md)                | Charts read circle events from the chain (chunked from `createdAtBlock`) until the indexer    | Accepted                           |
