@@ -11,11 +11,13 @@ import { PauseBanner } from "@/components/exits/pause";
 import { DissolvedNotice, RuleChangeBanner } from "@/components/governance/circle-notices";
 import { NewProposalButton } from "@/components/governance/new-proposal-dialog";
 import { ProposalCard } from "@/components/governance/proposal-card";
+import { LoanRequestCard } from "@/components/loans/loan-request-card";
 import { RequestCard } from "@/components/membership/request-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { type CircleGov, PROPOSALS_PAGE_SIZE, useCircleGov, useProposals } from "@/lib/gov-hooks";
+import { LOAN_REQUESTS_PAGE_SIZE, useOpenLoanRequests } from "@/lib/loan-hooks";
 import {
   parseCircleId,
   REQUESTS_PAGE_SIZE,
@@ -66,7 +68,7 @@ function Votes() {
     <div className="max-w-[760px]">
       <PageHeader
         title="Votes"
-        subtitle={`${d.name} · proposals, people asking to join, and members the circle may mark dormant. At least ${d.quorumPct}% of members must vote, and each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
+        subtitle={`${d.name} · proposals, loans, people asking to join, and members the circle may mark dormant. At least ${d.quorumPct}% of members must vote, and each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
         actions={
           gov?.rules && !gov.dissolved ? (
             <NewProposalButton
@@ -105,6 +107,23 @@ function Votes() {
           <ProposalList
             id={id}
             gov={gov}
+            quorumPct={d.quorumPct}
+            chainNow={chainNow}
+            onChanged={refetchAll}
+          />
+        </ErrorBoundary>
+      </section>
+      <section aria-labelledby="loans-heading" className="mb-16 grid gap-6">
+        <h2
+          id="loans-heading"
+          className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground"
+        >
+          Loans
+        </h2>
+        <ErrorBoundary preset="widget" name="Loan votes">
+          <LoanRequestList
+            id={id}
+            passPct={gov?.rules?.passPct ?? 50}
             quorumPct={d.quorumPct}
             chainNow={chainNow}
             onChanged={refetchAll}
@@ -191,6 +210,76 @@ function ProposalList({
         total={q.total}
         noun="proposals"
         param="ppage"
+      />
+    </div>
+  );
+}
+
+function LoanRequestList({
+  id,
+  passPct,
+  quorumPct,
+  chainNow,
+  onChanged,
+}: {
+  id: Address;
+  passPct: number;
+  quorumPct: number;
+  chainNow: number;
+  onChanged: () => void;
+}) {
+  const router = useRouter();
+  const page = usePageParam("lpage");
+  const q = useOpenLoanRequests(id, page);
+  const { address } = useCoreWallet();
+
+  if (q.isPending) {
+    return (
+      <StateView
+        state="loading"
+        label="Loading loan votes"
+        skeleton={<Skeleton className="h-52 rounded-[14px]" />}
+      />
+    );
+  }
+  if (q.isError) return <StateView state="error" onRetry={q.refetch} />;
+  if (q.total === 0) {
+    return (
+      <StateView
+        state="empty"
+        message="No loans to vote on. When a member asks for a loan, or the circle needs to settle one, it shows up here."
+        action={{
+          label: "Go to Loans",
+          onAction: () => router.push(`/app/circle/loans/?id=${id}`),
+        }}
+      />
+    );
+  }
+  return (
+    <div className="grid gap-8">
+      <div className="grid gap-6">
+        {q.requests.map((r) => (
+          <LoanRequestCard
+            key={String(r.id)}
+            circle={id}
+            request={r}
+            passPct={passPct}
+            quorumPct={quorumPct}
+            chainNow={chainNow}
+            me={address}
+            onChanged={() => {
+              q.refetch();
+              onChanged();
+            }}
+          />
+        ))}
+      </div>
+      <Pagination
+        page={page}
+        pageSize={LOAN_REQUESTS_PAGE_SIZE}
+        total={q.total}
+        noun="loan votes"
+        param="lpage"
       />
     </div>
   );

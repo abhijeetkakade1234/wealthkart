@@ -9,6 +9,7 @@ import { memberHistories, monthlySeries, totals } from "@/lib/analytics";
 import { useCircleEvents } from "@/lib/events";
 
 import { InflowChart, NavChart, ValueChart } from "./circle-charts";
+import { CircleLoanCharts } from "./loan-charts";
 import { PaymentsHeatmap } from "./payments-heatmap";
 import { ReturnsCard } from "./returns-card";
 
@@ -27,6 +28,7 @@ export function CircleAnalytics({
   chainNow,
   dueDay,
   mine,
+  money,
 }: {
   id: Address;
   memberListLength: number;
@@ -41,6 +43,8 @@ export function CircleAnalytics({
     installment: bigint;
     circleName: string;
   };
+  /** Live totals for "Where the money is"; the loan charts show once they are known. */
+  money?: { totalAssets: bigint; loansOutstanding: bigint; reserveBps: number };
 }) {
   const q = useCircleEvents(id);
 
@@ -97,6 +101,7 @@ export function CircleAnalytics({
           </ErrorBoundary>
         </div>
       )}
+      {t.payments > 0 && money && <CircleLoanCharts id={id} logs={q.data.logs} money={money} />}
       {t.payments > 0 && mine && (
         <ErrorBoundary preset="widget" name="Your returns">
           <ReturnsCard

@@ -31,14 +31,14 @@ const NAV: NavItem[] = [
   { label: "Home", href: "/app/", icon: Home },
   { label: "Circle", href: "/app/circle/", icon: Users, needsCircle: true },
   { label: "Pay", href: "/app/circle/pay/", icon: HandCoins, needsCircle: true },
-  { label: "Loans", href: "/app/circle/loans/", icon: Landmark, needsCircle: true, soon: true },
+  { label: "Loans", href: "/app/circle/loans/", icon: Landmark, needsCircle: true },
   { label: "Votes", href: "/app/circle/votes/", icon: Vote, needsCircle: true },
   { label: "Activity", href: "/app/circle/activity/", icon: Activity, needsCircle: true },
 ];
 
 /** Mobile bottom bar: four destinations plus More (docs/ui.md §3). */
 const MOBILE_NAV: NavItem[] = [
-  ...NAV.filter((n) => ["Home", "Circle", "Pay", "Votes"].includes(n.label)),
+  ...NAV.filter((n) => ["Home", "Pay", "Loans", "Votes"].includes(n.label)),
   { label: "More", href: "/app/", icon: MoreHorizontal },
 ];
 
