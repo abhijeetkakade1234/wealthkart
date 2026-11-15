@@ -144,6 +144,11 @@ export const circleFactoryAbi = [
             type: "uint16",
             internalType: "uint16",
           },
+          {
+            name: "dormantAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
         ],
       },
       {

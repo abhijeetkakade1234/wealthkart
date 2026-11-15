@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {Membership} from "../src/modules/Membership.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
 import {CircleVaultBase} from "./CircleVault.base.sol";
@@ -34,7 +35,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         vm.prank(f[2]);
         v.declineInvite();
         vm.prank(f[2]);
-        vm.expectRevert(CircleVault.NoFounderInvite.selector);
+        vm.expectRevert(Membership.NoFounderInvite.selector);
         v.acceptInvite();
         assertEq(v.memberCount(), 2);
     }
@@ -48,7 +49,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
 
         vm.warp(expiry + 1);
         vm.prank(f[1]);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.FounderInviteExpired.selector, expiry));
+        vm.expectRevert(abi.encodeWithSelector(Membership.FounderInviteExpired.selector, expiry));
         v.acceptInvite();
         assertEq(factory.circlesOfCount(f[1]), 0);
 
@@ -64,7 +65,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         f[1] = makeAddr("friend");
         CircleVault v = _createCircleNoAccept(_cfg(), f);
         vm.prank(f[1]);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.AlreadyMember.selector, f[1]));
+        vm.expectRevert(abi.encodeWithSelector(Membership.AlreadyMember.selector, f[1]));
         v.requestToJoin("Friend", address(0));
     }
 
@@ -72,11 +73,11 @@ contract CircleVaultMembershipTest is CircleVaultBase {
 
     function test_S_MEM_01_joinRequestPassesAndNewcomerIsAMember() public {
         uint256 id = _request(outsider, "Comet_K");
-        CircleVault.JoinRequest memory r = vault.getRequest(id);
-        assertEq(r.applicant, outsider);
+        Membership.Request memory r = vault.getRequest(id);
+        assertEq(r.account, outsider);
         assertEq(r.invitedBy, honest);
         assertEq(r.eligible, 12);
-        assertEq(uint8(r.status), uint8(CircleVault.JoinStatus.Open));
+        assertEq(uint8(r.status), uint8(Membership.Status.Open));
         assertEq(vault.openRequestOf(outsider), id);
 
         _votes(id, 0, 12, true); // settles on the 8th yes (8/12 = 66.7%)
@@ -87,15 +88,15 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         assertEq(factory.circlesOfCount(outsider), 1);
         assertEq(vault.openRequestCount(), 0);
         assertEq(vault.getRequest(id).yes, 8);
-        assertEq(uint8(vault.getRequest(id).status), uint8(CircleVault.JoinStatus.Approved));
+        assertEq(uint8(vault.getRequest(id).status), uint8(Membership.Status.Approved));
     }
 
     function test_S_MEM_01_rejectedOnceYesCanNoLongerReach66Percent() public {
         uint256 id = _request(outsider, "Comet_K");
         _votes(id, 0, 4, false);
-        assertEq(uint8(vault.getRequest(id).status), uint8(CircleVault.JoinStatus.Open));
+        assertEq(uint8(vault.getRequest(id).status), uint8(Membership.Status.Open));
         _votes(id, 4, 5, false); // 5 no: at most 7/12 = 58% yes
-        assertEq(uint8(vault.getRequest(id).status), uint8(CircleVault.JoinStatus.Rejected));
+        assertEq(uint8(vault.getRequest(id).status), uint8(Membership.Status.Rejected));
         assertFalse(vault.isMember(outsider));
         assertTrue(vault.isNameAvailable("Comet_K", attacker));
         assertEq(vault.openRequestOf(outsider), 0);
@@ -105,18 +106,18 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         uint256 id = _request(outsider, "Comet_K");
         _votes(id, 0, 6, true);
         _votes(id, 6, 10, false); // 6 yes, 4 no: quorum met, 60% yes
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.NotDecidedYet.selector, id));
-        vault.finalizeJoin(id);
+        vm.expectRevert(abi.encodeWithSelector(Membership.NotDecidedYet.selector, id));
+        vault.finalize(id);
         vm.warp(block.timestamp + 48 hours + 1);
-        vault.finalizeJoin(id);
-        assertEq(uint8(vault.getRequest(id).status), uint8(CircleVault.JoinStatus.Rejected));
+        vault.finalize(id);
+        assertEq(uint8(vault.getRequest(id).status), uint8(Membership.Status.Rejected));
 
         uint256 id2 = _request(attacker, "Mango.eth");
         _votes(id2, 0, 7, true);
         _votes(id2, 7, 10, false); // 7 yes, 3 no: 70%
         vm.warp(block.timestamp + 48 hours + 1);
         vm.prank(outsider); // anyone can finalize
-        vault.finalizeJoin(id2);
+        vault.finalize(id2);
         assertTrue(vault.isMember(attacker));
     }
 
@@ -125,10 +126,10 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         _votes(id, 0, 5, true); // 5 of 12 < 50% quorum
         vm.warp(block.timestamp + 48 hours + 1);
         vm.prank(members[6]);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.VotingClosed.selector, id));
-        vault.voteOnJoin(id, true);
-        vault.finalizeJoin(id);
-        assertEq(uint8(vault.getRequest(id).status), uint8(CircleVault.JoinStatus.Expired));
+        vm.expectRevert(abi.encodeWithSelector(Membership.VotingClosed.selector, id));
+        vault.vote(id, true);
+        vault.finalize(id);
+        assertEq(uint8(vault.getRequest(id).status), uint8(Membership.Status.Expired));
         assertFalse(vault.isMember(outsider));
     }
 
@@ -136,32 +137,26 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         uint256 id = _request(outsider, "Comet_K");
 
         vm.prank(attacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(CircleVault.NotEligibleToVote.selector, id, attacker)
-        );
-        vault.voteOnJoin(id, true);
+        vm.expectRevert(abi.encodeWithSelector(Membership.NotEligibleToVote.selector, id, attacker));
+        vault.vote(id, true);
 
         vm.prank(outsider); // the applicant
-        vm.expectRevert(
-            abi.encodeWithSelector(CircleVault.NotEligibleToVote.selector, id, outsider)
-        );
-        vault.voteOnJoin(id, true);
+        vm.expectRevert(abi.encodeWithSelector(Membership.NotEligibleToVote.selector, id, outsider));
+        vault.vote(id, true);
 
         vm.prank(honest);
-        vault.voteOnJoin(id, true);
+        vault.vote(id, true);
         vm.prank(honest);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.AlreadyVoted.selector, id));
-        vault.voteOnJoin(id, false);
+        vm.expectRevert(abi.encodeWithSelector(Membership.AlreadyVoted.selector, id));
+        vault.vote(id, false);
 
         // Someone admitted while this request is open can't vote on it (snapshot).
         address newcomer = makeAddr("newcomer");
         _admit(newcomer, "Newcomer");
         assertFalse(vault.canVote(id, newcomer));
         vm.prank(newcomer);
-        vm.expectRevert(
-            abi.encodeWithSelector(CircleVault.NotEligibleToVote.selector, id, newcomer)
-        );
-        vault.voteOnJoin(id, true);
+        vm.expectRevert(abi.encodeWithSelector(Membership.NotEligibleToVote.selector, id, newcomer));
+        vault.vote(id, true);
     }
 
     function test_S_RT_11_memberTwoPeriodsBehindCannotVoteUntilPaidUp() public {
@@ -175,18 +170,18 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         assertTrue(vault.canVote(id, honest));
         assertFalse(vault.canVote(id, late)); // owes Dec and Jan
         vm.prank(late);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.NotEligibleToVote.selector, id, late));
-        vault.voteOnJoin(id, true);
+        vm.expectRevert(abi.encodeWithSelector(Membership.NotEligibleToVote.selector, id, late));
+        vault.vote(id, true);
 
         _pay(late); // Dec; Jan still owed = 1 behind, allowed
         assertTrue(vault.canVote(id, late));
         vm.prank(late);
-        vault.voteOnJoin(id, true);
+        vault.vote(id, true);
     }
 
     function test_S_MEM_17_invitedByMustBeAMember() public {
         vm.prank(outsider);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.InvitedByNotAMember.selector, attacker));
+        vm.expectRevert(abi.encodeWithSelector(Membership.InvitedByNotAMember.selector, attacker));
         vault.requestToJoin("Comet_K", attacker);
 
         vm.prank(outsider);
@@ -199,16 +194,16 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         uint256 id = _request(outsider, "Comet_K"); // claims honest invited them
         assertFalse(vault.getRequest(id).inviterConfirmed);
         vm.prank(late);
-        vault.voteOnJoin(id, true);
+        vault.vote(id, true);
         assertFalse(vault.getRequest(id).inviterConfirmed);
         vm.prank(honest);
-        vault.voteOnJoin(id, true);
+        vault.vote(id, true);
         assertTrue(vault.getRequest(id).inviterConfirmed);
     }
 
     function test_memberCannotRequestToJoin() public {
         vm.prank(honest);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.AlreadyMember.selector, honest));
+        vm.expectRevert(abi.encodeWithSelector(Membership.AlreadyMember.selector, honest));
         vault.requestToJoin("Honest", address(0));
     }
 
@@ -217,7 +212,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
     function test_S_RT_08_oneOpenRequestPerAddressAndAGlobalCap() public {
         uint256 id = _request(outsider, "Comet_K");
         vm.prank(outsider);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.RequestAlreadyOpen.selector, id));
+        vm.expectRevert(abi.encodeWithSelector(Membership.RequestAlreadyOpen.selector, id));
         vault.requestToJoin("Comet_K2", honest);
 
         // Fill the remaining 19 slots.
@@ -229,14 +224,14 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         }
         assertEq(vault.openRequestCount(), 20);
         vm.prank(attacker);
-        vm.expectRevert(CircleVault.TooManyOpenRequests.selector);
+        vm.expectRevert(Membership.TooManyOpenRequests.selector);
         vault.requestToJoin("Mango.eth", honest);
 
         // Expired requests leave the open list once anyone finalizes them.
         vm.warp(block.timestamp + 48 hours + 1);
-        vault.finalizeJoin(id);
+        vault.finalize(id);
         assertEq(vault.openRequestCount(), 19);
-        (uint256[] memory ids, CircleVault.JoinRequest[] memory page) = vault.openRequestsPage(0, 5);
+        (uint256[] memory ids, Membership.Request[] memory page) = vault.openRequestsPage(0, 5);
         assertEq(ids.length, 5);
         assertEq(page.length, 5);
         (uint256[] memory none,) = vault.openRequestsPage(19, 5);
@@ -247,14 +242,14 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         uint256 id = _request(outsider, "Comet_K");
         vm.prank(outsider);
         vault.cancelJoinRequest();
-        assertEq(uint8(vault.getRequest(id).status), uint8(CircleVault.JoinStatus.Cancelled));
+        assertEq(uint8(vault.getRequest(id).status), uint8(Membership.Status.Cancelled));
         assertEq(vault.openRequestCount(), 0);
         vm.prank(outsider);
-        vm.expectRevert(CircleVault.NoOpenRequest.selector);
+        vm.expectRevert(Membership.NoOpenRequest.selector);
         vault.cancelJoinRequest();
         vm.prank(honest);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.RequestNotOpen.selector, id));
-        vault.voteOnJoin(id, true);
+        vm.expectRevert(abi.encodeWithSelector(Membership.RequestNotOpen.selector, id));
+        vault.vote(id, true);
         // and can ask again later
         _request(outsider, "Comet_K");
     }
@@ -268,11 +263,11 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         _votes(a, 0, 12, true);
         assertEq(vault.memberCount(), 13);
         _votes(b, 0, 12, true);
-        assertEq(uint8(vault.getRequest(b).status), uint8(CircleVault.JoinStatus.Full));
+        assertEq(uint8(vault.getRequest(b).status), uint8(Membership.Status.Full));
         assertFalse(vault.isMember(attacker));
 
         vm.prank(makeAddr("late arrival"));
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.CircleFull.selector, 13));
+        vm.expectRevert(abi.encodeWithSelector(Membership.CircleFull.selector, 13));
         vault.requestToJoin("LateArrival", honest);
     }
 
@@ -318,7 +313,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         vm.prank(honest);
         vault.setDisplayName("NightOwl");
         vm.prank(late);
-        vm.expectRevert(CircleVault.NameTaken.selector);
+        vm.expectRevert(Membership.NameTaken.selector);
         vault.setDisplayName("nightowl");
         assertEq(vault.memberByName("NIGHTOWL"), honest);
     }
@@ -327,7 +322,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         vm.startPrank(honest);
         vault.setDisplayName("NightOwl");
         uint256 allowedAt = block.timestamp + 30 days;
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.NameChangeTooSoon.selector, allowedAt));
+        vm.expectRevert(abi.encodeWithSelector(Membership.NameChangeTooSoon.selector, allowedAt));
         vault.setDisplayName("DayOwl");
         vm.warp(allowedAt);
         vault.setDisplayName("DayOwl");
@@ -344,7 +339,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         assertEq(vault.memberByName("Comet_K"), address(0));
 
         vm.prank(late);
-        vm.expectRevert(CircleVault.NameTaken.selector);
+        vm.expectRevert(Membership.NameTaken.selector);
         vault.setDisplayName("comet_k");
         assertFalse(vault.isNameAvailable("Comet_K", late));
         assertTrue(vault.isNameAvailable("Comet_K", honest));
@@ -361,9 +356,9 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         vault.setDisplayName("COMET_K");
         _votes(id, 0, 7, true);
         vm.expectEmit(address(vault));
-        emit CircleVault.DisplayNameUnavailable(outsider, "Comet_K");
+        emit Membership.DisplayNameUnavailable(outsider, "Comet_K");
         vm.prank(members[7]);
-        vault.voteOnJoin(id, true); // 8th yes settles it
+        vault.vote(id, true); // 8th yes settles it
         assertTrue(vault.isMember(outsider)); // the passed vote isn't reverted
         assertEq(vault.nameOf(outsider), "");
         assertEq(vault.memberByName("Comet_K"), honest);
@@ -386,7 +381,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         for (uint256 i = 0; i < bad.length; ++i) {
             assertFalse(vault.isNameAvailable(bad[i], honest));
             vm.prank(honest);
-            vm.expectRevert(CircleVault.InvalidDisplayName.selector);
+            vm.expectRevert(Membership.InvalidDisplayName.selector);
             vault.setDisplayName(bad[i]);
         }
         assertTrue(vault.isNameAvailable("Night Owl_2.0-x", honest));
@@ -433,7 +428,7 @@ contract CircleVaultMembershipTest is CircleVaultBase {
                 "exec(address,uint256,bytes)",
                 address(vault),
                 0,
-                abi.encodeCall(CircleVault.voteOnJoin, (id2, true))
+                abi.encodeCall(CircleVault.vote, (id2, true))
             )
         );
         assertTrue(ok); // joined before request 2, so it can vote through its wallet

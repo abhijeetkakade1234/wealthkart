@@ -3,7 +3,7 @@
 **What's here:** Playwright end-to-end tests. Every user-facing feature ships with one (CLAUDE.md).
 **Open this when:** adding a screen or flow, or when the E2E CI job fails.
 
-How it works: `playwright.config.ts` starts a local **anvil** chain that uses Fuji's chain id (43113), builds the static site with `NEXT_PUBLIC_RPC_URL` and `NEXT_PUBLIC_FACTORY_OVERRIDE` pointing at it, and serves `out/`. `support/global-setup.ts` installs Multicall3 and deploys the real `CircleFactory` from the Foundry build. Each test injects a **fake Core wallet** (EIP-6963, rdns `app.core.extension`) that forwards to anvil, so transactions, reverts and receipts are real.
+How it works: `playwright.config.ts` starts a local **anvil** chain that uses Fuji's chain id (43113), builds the static site with `NEXT_PUBLIC_RPC_URL` and `NEXT_PUBLIC_FACTORY_OVERRIDE` pointing at it, and serves `out/`. `support/global-setup.ts` installs Multicall3, deploys the `Membership` library and the real `CircleFactory` linked to it from the Foundry build. Each test injects a **fake Core wallet** (EIP-6963, rdns `app.core.extension`) that forwards to anvil, so transactions, reverts and receipts are real.
 
 | Path                      | Purpose                                                                       |
 | ------------------------- | ----------------------------------------------------------------------------- |

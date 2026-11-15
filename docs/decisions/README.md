@@ -40,3 +40,5 @@
 | [0028](0028-membership-founder-accept-and-join-vote.md) | Founders accept invites; others join by request + vote (quorum, 66% yes, snapshots)           | Accepted                           |
 | [0029](0029-display-names.md)                           | Display names: ASCII, unique ignoring case, 30-day cooldown and reservation                   | Accepted                           |
 | [0030](0030-late-fee-cap.md)                            | Each late fee is capped at half the installment (supersedes the fee rows of 0022)             | Accepted                           |
+| [0031](0031-vault-modules-linked-libraries.md)          | Vault logic in linked external libraries (Membership first); fixes factory size, no proxies   | Accepted                           |
+| [0032](0032-dormant-members.md)                         | Dormant members: vote after N missed months, >50% yes, pay or wake to return                  | Accepted                           |
