@@ -5,9 +5,11 @@
 
 **Key files**
 
-| Path           | Purpose                                                                   |
-| -------------- | ------------------------------------------------------------------------- |
-| `button.tsx`   | `buttonVariants`: ink pill primary, outline pill secondary, ghost         |
-| `dialog.tsx`   | Confirm dialogs for money or irreversible actions (overlay 30, dialog 40) |
-| `tooltip.tsx`  | Tooltips (sits on the toast layer so it shows above dialogs)              |
-| `skeleton.tsx` | Skeleton blocks for loading states                                        |
+| Path                | Purpose                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| `button.tsx`        | `buttonVariants`: ink pill primary, outline pill secondary, ghost                                 |
+| `dialog.tsx`        | Confirm dialogs for money or irreversible actions (overlay 30, dialog 40)                         |
+| `tooltip.tsx`       | Tooltips (sits on the toast layer so it shows above dialogs)                                      |
+| `skeleton.tsx`      | Skeleton blocks for loading states                                                                |
+| `chart.tsx`         | shadcn chart wrapper (Recharts 3): container, tooltip, legend; `cn` import fixed to `@/lib/utils` |
+| `dropdown-menu.tsx` | Menus (circle switcher)                                                                           |

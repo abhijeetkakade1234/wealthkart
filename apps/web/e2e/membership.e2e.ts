@@ -53,7 +53,9 @@ test.describe("membership", () => {
 
     await alice.reload();
     await expect(alice.getByText(/^2 members/)).toBeVisible();
-    await expect(alice.getByRole("cell", { name: /0x3C44…93BC/ })).toBeVisible();
+    await expect(
+      alice.getByRole("table", { name: "Members" }).getByRole("cell", { name: /0x3C44…93BC/ }),
+    ).toBeVisible();
   });
 
   test("S-E2E-05 a friend asks to join from an invite link and the members vote them in", async ({
@@ -87,7 +89,9 @@ test.describe("membership", () => {
     await expect(carol.getByTestId("join-result")).toContainText("You're in.");
     await open(carol, `/app/circle/?id=${circle}`);
     await expect(carol.getByTestId("my-name")).toHaveText("Carol_C");
-    await expect(carol.getByRole("cell", { name: /Carol_C/ })).toBeVisible();
+    await expect(
+      carol.getByRole("table", { name: "Members" }).getByRole("cell", { name: /Carol_C/ }),
+    ).toBeVisible();
     // Voted in, so she votes only after two payments (ADR 0033, RT-03).
     await expect(carol.getByText("New member · can vote after 2 more payments")).toBeVisible();
   });
