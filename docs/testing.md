@@ -187,6 +187,13 @@ Known gaps:
 - S-UX-11 Offline → banner, writes disabled, reads from cache marked stale
 - S-UX-12 Reduced motion → no animations, all state changes still visible
 
+### Analytics and activity (S-ACT)
+
+- S-ACT-01 A circle records the block it was created in, so the app reads its events from there
+- S-ACT-02 Monthly series: each installment counts in the month it's for; value accumulates; the share index starts at 1.00 and fees lift it
+- S-ACT-03 Heatmap squares: before joining, on time, late, paid after a holiday, missed (holiday months only after the next due moment), due, upcoming, dormant (between dormant and wake)
+- S-ACT-04 Event reading: lifetime split into RPC-sized block ranges; very old circles keep the newest chunks and say so; only known events are used
+
 ### Frontend / E2E (S-WEB)
 
 - S-WEB-01 Core not installed → install prompt
@@ -235,6 +242,7 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-10 A crafted `next` link on the sign-in page can't send you outside the app
 - S-E2E-11 Circle created with "missed months before a dormant vote" = 1; a member stops paying; another member sees "Missed N months" and starts a vote from the members table; a third member's yes settles it; the table shows "Dormant, payments paused"
 - S-E2E-12 The dormant member sees "Your payments are paused", the Pay page explains paying brings them back, and "I'm back" wakes them
+- S-E2E-15 Two members pay (one on time, one late); the circle page shows the summary line, the three charts (each readable as a table) and the heatmap with one on-time and one late square; the home page shows portfolio totals and each circle's share
 - S-E2E-14 A circle name that looks like a web address is refused by the create form before anything is sent; a member voted in shows "can vote after 2 more payments"; a join card shows the inviter's open invites
 - S-E2E-13 The sign-in page fits one screen with no scrolling on a small phone, a laptop and a desktop; Back returns to the previous page on this site, or home
 
