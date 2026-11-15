@@ -57,6 +57,7 @@ library Ledger {
         if (!ok) {
             self.withdrawable[to] += amount;
             self.totalWithdrawable += amount;
+            // slither-disable-next-line reentrancy-events (only when the payment was refused)
             emit PayoutQueued(to, amount);
         }
     }

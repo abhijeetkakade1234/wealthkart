@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, "..", "..", "contracts", "out");
 const target = join(here, "..", "src", "abi");
-const CONTRACTS = ["CircleVault", "CircleFactory"];
+const CONTRACTS = ["CircleVault", "CircleFactory", "Reputation"];
 /**
  * Linked libraries whose events and errors surface through a contract (ADR 0031). The vault
  * delegatecalls them, so their logs and reverts come from the vault's address; viem needs them

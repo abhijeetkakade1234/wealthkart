@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {CircleVault} from "./CircleVault.sol";
 import {ICircleRegistry} from "./interfaces/ICircleRegistry.sol";
 import {CodeStore} from "./libraries/CodeStore.sol";
+import {Reputation} from "./Reputation.sol";
 
 /// @title CircleFactory
 /// @notice Deploys immutable CircleVaults and keeps a registry of each member's circles.
@@ -18,6 +19,8 @@ contract CircleFactory is ICircleRegistry {
     /// @notice keccak256 of the vault creation code every circle is deployed from. Anyone can
     ///         compare it with the audited build.
     bytes32 public immutable vaultCodeHash;
+    /// @notice The soulbound track record every circle of this factory writes to (Phase 3).
+    Reputation public immutable reputation;
     /// @dev Data contracts holding the vault creation code, in order.
     address[] internal _vaultCode;
 
@@ -37,6 +40,7 @@ contract CircleFactory is ICircleRegistry {
         if (vaultCreationCode.length == 0) revert EmptyVaultCode();
         vaultCodeHash = keccak256(vaultCreationCode);
         _vaultCode = CodeStore.write(vaultCreationCode);
+        reputation = new Reputation(address(this));
     }
 
     /// @notice Create a circle. You become its first member; `invitees` must each accept.
@@ -46,9 +50,9 @@ contract CircleFactory is ICircleRegistry {
         external
         returns (address circle)
     {
-        bytes memory code = abi.encodePacked(
-            CodeStore.read(_vaultCode), abi.encode(cfg, msg.sender, invitees)
-        );
+        // slither-disable-next-line encode-packed-collision (creation code + ABI args, never hashed)
+        bytes memory code =
+            abi.encodePacked(CodeStore.read(_vaultCode), abi.encode(cfg, msg.sender, invitees));
         // Data-contract code store (ADR 0037): assembly is the only way to CREATE from bytes.
         // solhint-disable-next-line no-inline-assembly
         assembly ("memory-safe") {

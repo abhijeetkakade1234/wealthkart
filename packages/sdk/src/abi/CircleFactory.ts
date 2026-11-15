@@ -318,6 +318,19 @@ export const circleFactoryAbi = [
   },
   {
     type: "function",
+    name: "reputation",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "contract Reputation",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "vaultCodeHash",
     inputs: [],
     outputs: [
