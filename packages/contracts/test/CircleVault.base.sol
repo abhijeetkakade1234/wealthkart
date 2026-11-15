@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
+import {Rules} from "../src/modules/Rules.sol";
 import {PeriodMath} from "../src/libraries/PeriodMath.sol";
 import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 
@@ -51,13 +52,14 @@ abstract contract CircleVaultBase is Test {
             quorumPct: 50,
             maxMembers: 0,
             dormantAfter: 3,
-            minPaidToVote: 2
+            minPaidToVote: 2,
+            rules: Rules.defaults(uint128(AVAX / 2))
         });
     }
 
     function setUp() public virtual {
         vm.warp(DEC_1_2026);
-        factory = new CircleFactory();
+        factory = new CircleFactory(type(CircleVault).creationCode);
         members = _makeMembers(12);
         vault = _createCircle(_cfg(), members);
         honest = members[0];

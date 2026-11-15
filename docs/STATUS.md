@@ -1,6 +1,6 @@
 # Status: where we are and what's left
 
-**Current phase: Phase 1, MVP on Fuji** (Phase 0 done except owner actions marked below; work lands on `abhijeet`)
+**Current phase: Phase 2, loans and governance** (Phase 1 done; its milestone is deferred by the owner) (Phase 0 done except owner actions marked below; work lands on `abhijeet`)
 Last updated: 2026-11-14
 
 How to use this file:
@@ -112,7 +112,8 @@ How to use this file:
 
 ## Phase 2: Loans and governance
 
-- [ ] Each Phase 2 feature lands as its own module under `src/modules/` (ADR 0031); watch `forge build --sizes` (factory has 6.2 KB left)
+- [x] Phase 2 foundation (ADR 0037): blueprint factory (3.2 KB; vault code in data contracts), shared `Ledger` with push-then-pull payouts (RT-20), `Rules` in storage with on-chain bounds, Membership hooks, one marked vault section per module
+- [ ] Each Phase 2 feature lands as its own module under `src/modules/` (ADR 0031, 0037); vault has ~9 KB runtime left
 - [ ] Re-enable Slither `locked-ether` once exits exist
 - [ ] Red-team Phase 2 items: NAV includes interest owed and marks down overdue loans (RT-08, RT-18), k rises with tenure (RT-15), guarantee locks shares (RT-16), no new loans while exits wait (RT-17), pull-payment fallback for wallets that reject AVAX (RT-20), migration targets from a timelocked registry (RT-13)
 - [ ] Loan request → vote → auto-disbursal

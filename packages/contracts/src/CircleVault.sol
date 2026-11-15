@@ -8,6 +8,8 @@ import {SharesMath} from "./libraries/SharesMath.sol";
 import {FeeMath} from "./libraries/FeeMath.sol";
 import {CircleName} from "./libraries/CircleName.sol";
 import {Membership} from "./modules/Membership.sol";
+import {Ledger} from "./modules/Ledger.sol";
+import {Rules} from "./modules/Rules.sol";
 
 /// @title CircleVault
 /// @notice One savings circle: members contribute a fixed AVAX installment each month and receive
@@ -23,6 +25,7 @@ import {Membership} from "./modules/Membership.sol";
 ///      Loans, exits and governance follow in Phase 2.
 contract CircleVault is ReentrancyGuard {
     using Membership for Membership.Store;
+    using Ledger for Ledger.Store;
 
     // ------------------------------------------------------------------ types
 
@@ -52,6 +55,8 @@ contract CircleVault is ReentrancyGuard {
         uint8 dormantAfter;
         /// @dev Installments a member admitted by vote must pay before voting, 0..6 (ADR 0033).
         uint8 minPaidToVote;
+        /// @dev Loan, exit and governance settings a vote can change later (ADR 0037).
+        Rules.Params rules;
     }
 
     // ------------------------------------------------------------------ constants
@@ -99,12 +104,13 @@ contract CircleVault is ReentrancyGuard {
 
     // ------------------------------------------------------------------ state
 
-    /// @notice Internally tracked assets in wei (cash + loans outstanding, once loans exist).
-    uint256 public totalAssets;
-    uint256 public totalShares;
     /// @notice Circle name (set once at creation).
     string public name;
     Membership.Store internal _m;
+    /// @dev Assets, shares, loans out and refused payouts, shared by every module (ADR 0037).
+    Ledger.Store internal _ledger;
+    /// @dev Current rules; Governance changes them after the delay (ADR 0019).
+    Rules.Params internal _rules;
 
     // ------------------------------------------------------------------ events
 
@@ -139,6 +145,8 @@ contract CircleVault is ReentrancyGuard {
         if (block.chainid == AVALANCHE_MAINNET_CHAIN_ID) revert MainnetNotSupported();
         if (creator_ == address(0)) revert Membership.ZeroAddressMember();
         _validate(cfg, invitees.length);
+        Rules.validate(cfg.rules, cfg.installment);
+        _rules = cfg.rules;
 
         installment = cfg.installment;
         fee1 = cfg.fee1;
@@ -193,9 +201,10 @@ contract CircleVault is ReentrancyGuard {
         // Effects: shares are priced on the installment at the pre-payment NAV;
         // the fee then raises NAV for everyone (ADR 0009). A late joiner buys in here,
         // at today's NAV, so existing members are not diluted (ADR 0006).
-        uint256 minted = SharesMath.sharesForDeposit(installment, totalAssets, totalShares);
-        totalAssets += msg.value;
-        totalShares += minted;
+        uint256 minted =
+            SharesMath.sharesForDeposit(installment, _ledger.totalAssets, _ledger.totalShares);
+        _ledger.totalAssets += msg.value;
+        _ledger.totalShares += minted;
         m.shares += SafeCast.toUint128(minted);
         m.nextPeriod = SafeCast.toUint32(period + 1);
         Membership.recordPayment(_m, msg.sender, minPaidToVote);
@@ -284,6 +293,31 @@ contract CircleVault is ReentrancyGuard {
     function setDisplayName(string calldata displayName) external {
         _m.setDisplayName(displayName);
     }
+
+    // ------------------------------------------------------------------ payouts
+
+    /// @notice Claim AVAX your wallet refused when the circle tried to pay you (RT-20).
+    function withdraw() external nonReentrant {
+        _ledger.withdraw(msg.sender);
+    }
+
+    // ================================================================== LOANS (LoanBook)
+    // Phase 2 module: loan request -> vote -> disbursal, interest, repayment, tenors, default.
+    // Entry points for the LoanBook library go in this section only (ADR 0037).
+
+    // ================================================================== end LOANS
+
+    // ================================================================== EXITS (Exits)
+    // Phase 2 module: exit notice -> NAV snapshot -> payout, Chainlink Automation, guardian pause.
+    // Entry points for the Exits library go in this section only (ADR 0037).
+
+    // ================================================================== end EXITS
+
+    // ================================================================== GOVERNANCE (Governance)
+    // Phase 2 module: rule changes with delay and rage-quit, fee waivers, dissolution.
+    // Entry points for the Governance library go in this section only (ADR 0037).
+
+    // ================================================================== end GOVERNANCE
 
     // ------------------------------------------------------------------ views
 
@@ -439,16 +473,47 @@ contract CircleVault is ReentrancyGuard {
 
     /// @notice Current value of `member`'s stake in wei.
     function stakeOf(address member) external view returns (uint256) {
-        return SharesMath.assetsForShares(_m.members[member].shares, totalAssets, totalShares);
+        return SharesMath.assetsForShares(
+            _m.members[member].shares, _ledger.totalAssets, _ledger.totalShares
+        );
     }
 
     /// @notice NAV per 1e18 shares, for display.
     function navPerShareE18() external view returns (uint256) {
-        return SharesMath.assetsForShares(1e18, totalAssets, totalShares);
+        return SharesMath.assetsForShares(1e18, _ledger.totalAssets, _ledger.totalShares);
     }
 
     function currentPeriod() external view returns (uint256) {
         return PeriodMath.periodOf(block.timestamp);
+    }
+
+    /// @notice Cash plus loans outstanding, in wei.
+    function totalAssets() external view returns (uint256) {
+        return _ledger.totalAssets;
+    }
+
+    function totalShares() external view returns (uint256) {
+        return _ledger.totalShares;
+    }
+
+    /// @notice Principal lent out to members right now, in wei.
+    function loansOutstanding() external view returns (uint256) {
+        return _ledger.loansOutstanding;
+    }
+
+    /// @notice AVAX the circle holds and may use (total assets minus loans out).
+    function cash() external view returns (uint256) {
+        return _ledger.cash();
+    }
+
+    /// @notice A payout `account`'s wallet refused, waiting for `withdraw`.
+    function withdrawable(address account) external view returns (uint256) {
+        return _ledger.withdrawable[account];
+    }
+
+    /// @notice The circle's current loan, exit and governance settings.
+    function rules() external view returns (Rules.Params memory) {
+        return _rules;
     }
 
     // ------------------------------------------------------------------ internals
@@ -508,6 +573,8 @@ contract CircleVault is ReentrancyGuard {
     }
 
     function _lateFees(address member, uint256 period, uint256 at) internal view returns (uint256) {
+        // A fee waiver voted by the circle (Governance) clears both late fees for that period.
+        if (_m.feeWaived[member][period]) return 0;
         return FeeMath.lateFees(
             period, _m.holidayFor[member][period], at, dueDay, secondFeeDay, fee1, fee2
         );

@@ -85,6 +85,11 @@ export const messages = {
   notOverdueEnough: () =>
     "They haven't missed enough months yet. The circle can only pause someone's payments after the number of missed months it agreed on.",
   noOtherVoters: () => "There's nobody else in the circle who could vote on this yet.",
+  nothingToWithdraw: () => "There's nothing waiting for you to withdraw.",
+  withdrawFailed: () =>
+    "Your wallet didn't accept the AVAX. Try again from a wallet that can receive AVAX.",
+  insufficientCash: () =>
+    "The circle doesn't have enough cash for this right now. Some of its money is lent out.",
   tooManyOpenRequestsBy: () =>
     "That member already has 3 open invites or proposals. Ask them to wait until one is decided, or ask another member to invite you.",
 
@@ -169,6 +174,9 @@ export type FriendlyErrorCode =
   | "not-overdue-enough"
   | "no-other-voters"
   | "too-many-requests-by"
+  | "nothing-to-withdraw"
+  | "withdraw-failed"
+  | "insufficient-cash"
   | "unknown";
 
 /** The only error shape that ever reaches the UI. `details` is for the "Details" toggle. */
@@ -343,6 +351,10 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NotOverdueEnough", "not-overdue-enough", messages.notOverdueEnough],
     ["NoOtherVoters", "no-other-voters", messages.noOtherVoters],
     ["TooManyOpenRequestsBy", "too-many-requests-by", messages.tooManyOpenRequestsBy],
+    // Payouts and cash (ADR 0037).
+    ["NothingToWithdraw", "nothing-to-withdraw", messages.nothingToWithdraw],
+    ["WithdrawFailed", "withdraw-failed", messages.withdrawFailed],
+    ["InsufficientCash", "insufficient-cash", messages.insufficientCash],
   ];
   for (const [name, code, message] of membership) {
     if (hasName(name)) return friendlyError(code, message(), details);

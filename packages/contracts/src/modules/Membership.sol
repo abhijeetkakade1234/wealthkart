@@ -23,6 +23,12 @@ library Membership {
         /// @dev Has voting rights: founders from the start; members admitted by vote once they
         ///      have paid `minPaidToVote` installments (ADR 0033, RT-03). Kept while dormant.
         bool voter;
+        /// @dev Frozen by a loan default (own loan or as guarantor, ADR 0009): can't exit, and the
+        ///      shares may repay the loan after a vote. Set and cleared by LoanBook only.
+        bool frozen;
+        /// @dev Open loan, pending loan request or active guarantee (ADR 0037). Written by LoanBook
+        ///      only; Exits refuses to exit a member while it is above 0.
+        uint8 loanTies;
         /// @dev Next period this member must pay; payments are always oldest first.
         uint32 nextPeriod;
         /// @dev Voting stamp: set on joining, renewed when voting rights arrive and on wake.
@@ -105,6 +111,9 @@ library Membership {
         mapping(address account => bool) listed;
         mapping(address member => mapping(uint256 period => bool)) holidayFor;
         mapping(address member => mapping(uint256 year => uint256)) holidaysUsed;
+        /// @dev Late fees on this member's installment for this period waived by a vote
+        ///      (Governance, D4b). The vault charges no late fee for a waived period.
+        mapping(address member => mapping(uint256 period => bool)) feeWaived;
         mapping(address account => uint64 expiresAt) founderInviteExpiry;
         /// @dev Request id `n` lives at index `n - 1`; id 0 means "none".
         Request[] requests;
@@ -166,6 +175,7 @@ library Membership {
     event RequestClosed(uint256 indexed requestId, Kind kind, Status status);
     event MemberDormant(address indexed member, uint256 indexed period);
     event MemberWoke(address indexed member, uint256 indexed nextPeriod);
+    event MemberRemoved(address indexed member);
     /// @notice A member admitted by vote paid enough installments to vote (ADR 0033).
     event VotingRightsGranted(address indexed member);
     event DisplayNameSet(address indexed member, string displayName);
@@ -417,6 +427,45 @@ library Membership {
         }
     }
 
+    // ------------------------------------------------------------------ hooks for other modules
+
+    /// @notice True if `who` can vote right now: active, not dormant, has voting rights, at most
+    ///         one period behind (ADR 0028, 0033). LoanBook and Governance use the same test.
+    function isCurrentVoter(Store storage s, address who) internal view returns (bool) {
+        return _isCurrentVoter(s.members[who]);
+    }
+
+    /// @notice True if `who` was a voter before stamp `seqSnapshot` and can vote now.
+    function canVoteAt(Store storage s, address who, uint32 seqSnapshot)
+        internal
+        view
+        returns (bool)
+    {
+        Member storage m = s.members[who];
+        return m.seq <= seqSnapshot && _isCurrentVoter(m);
+    }
+
+    /// @notice Removes `who` (an exit or dissolution, Phase 2). Counts stay exact; the member
+    ///         list keeps the address for history, and the name is released after the cooldown.
+    function removeMember(Store storage s, address who) internal {
+        Member storage m = s.members[who];
+        if (!m.active) revert NotAMember(who);
+        if (m.dormant) s.dormantCount -= 1;
+        else if (m.voter) s.voterCount -= 1;
+        s.memberCount -= 1;
+        string memory current = s.names[who];
+        if (bytes(current).length != 0) {
+            s.nameFreeAt[DisplayName.key(current)] =
+                SafeCast.toUint64(block.timestamp) + NAME_COOLDOWN;
+        }
+        m.active = false;
+        m.dormant = false;
+        m.voter = false;
+        m.frozen = false;
+        m.shares = 0;
+        emit MemberRemoved(who);
+    }
+
     /// @notice Installments whose fee-free deadline has passed and that are still unpaid.
     /// @dev Only the latest past-due period can still be inside a holiday's grace (ADR 0017):
     ///      every earlier one is past the next period's due moment too. 0 for dormant members.
@@ -470,6 +519,8 @@ library Membership {
             active: true,
             dormant: false,
             voter: voter,
+            frozen: false,
+            loanTies: 0,
             nextPeriod: firstPeriod,
             seq: seq,
             nameChangedAt: 0,

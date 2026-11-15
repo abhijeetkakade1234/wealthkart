@@ -68,6 +68,108 @@ export const circleVaultAbi = [
             type: "uint8",
             internalType: "uint8",
           },
+          {
+            name: "rules",
+            type: "tuple",
+            internalType: "struct Rules.Params",
+            components: [
+              {
+                name: "interestBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "tenorMonths",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "tenor2Bps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "tenor3Bps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "reserveBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "maxLoanBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "kMultiplier",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "minInterestMonth",
+                type: "bool",
+                internalType: "bool",
+              },
+              {
+                name: "medicalCap",
+                type: "uint128",
+                internalType: "uint128",
+              },
+              {
+                name: "medicalFreeMonths",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "guarantorRequired",
+                type: "bool",
+                internalType: "bool",
+              },
+              {
+                name: "interestFee",
+                type: "uint128",
+                internalType: "uint128",
+              },
+              {
+                name: "defaultAfter",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "minMembersForLoans",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "passPct",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "dissolvePassPct",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "ruleChangeDelayDays",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "exitNoticeDays",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "exitFeeBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+            ],
+          },
         ],
       },
       {
@@ -415,6 +517,19 @@ export const circleVaultAbi = [
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cash",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -805,6 +920,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "loansOutstanding",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "maxMembers",
     inputs: [],
     outputs: [
@@ -891,6 +1019,16 @@ export const circleVaultAbi = [
             name: "voter",
             type: "bool",
             internalType: "bool",
+          },
+          {
+            name: "frozen",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "loanTies",
+            type: "uint8",
+            internalType: "uint8",
           },
           {
             name: "nextPeriod",
@@ -1250,6 +1388,116 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "rules",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "secondFeeDay",
     inputs: [],
     outputs: [
@@ -1384,6 +1632,32 @@ export const circleVaultAbi = [
     stateMutability: "nonpayable",
   },
   {
+    type: "function",
+    name: "withdraw",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "withdrawable",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
     type: "event",
     name: "Contributed",
     inputs: [
@@ -1448,6 +1722,25 @@ export const circleVaultAbi = [
         type: "address",
         indexed: true,
         internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "Withdrawn",
+    inputs: [
+      {
+        name: "to",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
       },
     ],
     anonymous: false,
@@ -1557,6 +1850,11 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "NothingToWithdraw",
+    inputs: [],
+  },
+  {
+    type: "error",
     name: "PeriodAlreadyPaid",
     inputs: [
       {
@@ -1586,6 +1884,11 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "WithdrawFailed",
+    inputs: [],
   },
   {
     type: "error",
@@ -1798,6 +2101,19 @@ export const circleVaultAbi = [
         type: "uint256",
         indexed: true,
         internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MemberRemoved",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
       },
     ],
     anonymous: false,
@@ -2084,6 +2400,17 @@ export const circleVaultAbi = [
         name: "requestId",
         type: "uint256",
         internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "InvalidRule",
+    inputs: [
+      {
+        name: "reason",
+        type: "string",
+        internalType: "string",
       },
     ],
   },

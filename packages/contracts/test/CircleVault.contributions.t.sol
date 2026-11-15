@@ -389,4 +389,9 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         CircleVault v = CircleVault(payable(factory.createCircle(_cfg(), new address[](0))));
         assertEq(v.createdAtBlock(), 12_345);
     }
+
+    function test_S_ACT_01b_factoryDeploysTheExactVaultCodeItWasGiven() public view {
+        assertEq(factory.vaultCodeHash(), keccak256(type(CircleVault).creationCode));
+        assertGt(address(vault).code.length, 0);
+    }
 }

@@ -1,5 +1,7 @@
 import { type Address, isAddress, parseEther } from "viem";
 
+import { defaultRules } from "@/lib/rules";
+
 /** Create-circle form: shape, defaults (G1 values) and validation mirroring the contract (ADR 0022). */
 
 export const MAX_FOUNDERS = 200;
@@ -137,6 +139,7 @@ export function validate(f: FormState, self: Address | undefined) {
             maxMembers: DEFAULT_MAX_MEMBERS,
             dormantAfter,
             minPaidToVote,
+            rules: defaultRules(installment),
           }
         : null,
   };

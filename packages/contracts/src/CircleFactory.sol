@@ -3,14 +3,24 @@ pragma solidity 0.8.28;
 
 import {CircleVault} from "./CircleVault.sol";
 import {ICircleRegistry} from "./interfaces/ICircleRegistry.sol";
+import {CodeStore} from "./libraries/CodeStore.sol";
 
 /// @title CircleFactory
 /// @notice Deploys immutable CircleVaults and keeps a registry of each member's circles.
-/// @dev Deploys with `new` (no proxies, ADR 0020). One wallet can belong to many circles (ADR 0005).
+/// @dev Each vault is a full, independent contract (no proxies, ADR 0020). The vault's creation
+///      code lives in immutable data contracts written once at construction (ADR 0037), so the
+///      factory stays small however big the vault grows. One wallet can belong to many circles
+///      (ADR 0005).
 ///      The creator is registered at creation. Invited founders and admitted members are
 ///      registered by their circle (`registerMember`) only once they actually join (ADR 0028),
 ///      so nobody sees a circle they never agreed to be in (RT-02).
 contract CircleFactory is ICircleRegistry {
+    /// @notice keccak256 of the vault creation code every circle is deployed from. Anyone can
+    ///         compare it with the audited build.
+    bytes32 public immutable vaultCodeHash;
+    /// @dev Data contracts holding the vault creation code, in order.
+    address[] internal _vaultCode;
+
     address[] internal _circles;
     mapping(address member => address[]) internal _circlesOf;
     /// @notice True for every vault this factory deployed.
@@ -20,6 +30,14 @@ contract CircleFactory is ICircleRegistry {
     event MemberRegistered(address indexed circle, address indexed member);
 
     error NotACircle(address caller);
+    error EmptyVaultCode();
+
+    /// @param vaultCreationCode `type(CircleVault).creationCode`, linked to its libraries.
+    constructor(bytes memory vaultCreationCode) {
+        if (vaultCreationCode.length == 0) revert EmptyVaultCode();
+        vaultCodeHash = keccak256(vaultCreationCode);
+        _vaultCode = CodeStore.write(vaultCreationCode);
+    }
 
     /// @notice Create a circle. You become its first member; `invitees` must each accept.
     /// @param cfg Circle settings (bounds enforced by the vault).
@@ -28,7 +46,20 @@ contract CircleFactory is ICircleRegistry {
         external
         returns (address circle)
     {
-        circle = address(new CircleVault(cfg, msg.sender, invitees));
+        bytes memory code = abi.encodePacked(
+            CodeStore.read(_vaultCode), abi.encode(cfg, msg.sender, invitees)
+        );
+        // Data-contract code store (ADR 0037): assembly is the only way to CREATE from bytes.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            circle := create(0, add(code, 0x20), mload(code))
+            // Bubble the vault's own error (e.g. InvalidConfig) up to the caller.
+            if iszero(circle) {
+                let p := mload(0x40)
+                returndatacopy(p, 0, returndatasize())
+                revert(p, returndatasize())
+            }
+        }
         isCircle[circle] = true;
         _circles.push(circle);
         _circlesOf[msg.sender].push(circle);

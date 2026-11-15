@@ -17,7 +17,7 @@ const CONTRACTS = ["CircleVault", "CircleFactory"];
  * delegatecalls them, so their logs and reverts come from the vault's address; viem needs them
  * in the vault's ABI to decode them.
  */
-const MERGE = { CircleVault: ["Membership"] };
+const MERGE = { CircleVault: ["Membership", "Rules"] };
 
 const read = (name) =>
   JSON.parse(readFileSync(join(outDir, `${name}.sol`, `${name}.json`), "utf8"));
