@@ -382,4 +382,11 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         assertLe(last, first);
         assertLt(last, 100_000);
     }
+
+    function test_S_ACT_01_createdAtBlockMarksWhereEventsStart() public {
+        vm.roll(12_345);
+        vm.prank(honest);
+        CircleVault v = CircleVault(payable(factory.createCircle(_cfg(), new address[](0))));
+        assertEq(v.createdAtBlock(), 12_345);
+    }
 }
