@@ -29,7 +29,11 @@ import { ChartFrame } from "./chart-frame";
 /** Phase 1 circle charts (PLAN.md D7): value, money in per month, value of one share. */
 
 const avax = (wei: bigint) => Number(formatEther(wei));
-const short = (p: number) => periodLabel(p).replace(/ (\d{2})(\d{2})$/, " '$2");
+/** Axis label like "Dec '26" (periodLabel gives "December 2026"). */
+const short = (p: number) => {
+  const label = periodLabel(p);
+  return `${label.slice(0, 3)} '${label.slice(-2)}`;
+};
 
 const axis = {
   tickLine: false,

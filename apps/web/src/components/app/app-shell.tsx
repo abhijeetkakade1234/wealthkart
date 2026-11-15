@@ -33,13 +33,7 @@ const NAV: NavItem[] = [
   { label: "Pay", href: "/app/circle/pay/", icon: HandCoins, needsCircle: true },
   { label: "Loans", href: "/app/circle/loans/", icon: Landmark, needsCircle: true, soon: true },
   { label: "Votes", href: "/app/circle/votes/", icon: Vote, needsCircle: true },
-  {
-    label: "Activity",
-    href: "/app/circle/activity/",
-    icon: Activity,
-    needsCircle: true,
-    soon: true,
-  },
+  { label: "Activity", href: "/app/circle/activity/", icon: Activity, needsCircle: true },
 ];
 
 /** Mobile bottom bar: four destinations plus More (docs/ui.md §3). */

@@ -18,13 +18,15 @@ const PARALLEL = 4;
 
 export interface CircleEvents {
   events: CircleEvent[];
+  /** Every decoded log, oldest first, for the activity feed. */
+  logs: DecodedLog[];
   /** True when the circle is older than MAX_CHUNKS * LOG_CHUNK blocks: only recent history. */
   partial: boolean;
   /** First block actually read. */
   fromBlock: bigint;
 }
 
-type Decoded = {
+export type DecodedLog = {
   eventName: string;
   args: Record<string, unknown>;
   blockNumber: bigint | null;
@@ -33,7 +35,7 @@ type Decoded = {
 };
 
 /** Turns decoded vault logs into the analytics event shape; ignores events charts don't use. */
-export function normalise(logs: readonly Decoded[]): CircleEvent[] {
+export function normalise(logs: readonly DecodedLog[]): CircleEvent[] {
   const out: CircleEvent[] = [];
   for (const l of logs) {
     const base = {
@@ -127,7 +129,7 @@ export function useCircleEvents(id: Address | null) {
     queryFn: async (): Promise<CircleEvents> => {
       const latest = await client!.getBlockNumber();
       const { ranges, partial } = chunkRanges(createdAt!, latest, LOG_CHUNK, MAX_CHUNKS);
-      const logs: Decoded[] = [];
+      const logs: DecodedLog[] = [];
       for (let i = 0; i < ranges.length; i += PARALLEL) {
         const batch = await Promise.all(
           ranges.slice(i, i + PARALLEL).map(([fromBlock, toBlock]) =>
@@ -139,10 +141,11 @@ export function useCircleEvents(id: Address | null) {
             }),
           ),
         );
-        for (const part of batch) logs.push(...(part as unknown as Decoded[]));
+        for (const part of batch) logs.push(...(part as unknown as DecodedLog[]));
       }
       return {
         events: normalise(logs),
+        logs,
         partial,
         fromBlock: ranges[0]?.[0] ?? createdAt!,
       };

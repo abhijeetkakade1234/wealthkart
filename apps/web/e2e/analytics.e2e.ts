@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Address } from "viem";
 
 import { warpToDayThisMonth, warpToNextMonth } from "./support/chain";
 import { ACCOUNTS } from "./support/env";
@@ -8,11 +9,15 @@ import { asWallet, createCircle, payAllDue, vaultWrite } from "./support/vault";
  * Circle charts, payments heatmap and portfolio totals (PLAN.md D7), from real events on the
  * local chain. Alice pays on time, Bob pays after the due day with a late fee.
  */
+test.describe.configure({ mode: "serial" });
+
+let circle = "" as Address;
+
 test("S-E2E-15 the circle page charts the money and shows who paid on time, late or not yet", async ({
   browser,
 }) => {
   const alice = await asWallet(browser, ACCOUNTS.alice);
-  const circle = await createCircle(alice, {
+  circle = await createCircle(alice, {
     name: `Charts E2E ${Date.now() % 100000}`,
     founders: [ACCOUNTS.bob],
   });
@@ -47,4 +52,35 @@ test("S-E2E-15 the circle page charts the money and shows who paid on time, late
   await alice.goto("/app/");
   await expect(alice.getByText("Your money in circles")).toBeVisible();
   await expect(alice.getByText(/% of the circle/).first()).toBeVisible();
+});
+
+test("S-E2E-16 the activity page lists every payment and change, with filters, search and Snowtrace links", async ({
+  browser,
+}) => {
+  const alice = await asWallet(browser, ACCOUNTS.alice);
+  await alice.goto(`/app/circle/?id=${circle}`);
+  await alice
+    .getByRole("navigation", { name: "Main" })
+    .first()
+    .getByRole("link", { name: "Activity" })
+    .click();
+  await alice.waitForURL(/\/app\/circle\/activity\/\?id=/);
+  await expect(alice.getByRole("heading", { name: "Activity" })).toBeVisible();
+
+  const items = alice.getByTestId("activity-item");
+  await expect(items.filter({ hasText: /on time\./ })).toHaveCount(1);
+  await expect(items.filter({ hasText: /in late fees\./ })).toHaveCount(1);
+  await expect(items.filter({ hasText: "joined the circle." })).toHaveCount(2);
+  await expect(items.first().getByRole("link", { name: /Snowtrace/ })).toHaveAttribute(
+    "href",
+    /snowtrace\.io\/tx\/0x/,
+  );
+
+  await alice.getByRole("button", { name: "Payments" }).click();
+  await expect(alice).toHaveURL(/type=payment/);
+  await expect(items).toHaveCount(2);
+
+  await alice.getByRole("searchbox").fill("nobody-here");
+  await expect(alice.getByText("Nothing matches.", { exact: false })).toBeVisible();
+  await expect(alice).toHaveURL(/q=nobody-here/);
 });
