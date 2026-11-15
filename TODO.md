@@ -4,12 +4,14 @@ What's open right now. Phase-level progress is in [PHASES.md](PHASES.md); the fu
 
 Last updated: 2026-11-15
 
-## Building now (Phase 1)
+## Done in Phase 1
 
 - [x] Activity feed with a Snowtrace link for every entry
 - [x] Indexer: Cloudflare Worker + D1 (`workers/indexer`)
 
-## Next phase (Phase 2: loans and governance)
+## Building now (Phase 2: loans and governance, in parallel)
+
+- [x] Foundation: blueprint factory, shared ledger, rules with on-chain limits
 
 - [ ] Loan request → member vote → AVAX sent automatically
 - [ ] Interest, partial payments, repayment order, tenors, medical loans, caps, reserve
@@ -17,6 +19,13 @@ Last updated: 2026-11-15
 - [ ] Rule changes, fee waivers and other proposals by vote
 - [ ] Exits: notice period → payout (Chainlink Automation, with a manual fallback)
 - [ ] Phase 2 red-team items (RT-08, 13, 15–18, 20)
+
+## Phase 3 (audit and mainnet beta)
+
+- [x] Returns, projections and history CSV
+- [x] Contract monitoring and alerts (indexer)
+- [x] Security policy, bug bounty terms, audit pack
+- [ ] Reputation record (soulbound) and public repayment record page
 
 ## Owner actions (saved for after all phases are coded)
 
