@@ -8,6 +8,7 @@ import {SharesMath} from "./libraries/SharesMath.sol";
 import {FeeMath} from "./libraries/FeeMath.sol";
 import {CircleName} from "./libraries/CircleName.sol";
 import {Membership} from "./modules/Membership.sol";
+import {IReputation, IReputationSource} from "./interfaces/IReputation.sol";
 import {Ledger} from "./modules/Ledger.sol";
 import {Rules} from "./modules/Rules.sol";
 import {Governance} from "./modules/Governance.sol";
@@ -107,6 +108,8 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @notice Block the circle was created in: where the app starts reading its events.
     uint64 public immutable createdAtBlock;
     address public immutable factory;
+    /// @notice The soulbound record this circle writes payments and loan outcomes to (ADR 0042).
+    address public immutable reputation;
     address public immutable creator;
 
     // ------------------------------------------------------------------ state
@@ -176,6 +179,7 @@ contract CircleVault is ReentrancyGuardTransient {
         minPaidToVote = cfg.minPaidToVote;
         name = cfg.name;
         factory = msg.sender;
+        reputation = IReputationSource(msg.sender).reputation();
         creator = creator_;
         createdAtBlock = SafeCast.toUint64(block.number);
 
@@ -232,6 +236,9 @@ contract CircleVault is ReentrancyGuardTransient {
         Membership.recordPayment(_m, msg.sender, minPaidToVote);
 
         emit Contributed(msg.sender, period, installment, fees, minted);
+        // Last: the trusted record from our own factory (ADR 0042). On time = no late fee.
+        // slither-disable-next-line incorrect-equality (fees is a computed amount, not a balance)
+        IReputation(reputation).recordPayment(msg.sender, fees == 0);
     }
 
     /// @notice Declare a payment holiday for the current period (ADR 0017): no late fees until
@@ -457,6 +464,7 @@ contract CircleVault is ReentrancyGuardTransient {
             dueDay: dueDay,
             votingWindow: votingWindow,
             quorumPct: quorumPct,
+            reputation: reputation,
             exitDue: head != address(0) && block.timestamp >= _exits.entries[head].maturesAt
         });
     }

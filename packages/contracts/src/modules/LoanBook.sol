@@ -6,6 +6,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {PeriodMath} from "../libraries/PeriodMath.sol";
 import {SharesMath} from "../libraries/SharesMath.sol";
 import {Membership} from "./Membership.sol";
+import {IReputation} from "../interfaces/IReputation.sol";
 import {Ledger} from "./Ledger.sol";
 import {Rules} from "./Rules.sol";
 
@@ -110,6 +111,8 @@ library LoanBook {
         uint8 dueDay;
         uint32 votingWindow;
         uint8 quorumPct;
+        /// @dev The soulbound record loan outcomes are written to (ADR 0042).
+        address reputation;
         /// @dev The first exit in the queue has finished its notice and isn't paid yet: no
         ///      disbursal until it is (RT-17, LOAN-07).
         bool exitDue;
@@ -428,8 +431,13 @@ library LoanBook {
             led.totalAssets += minInterest;
         }
         emit LoanRepaid(msg.sender, part, minInterest, owedPrincipal - part);
-        if (part == owedPrincipal) _closeLoan(s, m, msg.sender);
-        else _maybeCure(s, m, c, msg.sender);
+        if (part == owedPrincipal) {
+            _closeLoan(s, m, msg.sender);
+            // Last: the trusted record from our own factory (ADR 0042).
+            IReputation(c.reputation).recordLoanOutcome(msg.sender, true);
+        } else {
+            _maybeCure(s, m, c, msg.sender);
+        }
     }
 
     // ------------------------------------------------------------------ default
@@ -452,6 +460,8 @@ library LoanBook {
         _syncFrozen(s, m, borrower);
         if (g != address(0)) _syncFrozen(s, m, g);
         emit LoanDefaulted(borrower, g, _overdueMonths(ln, c.dueDay, _period()));
+        // A default stays on the borrower's record even if cured later (ADR 0042).
+        IReputation(c.reputation).recordLoanOutcome(borrower, false);
     }
 
     // ------------------------------------------------------------------ views

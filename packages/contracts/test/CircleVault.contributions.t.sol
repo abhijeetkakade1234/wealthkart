@@ -380,7 +380,9 @@ contract CircleVaultContributionsTest is CircleVaultBase {
 
         // The 200th payment costs no more than the first (it's cheaper: warm storage slots).
         assertLe(last, first);
-        assertLt(last, 100_000);
+        // Flat in the member count. The bound includes the reputation write (ADR 0042), which costs
+        // more on a wallet's first record (new storage), never more with more members.
+        assertLt(last, 200_000);
     }
 
     function test_S_ACT_01_createdAtBlockMarksWhereEventsStart() public {

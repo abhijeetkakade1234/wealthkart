@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {IReputation} from "./interfaces/IReputation.sol";
+
 /// @notice What Reputation needs from the factory: which addresses are real circles.
 interface ICircleCheck {
     function isCircle(address circle) external view returns (bool);
@@ -13,7 +15,7 @@ interface ICircleCheck {
 /// @dev No personal data: the token id is the wallet address. Counters only go up, so a
 ///      record can't be quietly cleaned. Circles call it after their own state changes (CEI);
 ///      it makes no external calls besides the factory check.
-contract Reputation {
+contract Reputation is IReputation {
     struct Record {
         uint32 onTime;
         uint32 late;
@@ -54,7 +56,7 @@ contract Reputation {
     // ------------------------------------------------------------------ writes (circles only)
 
     /// @notice A circle records one installment: on time (no late fee) or late.
-    function recordPayment(address wallet, bool onTime) external onlyCircle {
+    function recordPayment(address wallet, bool onTime) external override onlyCircle {
         Record storage r = _touch(wallet);
         if (onTime) r.onTime += 1;
         else r.late += 1;
@@ -62,7 +64,7 @@ contract Reputation {
     }
 
     /// @notice A circle records how a loan ended: repaid in full, or a default.
-    function recordLoanOutcome(address wallet, bool repaid) external onlyCircle {
+    function recordLoanOutcome(address wallet, bool repaid) external override onlyCircle {
         Record storage r = _touch(wallet);
         if (repaid) r.loansRepaid += 1;
         else r.defaults += 1;

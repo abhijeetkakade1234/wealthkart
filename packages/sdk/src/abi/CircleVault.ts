@@ -2788,6 +2788,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "reputation",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "requestCount",
     inputs: [],
     outputs: [

@@ -212,6 +212,18 @@ Known gaps:
 - S-UX-11 Offline → banner, writes disabled, reads from cache marked stale
 - S-UX-12 Reduced motion → no animations, all state changes still visible
 
+### Reputation (S-REP)
+
+- S-REP-01 Only circles from the same factory can write the record
+- S-REP-02 Counts on-time and late months, loans repaid, defaults and circles across circles; mints the token once
+- S-REP-03 Soulbound: transfers and approvals revert; ERC-5192 locked; ERC-721 interface reported
+- S-REP-04 No record means no token
+- S-REP-05 Fuzz: counters only ever go up
+- S-REP-06 A vault writes to its own factory's record
+- S-REP-07 Each installment is recorded as on time (no late fee) or late
+- S-REP-08 A loan repaid in full is recorded
+- S-REP-09 A default is recorded and stays even after a cure
+
 ### Analytics and activity (S-ACT)
 
 - S-ACT-01 A circle records the block it was created in, so the app reads its events from there
