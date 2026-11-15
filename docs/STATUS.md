@@ -1,6 +1,6 @@
 # Status: where we are and what's left
 
-**Current phase: Phase 2, loans and governance** (Phase 1 done; its milestone is deferred by the owner) (Phase 0 done except owner actions marked below; work lands on `abhijeet`)
+**Current phase: Phase 4, growth** (Phases 0–2 done; Phase 3 code done, its audit, bug bounty and mainnet deploy are owner/external; the Phase 1 milestone is deferred by the owner). Work lands on `abhijeet`.
 Last updated: 2026-11-14
 
 How to use this file:
