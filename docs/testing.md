@@ -235,6 +235,7 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-10 A crafted `next` link on the sign-in page can't send you outside the app
 - S-E2E-11 Circle created with "missed months before a dormant vote" = 1; a member stops paying; another member sees "Missed N months" and starts a vote from the members table; a third member's yes settles it; the table shows "Dormant, payments paused"
 - S-E2E-12 The dormant member sees "Your payments are paused", the Pay page explains paying brings them back, and "I'm back" wakes them
+- S-E2E-13 The sign-in page fits one screen with no scrolling on a small phone, a laptop and a desktop; Back returns to the previous page on this site, or home
 
 ## Gates in CI
 
