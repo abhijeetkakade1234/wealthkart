@@ -1,17 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
+import {Membership} from "../src/modules/Membership.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {CircleVaultBase} from "./CircleVault.base.sol";
 
-/// @dev Drives random join requests, votes, finalizes, cancels, renames and time jumps.
+/// @dev Drives random join requests, dormant proposals, payments, wakes, votes, finalizes,
+///      cancels, renames and time jumps.
 ///      A small name pool forces collisions.
 contract MembershipHandler is Test {
     CircleVault public vault;
     address[] public founders;
     address[] public candidates;
     uint256 public admittedEver;
+    /// @dev Coverage counters, so a run that never reaches the dormant paths is visible.
+    uint256 public dormantProposals;
+    uint256 public wakes;
     string[6] internal pool = ["Owl", "owl", "Comet_K", "Mango.eth", "Bunty", "NightOwl"];
 
     constructor(CircleVault v, address[] memory f) {
@@ -31,26 +36,32 @@ contract MembershipHandler is Test {
         (bool found, uint256 id) = _openId(idSeed);
         if (!found) return;
         vm.prank(_anyMember(voterSeed));
-        try vault.voteOnJoin(id, support) {} catch {}
+        try vault.vote(id, support) {} catch {}
     }
 
     /// @dev A burst: every eligible member votes the same way on one open request.
     function voteAll(uint256 idSeed, bool support) external {
         (bool found, uint256 id) = _openId(idSeed);
         if (!found) return;
+        _voteAllOn(id, support);
+        if (support && vault.getRequest(id).kind == Membership.Kind.Join) {
+            admittedEver += vault.isMember(vault.getRequest(id).account) ? 1 : 0;
+        }
+    }
+
+    function _voteAllOn(uint256 id, bool support) internal {
         for (uint256 i = 0; i < founders.length + candidates.length; ++i) {
             address voter = _anyMember(i);
             if (!vault.canVote(id, voter)) continue;
             vm.prank(voter);
-            vault.voteOnJoin(id, support);
+            vault.vote(id, support);
         }
-        if (support) admittedEver += vault.isMember(vault.getRequest(id).applicant) ? 1 : 0;
     }
 
     function finalize(uint256 idSeed) external {
         uint256 n = vault.requestCount();
         if (n == 0) return;
-        try vault.finalizeJoin(idSeed % n + 1) {} catch {}
+        try vault.finalize(idSeed % n + 1) {} catch {}
     }
 
     function cancel(uint256 who) external {
@@ -61,6 +72,43 @@ contract MembershipHandler is Test {
     function rename(uint256 voterSeed, uint256 nameIdx) external {
         vm.prank(_anyMember(voterSeed));
         try vault.setDisplayName(pool[nameIdx % pool.length]) {} catch {}
+    }
+
+    /// @dev Brings one member fully up to date (bounded), so some proposers stay eligible.
+    function pay(uint256 seed) public {
+        address who = _anyMember(seed);
+        if (!vault.isMember(who)) return;
+        for (uint256 i = 0; i < 24; ++i) {
+            (, uint256 amount,, bool payable_) = vault.amountDue(who);
+            if (!payable_) return;
+            vm.deal(who, amount);
+            vm.prank(who);
+            vault.contribute{value: amount}();
+        }
+    }
+
+    /// @dev The proposer is a diligent member: they catch up first, as the vote rules require.
+    function proposeDormant(uint256 proposerSeed, uint256 targetSeed) external {
+        pay(proposerSeed);
+        vm.prank(_anyMember(proposerSeed));
+        try vault.proposeDormant(_anyMember(targetSeed)) returns (uint256 id) {
+            dormantProposals++;
+            // Half the time the circle agrees at once, so wakes and dormant quorums get exercised.
+            if (targetSeed % 2 == 0) {
+                address target = _anyMember(targetSeed);
+                for (uint256 i = 0; i < founders.length + candidates.length; ++i) {
+                    if (_anyMember(i) != target) pay(i);
+                }
+                _voteAllOn(id, true);
+            }
+        } catch {}
+    }
+
+    function wake(uint256 seed) external {
+        vm.prank(_anyMember(seed));
+        try vault.wake() {
+            wakes++;
+        } catch {}
     }
 
     function warp(uint256 secondsAhead) external {
@@ -124,12 +172,42 @@ contract CircleVaultMembershipInvariantTest is CircleVaultBase {
     function invariant_I11_openRequestsBoundedAndConsistent() public view {
         uint256 open = vault.openRequestCount();
         assertLe(open, vault.MAX_OPEN_REQUESTS());
-        (uint256[] memory ids, CircleVault.JoinRequest[] memory page) =
-            vault.openRequestsPage(0, open);
+        (uint256[] memory ids, Membership.Request[] memory page) = vault.openRequestsPage(0, open);
         for (uint256 i = 0; i < ids.length; ++i) {
-            assertEq(uint8(page[i].status), uint8(CircleVault.JoinStatus.Open));
-            assertEq(vault.openRequestOf(page[i].applicant), ids[i]);
+            assertEq(uint8(page[i].status), uint8(Membership.Status.Open));
+            if (page[i].kind == Membership.Kind.Join) {
+                assertEq(vault.openRequestOf(page[i].account), ids[i]);
+            } else {
+                assertEq(vault.openDormantOf(page[i].account), ids[i]);
+            }
         }
+    }
+
+    /// I-12: the dormant count matches the members flagged dormant, and never exceeds members.
+    function invariant_I12_dormantCountMatchesFlags() public view {
+        uint256 len = vault.memberListLength();
+        address[] memory all = vault.membersPage(0, len);
+        uint256 dormant;
+        for (uint256 i = 0; i < all.length; ++i) {
+            if (vault.memberOf(all[i]).dormant) dormant++;
+        }
+        assertEq(vault.dormantCount(), dormant);
+        assertLe(vault.dormantCount(), vault.memberCount());
+    }
+
+    /// I-13: no request ever has more votes than voters it could have had (quorum honesty,
+    ///       including members who woke during a vote).
+    function invariant_I13_votesNeverExceedEligible() public view {
+        uint256 n = vault.requestCount();
+        for (uint256 id = 1; id <= n; ++id) {
+            Membership.Request memory r = vault.getRequest(id);
+            assertLe(uint256(r.yes) + r.no, r.eligible);
+        }
+    }
+
+    function afterInvariant() public view {
+        // Not an assertion (a short run may miss them); printed with -vv for coverage checks.
+        console.log("dormant proposals", handler.dormantProposals(), "wakes", handler.wakes());
     }
 
     function _lowerHash(string memory s) internal pure returns (bytes32) {

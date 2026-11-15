@@ -18,7 +18,7 @@ permissions:
 jobs:
   deploy:
     name: Deploy CircleFactory to ${{ inputs.network }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: ${{ inputs.network }}
     defaults:
       run:

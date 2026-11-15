@@ -66,8 +66,8 @@ Known gaps:
 - S-MEM-04 Two people pick the same display name → second rejected
 - S-MEM-05 Changes name twice in 30 days → second rejected
 - S-MEM-06 Name with emoji / RTL / zero-width chars / 200 chars → normalised or rejected
-- S-MEM-07 Wallet lost; 3 months missed → dormant vote → dues stop, shares untouched
-- S-MEM-08 Dormant member comes back → can resume?
+- S-MEM-07 Wallet lost; 3 months missed → dormant vote → dues stop, shares untouched; dormant member can't vote, take a holiday or rename
+- S-MEM-08 Dormant member comes back with `wake()` → dues restart this month (or next if the due moment passed); votes only on requests opened after waking; bad `dormantAfter` setting refused
 - S-MEM-09 Circle with 500 members → every action still under the gas limit (ADR 0015)
 - S-MEM-10 Joins (or circle created) after this month's due moment → first installment is next month; nobody starts already late (ADR 0028)
 - S-MEM-11 Smart-contract wallet that refuses plain AVAX is a member → can pay and vote
@@ -233,6 +233,9 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-08 A wallet page while signed out sends you to sign in, then back to the page you asked for
 - S-E2E-09 Without Core installed, sign-in offers the Core download instead of a broken button
 - S-E2E-10 A crafted `next` link on the sign-in page can't send you outside the app
+- S-E2E-11 Circle created with "missed months before a dormant vote" = 1; a member stops paying; another member sees "Missed N months" and starts a vote from the members table; a third member's yes settles it; the table shows "Dormant, payments paused"
+- S-E2E-12 The dormant member sees "Your payments are paused", the Pay page explains paying brings them back, and "I'm back" wakes them
+- S-E2E-13 The sign-in page fits one screen with no scrolling on a small phone, a laptop and a desktop; Back returns to the previous page on this site, or home
 
 ## Gates in CI
 
@@ -263,7 +266,7 @@ From [`redteam/2026-11-plan-redteam.md`](redteam/2026-11-plan-redteam.md). Each 
 - S-RT-15 (RT-09) Member admitted after that month's due day → first period owed is next month, no late fees for the join month
 - S-RT-16 (RT-09) Two admission votes finalised in the same block with one seat left under `maxMembers` → second finalise reverts or is rejected cleanly
 - S-RT-17 (RT-10) Loan vote reaches majority 5 minutes in → can't finalise until the window ends; a voter changes their vote before the end → counted once, latest choice
-- S-RT-18 (RT-11) Dormancy proposal for a member with fewer than N missed periods → rejected; dormant member pays or votes → dormancy cleared
+- S-RT-18 (RT-11) Dormancy proposal for a member with fewer than N missed periods → rejected; holiday grace isn't "missed"; the member can't vote on it and the proposer's yes counts; proposer more than a month behind → refused; member catches up during the vote → closed as cancelled; majority no → rejected; dormant member pays → woken, pays only the current month (ADR 0032: a vote doesn't clear dormancy, to keep quorum snapshots honest)
 - S-RT-19 (RT-12) Proposal to lower the reserve or raise k / exit fee / notice / fees → needs 66% and a 14-day delay; a lower-risk change keeps the normal pass mark
 - S-RT-20 (RT-12) Member rage-quits during the delay → exit uses the old notice and fee even after the change takes effect
 - S-RT-21 (RT-13) Migration proposal targeting an address not created by a registered factory → can't be created

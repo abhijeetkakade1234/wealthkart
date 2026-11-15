@@ -79,7 +79,7 @@ A mobile-first PWA on Avalanche where:
   3. **AVAX is sent to their wallet automatically**: Chainlink Automation (live on Avalanche C-Chain) calls `processExits()` daily. As a fallback, anyone can call it (permissionless), and the member can trigger it themselves.
   4. Blocked while they have an open loan or are guaranteeing one. If free cash (cash − reserve) is short, the payout is queued and paid first from incoming contributions and repayments, still automatically.
   - No exit fee by default; a circle can vote one in.
-- **Dormant members** (e.g. lost wallet): after N missed months (circle setting, default 3), the circle can vote to mark the member dormant. Dues and late fees stop accruing; their shares stay theirs and redeemable only by that wallet. No one can seize them.
+- **Dormant members** (e.g. lost wallet): after N missed months (circle setting, default 3), the circle can vote to mark the member dormant. Dues and late fees stop accruing; their shares stay theirs and redeemable only by that wallet. No one can seize them. Details (ADR 0032): any up-to-date member proposes once the contract sees N missed installments; more than 50% yes of votes cast; the member can't vote on it and dormant members leave every quorum; paying (covers the current month) or `wake()` brings them back, and missed months aren't owed.
 
 ### D3. Wallet: Core Wallet login, wallet address = identity
 
@@ -313,6 +313,8 @@ wealthkart/
 | `LoanBook`      | Request → member vote → auto-disburse from vault; interest late fees and default handling (D4b); interest on start-of-period balance; repayment allocation (chosen → oldest); tenors at 1% / 1.5% / 2% (rule 15); minimum one month's interest (rule 17); medical loans (rule 18); cap as % of corpus (rule 13); reserve (rule 12); guarantor stakes can be frozen on default (rules 11, 16) |
 | `Governance`    | Proposals: change parameters, admit a member, approve a loan, waive a fee, mark dormant, nominee claim, dissolve, migrate to a new version. Snapshot voting, quorum, majority, 7-day delay with rage-quit (rule 2, ADRs 0019–0021)                                                                                                                                                           |
 | `Reputation`    | Soulbound per-user record across all groups: periods paid on time, loans repaid, defaults                                                                                                                                                                                                                                                                                                    |
+
+**As built (ADRs 0020, 0031):** `CircleFactory` deploys each `CircleVault` with `new` (no clones, no proxies). The roles above become **linked external libraries** inside the vault: `Membership` exists (invites, joins, dormant votes, names); `LoanBook`, `Governance` and exits arrive in Phase 2 the same way, each with its own storage struct in the vault.
 
 **Security bar** (custody of real funds):
 

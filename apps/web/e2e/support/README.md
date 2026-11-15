@@ -8,5 +8,5 @@
 - `env.ts`: ports, chain id, anvil dev accounts, factory address
 - `fake-core.ts`: test wallet that announces itself as Core and forwards to anvil
 - `chain.ts`: JSON-RPC, time travel, snapshots
-- `global-setup.ts`: installs Multicall3, deploys the factory
+- `global-setup.ts`: installs Multicall3, deploys the Membership library and the factory linked to it (ADR 0031)
 - `multicall3.ts`: Multicall3 runtime bytecode

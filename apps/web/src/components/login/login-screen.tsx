@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowLeftRight, Download, KeyRound, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowLeftRight,
+  Download,
+  KeyRound,
+  RefreshCw,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -28,14 +36,15 @@ export function LoginScreen() {
   }, [w.status, next, router]);
 
   return (
-    <div className="grid min-h-dvh bg-background lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    // One screen, never scrolls: everything is sized to the viewport height (dvh).
+    <div className="grid h-dvh overflow-hidden bg-background lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       {/* Left: the paper table. Hidden on phones, where the action comes first. */}
-      <aside className="relative hidden overflow-hidden bg-[#f3eedf] lg:flex lg:flex-col lg:justify-between lg:px-16 lg:py-14">
+      <aside className="relative hidden min-h-0 overflow-hidden bg-[#f3eedf] lg:flex lg:flex-col lg:justify-between lg:gap-6 lg:px-16 lg:py-12">
         <Link href="/" className="font-display text-[24px] tracking-tight text-foreground">
           WealthKart
         </Link>
-        <div className="mx-auto w-full max-w-[520px]">
-          <PaperCircle className="h-auto w-full" />
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <PaperCircle className="h-full max-h-[520px] w-auto max-w-full" />
         </div>
         <div className="login-rise max-w-[440px]" style={{ animationDelay: "500ms" }}>
           <p className="font-display text-[40px] leading-[1.08] tracking-tight text-foreground">
@@ -51,12 +60,15 @@ export function LoginScreen() {
       </aside>
 
       {/* Right: one job, sign in. */}
-      <main className="flex flex-col px-6 py-10 sm:px-12 lg:px-20 lg:py-14">
-        <Link href="/" className="font-display text-[22px] tracking-tight lg:hidden">
-          WealthKart
-        </Link>
+      <main className="flex min-h-0 flex-col overflow-hidden px-6 py-6 sm:px-12 sm:py-8 lg:px-20 lg:py-12">
+        <div className="flex items-center justify-between">
+          <BackButton />
+          <Link href="/" className="font-display text-[22px] tracking-tight lg:hidden">
+            WealthKart
+          </Link>
+        </div>
 
-        <div className="login-rise mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-16">
+        <div className="login-rise mx-auto flex min-h-0 w-full max-w-[400px] flex-1 flex-col justify-center py-6">
           <span className="inline-flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand">
             <KeyRound className="size-5" strokeWidth={1.5} aria-hidden />
           </span>
@@ -68,11 +80,12 @@ export function LoginScreen() {
             ask for your name, email or phone number.
           </p>
 
-          <div className="mt-12 grid gap-4">
+          <div className="mt-10 grid gap-4 [@media(max-height:640px)]:mt-6">
             <SignInAction status={w.status} />
           </div>
 
-          <ul className="mt-12 grid gap-4 border-t border-line-soft pt-8 text-[13.5px] text-muted-foreground">
+          {/* On very short screens the notes give way, so the page still never scrolls. */}
+          <ul className="mt-10 grid gap-4 border-t border-line-soft pt-8 text-[13.5px] text-muted-foreground [@media(max-height:720px)]:hidden">
             <li className="flex gap-3">
               <ShieldCheck
                 className="mt-0.5 size-4 shrink-0 text-brand"
@@ -103,6 +116,36 @@ export function LoginScreen() {
         </footer>
       </main>
     </div>
+  );
+}
+
+/**
+ * Back to wherever the person came from on this site; straight to the home page if they
+ * opened the sign-in link directly or came from somewhere else.
+ */
+function BackButton() {
+  const router = useRouter();
+  function back() {
+    const fromHere =
+      typeof document !== "undefined" &&
+      document.referrer.startsWith(window.location.origin) &&
+      window.history.length > 1;
+    if (fromHere) router.back();
+    else router.push("/");
+  }
+  return (
+    <button
+      type="button"
+      onClick={back}
+      className="group -ml-2 inline-flex items-center gap-2 rounded-full px-2 py-1.5 text-[14px] text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <ArrowLeft
+        className="size-4 transition-transform group-hover:-translate-x-0.5"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+      Back
+    </button>
   );
 }
 

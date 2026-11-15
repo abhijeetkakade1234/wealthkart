@@ -29,4 +29,29 @@ test.describe("sign in", () => {
     await page.getByRole("button", { name: "Connect Core" }).click();
     await page.waitForURL(/\/app\/$/);
   });
+
+  test("S-E2E-13 the sign-in page fits one screen without scrolling, and Back goes home", async ({
+    page,
+  }) => {
+    // A small phone, a laptop and a desktop.
+    for (const size of [
+      { width: 375, height: 667 },
+      { width: 1366, height: 768 },
+      { width: 1920, height: 1080 },
+    ]) {
+      await page.setViewportSize(size);
+      await page.goto("/login/");
+      await expect(page.getByRole("heading", { name: "Sign in with Core" })).toBeVisible();
+      const { scroll, view } = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollHeight,
+        view: window.innerHeight,
+      }));
+      expect(scroll, `${size.width}x${size.height}`).toBeLessThanOrEqual(view);
+      await expect(page.getByRole("link", { name: "Get Core wallet" })).toBeInViewport();
+    }
+
+    // Opened directly, Back has no page on this site to return to, so it goes home.
+    await page.getByRole("button", { name: "Back" }).click();
+    await page.waitForURL(/\/$/);
+  });
 });

@@ -17,5 +17,7 @@ export const ACCOUNTS = {
   dave: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
 } as const;
 
-/** CREATE address of the deployer's first contract (nonce 0). */
-export const FACTORY_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+/** The deployer's first contract (nonce 0): the linked Membership library (ADR 0031). */
+export const MEMBERSHIP_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+/** The deployer's second contract (nonce 1): CircleFactory, linked to MEMBERSHIP_ADDRESS. */
+export const FACTORY_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";

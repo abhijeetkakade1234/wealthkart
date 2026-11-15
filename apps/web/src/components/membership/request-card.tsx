@@ -1,7 +1,7 @@
 "use client";
 
 import { circleVaultAbi, shortAddress } from "@wealthkart/sdk";
-import { BadgeCheck, Gavel, ThumbsDown, ThumbsUp } from "lucide-react";
+import { BadgeCheck, Gavel, PauseCircle, ThumbsDown, ThumbsUp } from "lucide-react";
 import type { Address } from "viem";
 import { useWriteContract } from "wagmi";
 
@@ -15,7 +15,10 @@ import { useTx } from "@/lib/use-tx";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
-/** One open join request: who, who vouched, the tally, the deadline, and what you can do. */
+/**
+ * One open request: who, who vouched (join) or proposed (dormant), the tally, the deadline,
+ * and what you can do.
+ */
 export function RequestCard({
   circle,
   request: r,
@@ -32,7 +35,9 @@ export function RequestCard({
   const { writeContractAsync } = useWriteContract();
   const voteTx = useTx();
   const finalizeTx = useTx();
-  const tally = { eligible: r.eligible, yes: r.yes, no: r.no, quorumPct };
+  const dormant = r.kind === "dormant";
+  const tally = { eligible: r.eligible, yes: r.yes, no: r.no, quorumPct, kind: r.kind };
+  const who = (dormant ? r.accountName : r.displayName) || shortAddress(r.account);
   const ended = chainNow > r.deadline;
   const outcome = voteOutcome(tally, ended);
   const voting = voteTx.status === "confirm" || voteTx.status === "sending";
@@ -44,7 +49,7 @@ export function RequestCard({
       writeContractAsync({
         abi: circleVaultAbi,
         address: circle,
-        functionName: "voteOnJoin",
+        functionName: "vote",
         args: [r.id, support],
       }),
     );
@@ -59,18 +64,21 @@ export function RequestCard({
       writeContractAsync({
         abi: circleVaultAbi,
         address: circle,
-        functionName: "finalizeJoin",
+        functionName: "finalize",
         args: [r.id],
       }),
     );
     if (receipt) {
-      const name = r.displayName || "The request";
       notify.success(
-        outcome === "approved"
-          ? `${name} is now a member.`
-          : outcome === "expired"
-            ? `Settled: voting time ran out before enough members voted for ${name}.`
-            : `Settled: the members didn't vote ${name} in.`,
+        outcome === "expired"
+          ? `Settled: voting time ran out before enough members voted on ${who}.`
+          : dormant
+            ? outcome === "approved"
+              ? `${who} is now dormant. Their payments are paused and their savings stay theirs.`
+              : `Settled: the circle chose not to pause ${who}'s payments.`
+            : outcome === "approved"
+              ? `${who} is now a member.`
+              : `Settled: the members didn't vote ${who} in.`,
       );
       onChanged();
     }
@@ -80,22 +88,27 @@ export function RequestCard({
     ? "You've voted on this one."
     : ended
       ? "Voting time is over."
-      : "You can't vote on this one: only members who joined before the request, and are at most one month behind, can vote.";
+      : dormant
+        ? "You can't vote on this one: the member it's about can't vote, and only members who were in the circle before it started, and are at most one month behind, can."
+        : "You can't vote on this one: only members who joined before the request, and are at most one month behind, can vote.";
 
   return (
     <article
       className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8"
-      aria-label={`Join request from ${r.displayName || shortAddress(r.applicant)}`}
+      aria-label={dormant ? `Dormant vote about ${who}` : `Join request from ${who}`}
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Avatar address={r.applicant} size={44} />
+          <Avatar address={r.account} size={44} />
           <div className="grid gap-1">
+            <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
+              {dormant ? "Pause payments" : "Wants to join"}
+            </span>
             <h3 className="font-display text-[26px] leading-none tracking-tight">
-              {r.displayName || "No name"}
+              {(dormant ? r.accountName : r.displayName) || "No name"}
             </h3>
             <span className="font-mono text-[12px] text-muted-foreground">
-              {shortAddress(r.applicant)}
+              {shortAddress(r.account)}
             </span>
           </div>
         </div>
@@ -103,7 +116,23 @@ export function RequestCard({
       </header>
 
       <div className="grid gap-2 text-[13.5px]">
-        {hasInviter ? (
+        {dormant ? (
+          <p className="flex flex-wrap items-start gap-2 text-muted-foreground">
+            <PauseCircle
+              className="mt-0.5 size-4 shrink-0 text-brand"
+              strokeWidth={1.5}
+              aria-hidden
+            />
+            <span>
+              <strong className="font-semibold text-foreground">
+                {r.inviterName || shortAddress(r.invitedBy)}
+              </strong>{" "}
+              asks the circle to mark them dormant, maybe because they lost their wallet. Their
+              monthly payments and late fees stop. Their savings stay theirs, and paying again
+              brings them back.
+            </span>
+          </p>
+        ) : hasInviter ? (
           <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
             Says they were invited by{" "}
             <strong className="font-semibold text-foreground">
@@ -130,7 +159,7 @@ export function RequestCard({
 
       {outcome !== "open" ? (
         <div className="grid gap-3">
-          <p className="text-[13.5px] text-muted-foreground">{settledLine(outcome)}</p>
+          <p className="text-[13.5px] text-muted-foreground">{settledLine(outcome, r.kind)}</p>
           <div>
             <Button
               icon={Gavel}
