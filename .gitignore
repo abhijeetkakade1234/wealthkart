@@ -34,3 +34,9 @@ Thumbs.db
 
 # local git worktrees made by tools
 .claude/worktrees/
+.lighthouseci/
+
+# playwright
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/

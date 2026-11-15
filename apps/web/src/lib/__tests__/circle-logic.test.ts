@@ -87,3 +87,18 @@ describe("circle switcher (S-WEB-25)", () => {
     expect(switchHref("/app/new/", FRIEND)).toBe(`/app/circle/?id=${FRIEND}`);
   });
 });
+
+describe("create-circle settings added for membership (ADR 0028, 0030)", () => {
+  it("S-RT-33 rejects a late fee above half the installment", () => {
+    const v = validate({ ...DEFAULTS, name: "x", installment: "0.5", fee1: "0.26" }, SELF);
+    expect(v.errors.fee1).toMatch(/half/);
+    expect(validate({ ...DEFAULTS, name: "x", fee1: "0.25" }, SELF).errors.fee1).toBeUndefined();
+  });
+
+  it("S-RT-03 sends friends as invitees, never the creator", () => {
+    const v = validate({ ...DEFAULTS, name: "x", founders: `${FRIEND}\n${SELF}` }, SELF);
+    expect(v.invitees).toEqual([FRIEND]);
+    expect(v.cfg?.quorumPct).toBe(50);
+    expect(v.cfg?.votingWindow).toBe(172_800);
+  });
+});

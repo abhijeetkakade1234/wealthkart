@@ -46,7 +46,7 @@ function NewCircle() {
         abi: circleFactoryAbi,
         address: factory,
         functionName: "createCircle",
-        args: [cfg, v.founders],
+        args: [cfg, v.invitees],
       }),
     );
     if (!receipt) return;
@@ -166,7 +166,7 @@ function NewCircle() {
         <Section title="Members">
           <Field
             label="Friends' wallet addresses"
-            hint="One per line. You're added automatically. Only add people who agreed to join."
+            hint="One per line. You join straight away; each friend gets an invite and becomes a member once they accept it in the app."
             error={err("founders")}
           >
             <textarea

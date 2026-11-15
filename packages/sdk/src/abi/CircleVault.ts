@@ -43,10 +43,30 @@ export const circleVaultAbi = [
             type: "uint8",
             internalType: "uint8",
           },
+          {
+            name: "votingWindow",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "quorumPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "maxMembers",
+            type: "uint16",
+            internalType: "uint16",
+          },
         ],
       },
       {
-        name: "founders",
+        name: "creator_",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "invitees",
         type: "address[]",
         internalType: "address[]",
       },
@@ -63,6 +83,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "ADMISSION_PASS_PCT",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "AVALANCHE_MAINNET_CHAIN_ID",
     inputs: [],
     outputs: [
@@ -70,6 +103,19 @@ export const circleVaultAbi = [
         name: "",
         type: "uint256",
         internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "FOUNDER_INVITE_TTL",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
       },
     ],
     stateMutability: "view",
@@ -115,6 +161,117 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "MAX_OPEN_REQUESTS",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MAX_PERIODS_BEHIND_TO_VOTE",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MAX_QUORUM_PCT",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MAX_VOTING_WINDOW",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint32",
+        internalType: "uint32",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MIN_MAX_MEMBERS",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint16",
+        internalType: "uint16",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MIN_QUORUM_PCT",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MIN_VOTING_WINDOW",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint32",
+        internalType: "uint32",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "NAME_COOLDOWN",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "acceptInvite",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "amountDue",
     inputs: [
       {
@@ -149,10 +306,54 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "canVote",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "cancelJoinRequest",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "contribute",
     inputs: [],
     outputs: [],
     stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "creator",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -170,6 +371,13 @@ export const circleVaultAbi = [
   {
     type: "function",
     name: "declareHoliday",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "declineInvite",
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
@@ -222,6 +430,133 @@ export const circleVaultAbi = [
         name: "",
         type: "uint128",
         internalType: "uint128",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "finalizeJoin",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "founderInviteExpiry",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "expiresAt",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getRequest",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct CircleVault.JoinRequest",
+        components: [
+          {
+            name: "applicant",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "invitedBy",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum CircleVault.JoinStatus",
+          },
+          {
+            name: "inviterConfirmed",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "displayName",
+            type: "string",
+            internalType: "string",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "hasVoted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
       },
     ],
     stateMutability: "view",
@@ -321,7 +656,76 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "isNameAvailable",
+    inputs: [
+      {
+        name: "displayName",
+        type: "string",
+        internalType: "string",
+      },
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "maxMembers",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint16",
+        internalType: "uint16",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "memberByName",
+    inputs: [
+      {
+        name: "displayName",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "memberCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "memberListLength",
     inputs: [],
     outputs: [
       {
@@ -357,6 +761,16 @@ export const circleVaultAbi = [
             name: "nextPeriod",
             type: "uint32",
             internalType: "uint32",
+          },
+          {
+            name: "seq",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "nameChangedAt",
+            type: "uint64",
+            internalType: "uint64",
           },
           {
             name: "shares",
@@ -407,6 +821,25 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "nameOf",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "navPerShareE18",
     inputs: [],
     outputs: [
@@ -420,6 +853,169 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "openRequestCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "openRequestOf",
+    inputs: [
+      {
+        name: "applicant",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "openRequestsPage",
+    inputs: [
+      {
+        name: "offset",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "ids",
+        type: "uint256[]",
+        internalType: "uint256[]",
+      },
+      {
+        name: "page",
+        type: "tuple[]",
+        internalType: "struct CircleVault.JoinRequest[]",
+        components: [
+          {
+            name: "applicant",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "invitedBy",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum CircleVault.JoinStatus",
+          },
+          {
+            name: "inviterConfirmed",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "displayName",
+            type: "string",
+            internalType: "string",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "quorumPct",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "requestCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "requestToJoin",
+    inputs: [
+      {
+        name: "displayName",
+        type: "string",
+        internalType: "string",
+      },
+      {
+        name: "invitedBy",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "secondFeeDay",
     inputs: [],
     outputs: [
@@ -430,6 +1026,19 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "setDisplayName",
+    inputs: [
+      {
+        name: "displayName",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -490,6 +1099,37 @@ export const circleVaultAbi = [
     stateMutability: "view",
   },
   {
+    type: "function",
+    name: "voteOnJoin",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "support",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "votingWindow",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint32",
+        internalType: "uint32",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
     type: "event",
     name: "Contributed",
     inputs: [
@@ -528,6 +1168,76 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
+    name: "DisplayNameSet",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "displayName",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "DisplayNameUnavailable",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "requested",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "FounderInviteDeclined",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "FounderInvited",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "expiresAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "HolidayDeclared",
     inputs: [
       {
@@ -541,6 +1251,93 @@ export const circleVaultAbi = [
         type: "uint256",
         indexed: true,
         internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "JoinRequestClosed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "status",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum CircleVault.JoinStatus",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "JoinRequested",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "applicant",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "invitedBy",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "displayName",
+        type: "string",
+        indexed: false,
+        internalType: "string",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "JoinVoted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "support",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
       },
     ],
     anonymous: false,
@@ -582,6 +1379,39 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "AlreadyMember",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "AlreadyVoted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "CircleFull",
+    inputs: [
+      {
+        name: "maxMembers",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
     name: "DirectTransferNotAllowed",
     inputs: [],
   },
@@ -593,6 +1423,17 @@ export const circleVaultAbi = [
         name: "member",
         type: "address",
         internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "FounderInviteExpired",
+    inputs: [
+      {
+        name: "expiredAt",
+        type: "uint256",
+        internalType: "uint256",
       },
     ],
   },
@@ -642,6 +1483,11 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "InvalidDisplayName",
+    inputs: [],
+  },
+  {
+    type: "error",
     name: "InvalidDueDay",
     inputs: [
       {
@@ -653,7 +1499,44 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "InvitedByNotAMember",
+    inputs: [
+      {
+        name: "invitedBy",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
     name: "MainnetNotSupported",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NameChangeTooSoon",
+    inputs: [
+      {
+        name: "allowedAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NameTaken",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoFounderInvite",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoOpenRequest",
     inputs: [],
   },
   {
@@ -662,6 +1545,33 @@ export const circleVaultAbi = [
     inputs: [
       {
         name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotDecidedYet",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotEligibleToVote",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
         type: "address",
         internalType: "address",
       },
@@ -685,6 +1595,28 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "RequestAlreadyOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "RequestNotOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
     name: "SafeCastOverflowedUintDowncast",
     inputs: [
       {
@@ -705,6 +1637,22 @@ export const circleVaultAbi = [
     inputs: [
       {
         name: "count",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TooManyOpenRequests",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "VotingClosed",
+    inputs: [
+      {
+        name: "requestId",
         type: "uint256",
         internalType: "uint256",
       },

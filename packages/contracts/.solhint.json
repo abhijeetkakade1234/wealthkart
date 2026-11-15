@@ -16,6 +16,7 @@
     "no-global-import": "error",
     "named-parameters-mapping": "off",
     "max-line-length": ["warn", 120],
-    "immutable-vars-naming": "off"
+    "immutable-vars-naming": "off",
+    "max-states-count": ["warn", 25]
   }
 }

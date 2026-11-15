@@ -35,6 +35,7 @@ library PeriodMath {
     /// @dev Days since 1970-01-01 for a civil date. Valid for years >= 1970.
     ///      Integer division before multiplication is intentional (calendar arithmetic);
     ///      correctness is covered by the civil round-trip fuzz test.
+    // slither-disable-start divide-before-multiply
     function daysFromCivil(uint256 y, uint256 m, uint256 d) internal pure returns (uint256) {
         // unchecked is safe: callers pass y >= 1970 (periods come from block timestamps), m in 1..12,
         // d in 1..31, so `y - 1` cannot underflow and every product stays far below 2^256.
@@ -66,5 +67,6 @@ library PeriodMath {
             if (m <= 2) y += 1;
         }
     }
+    // slither-disable-end divide-before-multiply
 }
 // forge-lint: disable-end(divide-before-multiply)

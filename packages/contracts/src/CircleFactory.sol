@@ -2,27 +2,45 @@
 pragma solidity 0.8.28;
 
 import {CircleVault} from "./CircleVault.sol";
+import {ICircleRegistry} from "./interfaces/ICircleRegistry.sol";
 
 /// @title CircleFactory
 /// @notice Deploys immutable CircleVaults and keeps a registry of each member's circles.
 /// @dev Deploys with `new` (no proxies, ADR 0020). One wallet can belong to many circles (ADR 0005).
-///      The registry loop runs once per founder at creation and is bounded by MAX_FOUNDERS.
-contract CircleFactory {
+///      The creator is registered at creation. Invited founders and admitted members are
+///      registered by their circle (`registerMember`) only once they actually join (ADR 0028),
+///      so nobody sees a circle they never agreed to be in (RT-02).
+contract CircleFactory is ICircleRegistry {
     address[] internal _circles;
     mapping(address member => address[]) internal _circlesOf;
+    /// @notice True for every vault this factory deployed.
+    mapping(address circle => bool) public isCircle;
 
-    event CircleCreated(address indexed circle, address indexed creator, uint256 founders);
+    event CircleCreated(address indexed circle, address indexed creator, uint256 invitedFounders);
+    event MemberRegistered(address indexed circle, address indexed member);
 
-    function createCircle(CircleVault.Config calldata cfg, address[] calldata founders)
+    error NotACircle(address caller);
+
+    /// @notice Create a circle. You become its first member; `invitees` must each accept.
+    /// @param cfg Circle settings (bounds enforced by the vault).
+    /// @param invitees Other founders to invite (may be empty, max 199).
+    function createCircle(CircleVault.Config calldata cfg, address[] calldata invitees)
         external
         returns (address circle)
     {
-        circle = address(new CircleVault(cfg, founders));
+        circle = address(new CircleVault(cfg, msg.sender, invitees));
+        isCircle[circle] = true;
         _circles.push(circle);
-        for (uint256 i = 0; i < founders.length; ++i) {
-            _circlesOf[founders[i]].push(circle);
-        }
-        emit CircleCreated(circle, msg.sender, founders.length);
+        _circlesOf[msg.sender].push(circle);
+        emit CircleCreated(circle, msg.sender, invitees.length);
+        emit MemberRegistered(circle, msg.sender);
+    }
+
+    /// @notice Called by a circle this factory deployed when it admits a new member.
+    function registerMember(address member) external override {
+        if (!isCircle[msg.sender]) revert NotACircle(msg.sender);
+        _circlesOf[member].push(msg.sender);
+        emit MemberRegistered(msg.sender, member);
     }
 
     function circleCount() external view returns (uint256) {
@@ -34,7 +52,7 @@ contract CircleFactory {
         return _slice(_circles, offset, limit);
     }
 
-    /// @notice Paginated list of circles a wallet was registered in at creation.
+    /// @notice Paginated list of circles a wallet belongs to (founded or admitted).
     function circlesOf(address member, uint256 offset, uint256 limit)
         external
         view

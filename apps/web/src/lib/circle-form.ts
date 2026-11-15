@@ -3,6 +3,11 @@ import { type Address, isAddress, parseEther } from "viem";
 /** Create-circle form: shape, defaults (G1 values) and validation mirroring the contract (ADR 0022). */
 
 export const MAX_FOUNDERS = 200;
+/** Join-vote settings until the wizard exposes them (ADR 0022 defaults). */
+export const DEFAULT_VOTING_WINDOW_SECONDS = 48 * 60 * 60;
+export const DEFAULT_QUORUM_PCT = 50;
+/** 0 = no member cap. */
+export const DEFAULT_MAX_MEMBERS = 0;
 
 export interface FormState {
   name: string;
@@ -49,6 +54,13 @@ export function validate(f: FormState, self: Address | undefined) {
   if (fee1 === null) errors.fee1 = "Enter a fee, or 0 for none.";
   const fee2 = parseAvax(f.fee2);
   if (fee2 === null) errors.fee2 = "Enter a fee, or 0 for none.";
+  // ADR 0030: each late fee is at most half the installment.
+  if (installment !== null && installment > 0n) {
+    if (fee1 !== null && fee1 * 2n > installment)
+      errors.fee1 = "Keep each late fee at or below half the monthly amount.";
+    if (fee2 !== null && fee2 * 2n > installment)
+      errors.fee2 = "Keep each late fee at or below half the monthly amount.";
+  }
 
   const dueDay = Number(f.dueDay);
   if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 28)
@@ -76,6 +88,8 @@ export function validate(f: FormState, self: Address | undefined) {
     errors,
     ok: Object.keys(errors).length === 0,
     founders: [...set.values()],
+    /** Everyone except the creator: they get an invite and must accept (ADR 0028). */
+    invitees: [...set.values()].filter((a) => a.toLowerCase() !== self?.toLowerCase()),
     cfg:
       installment !== null && fee1 !== null && fee2 !== null
         ? {
@@ -86,6 +100,9 @@ export function validate(f: FormState, self: Address | undefined) {
             dueDay,
             secondFeeDay,
             holidaysPerYear: holidays,
+            votingWindow: DEFAULT_VOTING_WINDOW_SECONDS,
+            quorumPct: DEFAULT_QUORUM_PCT,
+            maxMembers: DEFAULT_MAX_MEMBERS,
           }
         : null,
   };

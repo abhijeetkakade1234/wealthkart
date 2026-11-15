@@ -8,7 +8,8 @@ import { Suspense } from "react";
 
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
-import { Button, SpotPlaceholder, StateView } from "@/components/kit";
+import { CircleCover, EmptyArt } from "@/components/art";
+import { Button, StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { CIRCLES_PAGE_SIZE, type CircleSummary, useMyCircles } from "@/lib/circle";
@@ -80,7 +81,7 @@ function Portfolio() {
         {header}
         <StateView
           state="empty"
-          illustration={<SpotPlaceholder />}
+          illustration={<EmptyArt variant="circles" />}
           message={
             q.factory
               ? "You're not in any circle yet. Start one with friends, or open an invite link a friend sent you."
@@ -120,8 +121,11 @@ function CircleCard({ circle: c }: { circle: CircleSummary }) {
   return (
     <Link
       href={`/app/circle/?id=${c.address}`}
-      className="group grid content-between gap-8 rounded-[14px] border border-border bg-card p-[26px] transition-colors hover:border-foreground/30"
+      className="group grid content-between gap-8 overflow-hidden rounded-[14px] border border-border bg-card p-[26px] transition-colors hover:border-foreground/30"
     >
+      <div className="-mx-[26px] -mt-[26px] h-[104px] border-b border-line-soft">
+        <CircleCover address={c.address} name={c.name} />
+      </div>
       <div className="grid gap-1.5">
         <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
           {String(c.memberCount)} members

@@ -24,6 +24,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Avatar,
+  CircleCover,
+  EMPTY_VARIANTS,
+  EmptyArt,
+  PIECES,
+  PIECE_NAMES,
+} from "@/components/art";
 import { Skeleton } from "@/components/ui/skeleton";
 import { messages } from "@/lib/messages";
 import { safeCall } from "@/lib/safe-call";
@@ -55,6 +63,7 @@ export function KitShowcase() {
         <BoundarySection />
         <FeedbackSection />
         <LayersSection />
+        <ArtSection />
       </div>
     </main>
   );
@@ -540,6 +549,69 @@ function LayersSection() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </Card>
+    </Section>
+  );
+}
+
+/** Deterministic sample addresses for the art showcase. */
+const SAMPLE_ADDRESSES = [
+  "0x3f5ce5fbfe3e9af3971dd833d26ba9b5c936f0be",
+  "0x91a2c4e7f00b9d8a6e3c1b2f4d5e6a7b8c9d7be0",
+  "0x07b1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7c44d",
+  "0xa1c2e3f4b5d6c7e8f9a0b1c2d3e4f5a6b7c8d9e0",
+  "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f",
+  "0xc0ffee254729296a45a3885639ac7e10f9d54979",
+  "0x1234567890abcdef1234567890abcdef12345678",
+  "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+] as const;
+
+function ArtSection() {
+  return (
+    <Section
+      title="Cut-paper art"
+      note="Placeholder pieces until the illustrator delivers (ADR 0025). Art palette only; used on the hero, circle covers, empty states and avatars. Never in tables of numbers, forms or money decisions."
+    >
+      <Card label="pieces (100 × 100 box each)">
+        <div className="grid grid-cols-4 gap-6 sm:grid-cols-8">
+          {PIECE_NAMES.map((name) => {
+            const Piece = PIECES[name];
+            return (
+              <figure key={name} className="space-y-2 text-center">
+                <svg viewBox="0 0 100 100" className="mx-auto size-16" aria-hidden>
+                  <Piece />
+                </svg>
+                <figcaption className="font-mono text-[12px] text-muted-foreground">
+                  {name}
+                </figcaption>
+              </figure>
+            );
+          })}
+        </div>
+      </Card>
+      <Card label="Avatar: picked from the wallet address, same on every device">
+        <div className="flex flex-wrap gap-5">
+          {SAMPLE_ADDRESSES.map((a) => (
+            <Avatar key={a} address={a} size={40} label={`Avatar for ${a.slice(0, 6)}`} />
+          ))}
+        </div>
+      </Card>
+      <div className="grid gap-5 sm:grid-cols-2">
+        {SAMPLE_ADDRESSES.slice(0, 4).map((a) => (
+          <div key={a} className="h-[120px] overflow-hidden rounded-[14px] border border-border">
+            <CircleCover address={a} name={`Circle ${a.slice(0, 6)}`} />
+          </div>
+        ))}
+      </div>
+      <Card label="EmptyArt variants">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+          {EMPTY_VARIANTS.map((v) => (
+            <figure key={v} className="space-y-2">
+              <EmptyArt variant={v} />
+              <figcaption className="font-mono text-[12px] text-muted-foreground">{v}</figcaption>
+            </figure>
+          ))}
+        </div>
       </Card>
     </Section>
   );

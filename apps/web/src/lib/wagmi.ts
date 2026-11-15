@@ -12,7 +12,10 @@ export const wagmiConfig = createConfig({
   chains: SUPPORTED_CHAINS,
   multiInjectedProviderDiscovery: true,
   connectors: [injected({ shimDisconnect: true })],
-  transports: Object.fromEntries(SUPPORTED_CHAINS.map((c) => [c.id, http()])),
+  // NEXT_PUBLIC_RPC_URL points reads at a custom node (E2E uses a local anvil chain).
+  transports: Object.fromEntries(
+    SUPPORTED_CHAINS.map((c) => [c.id, http(process.env.NEXT_PUBLIC_RPC_URL || undefined)]),
+  ),
   ssr: false,
 });
 
