@@ -63,6 +63,11 @@ export const circleVaultAbi = [
             type: "uint8",
             internalType: "uint8",
           },
+          {
+            name: "minPaidToVote",
+            type: "uint8",
+            internalType: "uint8",
+          },
         ],
       },
       {
@@ -179,7 +184,33 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "MAX_MIN_PAID_TO_VOTE",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "MAX_NAME_BYTES",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MAX_OPEN_PER_MEMBER",
     inputs: [],
     outputs: [
       {
@@ -300,6 +331,25 @@ export const circleVaultAbi = [
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "admittedVia",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -825,6 +875,11 @@ export const circleVaultAbi = [
             internalType: "bool",
           },
           {
+            name: "voter",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
             name: "nextPeriod",
             type: "uint32",
             internalType: "uint32",
@@ -838,6 +893,11 @@ export const circleVaultAbi = [
             name: "nameChangedAt",
             type: "uint64",
             internalType: "uint64",
+          },
+          {
+            name: "paid",
+            type: "uint16",
+            internalType: "uint16",
           },
           {
             name: "shares",
@@ -869,6 +929,19 @@ export const circleVaultAbi = [
         name: "page",
         type: "address[]",
         internalType: "address[]",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "minPaidToVote",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
       },
     ],
     stateMutability: "view",
@@ -956,6 +1029,25 @@ export const circleVaultAbi = [
     inputs: [
       {
         name: "applicant",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "openRequestsBy",
+    inputs: [
+      {
+        name: "member",
         type: "address",
         internalType: "address",
       },
@@ -1247,6 +1339,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "voterCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "votingWindow",
     inputs: [],
     outputs: [
@@ -1317,6 +1422,19 @@ export const circleVaultAbi = [
         type: "uint256",
         indexed: true,
         internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "VotingRightsGranted",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
       },
     ],
     anonymous: false,
@@ -1471,6 +1589,11 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "ZeroAddressMember",
+    inputs: [],
   },
   {
     type: "event",
@@ -1931,6 +2054,17 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "TooManyOpenRequestsBy",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
     name: "VotingClosed",
     inputs: [
       {
@@ -1939,10 +2073,5 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
-  },
-  {
-    type: "error",
-    name: "ZeroAddressMember",
-    inputs: [],
   },
 ] as const;

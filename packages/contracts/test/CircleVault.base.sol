@@ -24,6 +24,8 @@ abstract contract CircleVaultBase is Test {
     uint256 internal constant DEC_20_2026_END = 1_797_811_199; // 2026-12-20T23:59:59Z
     uint256 internal constant DEC_2026 = 24_323;
     uint256 internal constant FUNDS = 1000 * AVAX;
+    string internal constant NAME_RULE =
+        "name must be 3..48 letters, digits, spaces or _-'& (no links)";
 
     CircleFactory internal factory;
     CircleVault internal vault;
@@ -48,7 +50,8 @@ abstract contract CircleVaultBase is Test {
             votingWindow: 48 hours,
             quorumPct: 50,
             maxMembers: 0,
-            dormantAfter: 3
+            dormantAfter: 3,
+            minPaidToVote: 2
         });
     }
 

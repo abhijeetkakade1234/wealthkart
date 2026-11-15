@@ -215,12 +215,10 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         vm.expectRevert(abi.encodeWithSelector(Membership.RequestAlreadyOpen.selector, id));
         vault.requestToJoin("Comet_K2", honest);
 
-        // Fill the remaining 19 slots.
+        // Fill the remaining 19 slots (no inviter named, so the per-member cap doesn't apply).
         for (uint256 i = 0; i < 19; ++i) {
-            _request(
-                makeAddr(string.concat("spam", vm.toString(i))),
-                string.concat("spam", vm.toString(i))
-            );
+            vm.prank(makeAddr(string.concat("spam", vm.toString(i))));
+            vault.requestToJoin(string.concat("spam", vm.toString(i)), address(0));
         }
         assertEq(vault.openRequestCount(), 20);
         vm.prank(attacker);
@@ -421,6 +419,11 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         uint256 id = _request(wallet, "SafeWallet");
         _votes(id, 0, 12, true);
         assertTrue(vault.isMember(wallet));
+        // Admitted by vote: it votes once it has paid two installments (ADR 0033).
+        _execPay(wallet);
+        _warpTo(2027, 1, 5, 12, 0, 0);
+        _execPay(wallet);
+        assertTrue(vault.memberOf(wallet).voter);
         uint256 id2 = _request(outsider, "Comet_K");
         vm.prank(honest);
         (bool ok,) = wallet.call(
@@ -431,7 +434,22 @@ contract CircleVaultMembershipTest is CircleVaultBase {
                 abi.encodeCall(CircleVault.vote, (id2, true))
             )
         );
-        assertTrue(ok); // joined before request 2, so it can vote through its wallet
+        assertTrue(ok); // a voter before request 2, so it can vote through its wallet
         assertEq(vault.getRequest(id2).yes, 1);
+    }
+
+    /// @dev Pays the oldest installment from a RejectingWallet through its `exec`.
+    function _execPay(address wallet) internal {
+        (, uint256 amount,,) = vault.amountDue(wallet);
+        vm.prank(honest);
+        (bool ok,) = wallet.call(
+            abi.encodeWithSignature(
+                "exec(address,uint256,bytes)",
+                address(vault),
+                amount,
+                abi.encodeCall(CircleVault.contribute, ())
+            )
+        );
+        require(ok, "wallet payment failed");
     }
 }
