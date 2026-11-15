@@ -248,6 +248,14 @@ Known gaps:
 - S-WEB-34 Every empty-state variant shows a fixed, decorative spot illustration
 - S-WEB-35 Invite link carries only the circle address and the inviter; any look-alike contract that isn't in the factory registry shows a "don't pay this" warning on every circle page (RT-01)
 - S-WEB-40 Sign-in return path guard: only `/app/` paths are accepted as `next`; absolute URLs, `//host`, backslashes and encoded tricks fall back to `/app/`
+- S-WEB-41 Proposal kinds and fee-waiver reasons map from the contract enums to plain titles and labels; reasons are a fixed list, never free text
+- S-WEB-42 Proposal outcome mirrors `Governance._outcome` and `Rules.passes` (50% means more than half; early decision; expired without quorum); tally and settled lines in plain words
+- S-WEB-43 Exit phase (none, notice, ready, waiting for cash) mirrors `Exits.claimExit`; notice reads "no notice" during a rage-quit window
+- S-WEB-44 A fee waiver can only name started, unpaid months of that member, newest first
+- S-WEB-45 Basis points show as percentages without trailing zeros and typed percentages convert back exactly (two decimals at most)
+- S-WEB-46 Every rule setting reads in plain words; a rule diff lists only what changed, before and after
+- S-WEB-47 `rulesProblem` refuses every out-of-bounds setting `Rules.validate` refuses, on the right field, and accepts the edges
+- S-WEB-48 The rule-change form round-trips the current rules and reads viem's struct output
 
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
@@ -269,6 +277,11 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-15 Two members pay (one on time, one late); the circle page shows the summary line, the three charts (each readable as a table) and the heatmap with one on-time and one late square; the home page shows portfolio totals and each circle's share
 - S-E2E-14 A circle name that looks like a web address is refused by the create form before anything is sent; a member voted in shows "can vote after 2 more payments"; a join card shows the inviter's open invites
 - S-E2E-13 The sign-in page fits one screen with no scrolling on a small phone, a laptop and a desktop; Back returns to the previous page on this site, or home
+- S-E2E-18 A member asks to leave from the circle page: the dialog shows the 30-day notice and today's value; the card shows the notice with UTC and local time and "Stay in the circle"; after the chain passes the notice, "Collect my share" pays out, vault value goes down and the member count drops
+- S-E2E-19 The guardian pauses from a confirm dialog that explains the 14-day and 90-day limits; the banner shows on the overview and Pay pages for everyone, only the guardian gets Unpause, another member can still ask to leave, and Unpause ends it
+- S-E2E-20 A rule change (notice 30 to 14 days) is proposed from the dialog, an out-of-bounds fee is refused before sending, a second member's yes passes it, the banner shows "New rules apply on" and members see they can leave with no notice; after the wait "Apply new rules" works and the rules card shows 14 days
+- S-E2E-21 A late member's fee waiver is proposed by another member (member, month, reason), the subject can't vote on it, a yes passes it, and she pays the late month with no late fee
+- S-E2E-22 Closing the circle is proposed and passes at 66% with a calm warning on the card; a member claims her share from the circle page, vault value goes down and she leaves
 
 ## Gates in CI
 
