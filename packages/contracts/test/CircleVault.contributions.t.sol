@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {Membership} from "../src/modules/Membership.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {CircleVaultBase} from "./CircleVault.base.sol";
 
@@ -96,7 +97,7 @@ contract CircleVaultContributionsTest is CircleVaultBase {
 
     function test_nonMemberCannotPay() public {
         vm.prank(outsider);
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.NotAMember.selector, outsider));
+        vm.expectRevert(abi.encodeWithSelector(Membership.NotAMember.selector, outsider));
         vault.contribute{value: AVAX / 2}();
     }
 
@@ -313,11 +314,11 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         address[] memory dup = new address[](2);
         dup[0] = members[0];
         dup[1] = members[0];
-        vm.expectRevert(abi.encodeWithSelector(CircleVault.DuplicateMember.selector, members[0]));
+        vm.expectRevert(abi.encodeWithSelector(Membership.DuplicateMember.selector, members[0]));
         factory.createCircle(_cfg(), dup);
 
         address[] memory zero = new address[](1);
-        vm.expectRevert(CircleVault.ZeroAddressMember.selector);
+        vm.expectRevert(Membership.ZeroAddressMember.selector);
         factory.createCircle(_cfg(), zero);
     }
 

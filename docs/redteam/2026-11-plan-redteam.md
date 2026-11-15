@@ -147,6 +147,7 @@ These belong to the join flow, member votes and display names being built now. T
 - **Impact:** a minority bloc gains effective control.
 - **Fix:** a dormancy proposal is valid only if the contract itself sees **N missed periods** (`currentPeriod - nextPeriod >= missedMonthsBeforeDormant`). Any payment or vote from the wallet clears dormancy automatically. A dormant member's next payment covers only the current period (dues stopped while dormant, per ADR 0010).
 - **Needs:** test S-RT-18. A small plan note in D2.
+- **Status (2026-11-15):** fixed by ADR 0032 (contract checks N missed installments; paying clears dormancy and covers only the current month). Deliberate change: a vote does not clear dormancy, because counting a vote from someone outside the quorum snapshot would break it; `wake()` is the one-tap alternative.
 
 ### RT-12. Rule changes and rage-quit without reminders
 

@@ -17,6 +17,8 @@ export interface FormState {
   fee2: string;
   secondFeeDay: string;
   holidays: string;
+  /** Missed installments before a dormant vote is allowed (ADR 0032). */
+  dormantAfter: string;
   founders: string;
 }
 
@@ -28,6 +30,7 @@ export const DEFAULTS: FormState = {
   fee2: "0.01",
   secondFeeDay: "20",
   holidays: "3",
+  dormantAfter: "3",
   founders: "",
 };
 
@@ -71,6 +74,9 @@ export function validate(f: FormState, self: Address | undefined) {
   const holidays = Number(f.holidays);
   if (!Number.isInteger(holidays) || holidays < 0 || holidays > 12)
     errors.holidays = "Pick 0 to 12.";
+  const dormantAfter = Number(f.dormantAfter);
+  if (!Number.isInteger(dormantAfter) || dormantAfter < 1 || dormantAfter > 12)
+    errors.dormantAfter = "Pick 1 to 12.";
 
   const lines = f.founders
     .split(/[\s,]+/)
@@ -103,6 +109,7 @@ export function validate(f: FormState, self: Address | undefined) {
             votingWindow: DEFAULT_VOTING_WINDOW_SECONDS,
             quorumPct: DEFAULT_QUORUM_PCT,
             maxMembers: DEFAULT_MAX_MEMBERS,
+            dormantAfter,
           }
         : null,
   };

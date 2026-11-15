@@ -5,11 +5,11 @@
 
 **Key files**
 
-| File                  | Purpose                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------- |
-| `src/abi/*.ts`        | Generated ABIs (`as const` for viem typing). Do not edit by hand                       |
-| `scripts/gen-abi.mjs` | Regenerates ABIs: `forge build` in contracts, then `pnpm --filter @wealthkart/sdk gen` |
-| `src/chains.ts`       | Supported chains, `DEPLOYMENTS` per chain id, explorer URLs                            |
-| `src/format.ts`       | `formatAvax` (rounds down, never overstates), `shortAddress`, `periodLabel`            |
+| File                  | Purpose                                                                                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/abi/*.ts`        | Generated ABIs (`as const` for viem typing). Do not edit by hand                                                                                                              |
+| `scripts/gen-abi.mjs` | Regenerates ABIs: `forge build` in contracts, then `pnpm --filter @wealthkart/sdk gen`. Merges linked libraries' events and errors into the vault ABI (ADR 0031, `MERGE` map) |
+| `src/chains.ts`       | Supported chains, `DEPLOYMENTS` per chain id, explorer URLs                                                                                                                   |
+| `src/format.ts`       | `formatAvax` (rounds down, never overstates), `shortAddress`, `periodLabel`                                                                                                   |
 
 **Depends on / used by:** viem, `packages/contracts` (build output) / `apps/web`.

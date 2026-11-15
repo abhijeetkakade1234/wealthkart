@@ -47,7 +47,8 @@ abstract contract CircleVaultBase is Test {
             holidaysPerYear: 3,
             votingWindow: 48 hours,
             quorumPct: 50,
-            maxMembers: 0
+            maxMembers: 0,
+            dormantAfter: 3
         });
     }
 
@@ -154,7 +155,7 @@ abstract contract CircleVaultBase is Test {
         for (uint256 i = from; i < to; ++i) {
             if (!vault.canVote(id, members[i])) continue;
             vm.prank(members[i]);
-            vault.voteOnJoin(id, support);
+            vault.vote(id, support);
         }
     }
 

@@ -5,6 +5,7 @@ import { type Address, isAddress } from "viem";
 import { useBlock, useReadContract, useReadContracts } from "wagmi";
 
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { type RequestKind, requestKind } from "@/lib/membership";
 
 export const CIRCLES_PAGE_SIZE = 12;
 export const MEMBERS_PAGE_SIZE = 10;
@@ -136,6 +137,8 @@ export function useCircle(id: Address | null) {
       { ...vault, functionName: "founderInviteExpiry", args: [address!] },
       { ...vault, functionName: "openRequestOf", args: [address!] },
       { ...vault, functionName: "openRequestCount" },
+      { ...vault, functionName: "dormantAfter" },
+      { ...vault, functionName: "dormantCount" },
     ] as const,
     query: { enabled },
   });
@@ -146,7 +149,13 @@ export function useCircle(id: Address | null) {
     r?.[i]?.status === "success" ? (r[i].result as T) : undefined;
   const due = ok<readonly [bigint, bigint, bigint, boolean]>(12);
 
-  const me = ok<{ active: boolean; nextPeriod: number; seq: number; nameChangedAt: bigint }>(18);
+  const me = ok<{
+    active: boolean;
+    dormant: boolean;
+    nextPeriod: number;
+    seq: number;
+    nameChangedAt: bigint;
+  }>(18);
 
   return {
     ...q,
@@ -183,6 +192,10 @@ export function useCircle(id: Address | null) {
           founderInviteExpiry: Number(ok<bigint>(19) ?? 0n),
           openRequestId: ok<bigint>(20) ?? 0n,
           openRequestCount: Number(ok<bigint>(21) ?? 0n),
+          dormantAfter: ok<number>(22) ?? 3,
+          dormantCount: Number(ok<bigint>(23) ?? 0n),
+          /** The circle voted this wallet dormant (ADR 0032); paying or waking ends it. */
+          iAmDormant: me?.dormant ?? false,
         }
       : undefined,
   };
@@ -211,7 +224,8 @@ export function useIsCircle(id: Address | null) {
 
 /**
  * One page of the circle's member list (everyone who ever joined, so page with
- * `memberListLength`, not `memberCount`), with names and share balances.
+ * `memberListLength`, not `memberCount`), with names, share balances, missed months and
+ * any open dormant vote about them.
  */
 export function useCircleMembers(id: Address | null, page: number) {
   const list = useReadContract({
@@ -228,22 +242,25 @@ export function useCircleMembers(id: Address | null, page: number) {
       { abi: circleVaultAbi, address: id!, functionName: "memberOf", args: [m] } as const,
       { abi: circleVaultAbi, address: id!, functionName: "stakeOf", args: [m] } as const,
       { abi: circleVaultAbi, address: id!, functionName: "nameOf", args: [m] } as const,
+      { abi: circleVaultAbi, address: id!, functionName: "periodsOverdue", args: [m] } as const,
+      { abi: circleVaultAbi, address: id!, functionName: "openDormantOf", args: [m] } as const,
     ]),
     query: { enabled: Boolean(id) && members.length > 0, placeholderData: (prev) => prev },
   });
   return {
     ...list,
     rows: members.map((m, i) => {
-      const mo = info.data?.[i * 3];
-      const st = info.data?.[i * 3 + 1];
-      const nm = info.data?.[i * 3 + 2];
+      const [mo, st, nm, od, dv] = info.data?.slice(i * 5, i * 5 + 5) ?? [];
       const member =
         mo?.status === "success"
-          ? (mo.result as { active: boolean; nextPeriod: number; shares: bigint })
+          ? (mo.result as { active: boolean; dormant: boolean; nextPeriod: number; shares: bigint })
           : null;
       return {
         address: m,
         active: member?.active ?? true,
+        dormant: member?.dormant ?? false,
+        overdue: od?.status === "success" ? Number(od.result as bigint) : 0,
+        openDormantId: dv?.status === "success" ? (dv.result as bigint) : 0n,
         name: nm?.status === "success" ? (nm.result as string) : "",
         nextPeriod: member ? BigInt(member.nextPeriod) : null,
         shares: member?.shares ?? 0n,
@@ -251,18 +268,28 @@ export function useCircleMembers(id: Address | null, page: number) {
       };
     }),
     isPending: list.isPending || (members.length > 0 && info.isPending),
+    refetch: () => {
+      void list.refetch();
+      void info.refetch();
+    },
   };
 }
 
 export const REQUESTS_PAGE_SIZE = 10;
 
+/** An open request: someone asking to join, or a member the circle may mark dormant. */
 export interface JoinRequestView {
   id: bigint;
-  applicant: Address;
+  kind: RequestKind;
+  /** Join: the applicant. Dormant: the member it is about. */
+  account: Address;
   deadline: number;
   eligible: number;
+  /** Join: who vouched. Dormant: who proposed it. */
   invitedBy: Address;
   inviterName: string;
+  /** Dormant: the member's display name (join requests carry `displayName`). */
+  accountName: string;
   inviterConfirmed: boolean;
   yes: number;
   no: number;
@@ -273,7 +300,8 @@ export interface JoinRequestView {
 }
 
 type RawRequest = {
-  applicant: Address;
+  kind: number;
+  account: Address;
   deadline: bigint;
   eligible: number;
   invitedBy: Address;
@@ -287,10 +315,11 @@ type RawRequest = {
 function toView(
   id: bigint,
   r: RawRequest,
-): Omit<JoinRequestView, "inviterName" | "canVote" | "hasVoted"> {
+): Omit<JoinRequestView, "inviterName" | "accountName" | "canVote" | "hasVoted"> {
   return {
     id,
-    applicant: r.applicant,
+    kind: requestKind(Number(r.kind)),
+    account: r.account,
     deadline: Number(r.deadline),
     eligible: Number(r.eligible),
     invitedBy: r.invitedBy,
@@ -304,7 +333,7 @@ function toView(
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
-/** One page of open join requests, with whether the connected wallet can still vote on each. */
+/** One page of open requests (join and dormant), with whether the connected wallet can vote on each. */
 export function useJoinRequests(id: Address | null, page: number) {
   const { address } = useCoreWallet();
   const enabled = Boolean(id && address);
@@ -335,17 +364,24 @@ export function useJoinRequests(id: Address | null, page: number) {
         functionName: "nameOf",
         args: [raws[i]?.invitedBy ?? ZERO],
       } as const,
+      {
+        ...vault,
+        address: id!,
+        functionName: "nameOf",
+        args: [raws[i]?.account ?? ZERO],
+      } as const,
     ]),
     query: { enabled: enabled && ids.length > 0, placeholderData: (prev) => prev },
   });
 
   const requests: JoinRequestView[] = ids.map((rid, i) => {
-    const e = extra.data?.slice(i * 3, i * 3 + 3) ?? [];
+    const e = extra.data?.slice(i * 4, i * 4 + 4) ?? [];
     return {
       ...toView(rid, raws[i]!),
       canVote: e[0]?.status === "success" ? (e[0].result as boolean) : false,
       hasVoted: e[1]?.status === "success" ? (e[1].result as boolean) : false,
       inviterName: e[2]?.status === "success" ? (e[2].result as string) : "",
+      accountName: e[3]?.status === "success" ? (e[3].result as string) : "",
     };
   });
 

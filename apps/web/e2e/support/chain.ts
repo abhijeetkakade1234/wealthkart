@@ -35,3 +35,30 @@ export async function warpToNextMonth(day = 2) {
   await rpc("evm_setNextBlockTimestamp", [target]);
   await rpc("evm_mine");
 }
+
+/**
+ * Sends a transaction from an anvil dev account (unlocked) and waits for its receipt.
+ * For test setup only (accepting invites, paying), so the UI under test stays the focus.
+ */
+export async function send(tx: { from: string; to: string; data: string; value?: bigint }) {
+  const hash = await rpc<string>("eth_sendTransaction", [
+    {
+      from: tx.from,
+      to: tx.to,
+      data: tx.data,
+      value: tx.value === undefined ? undefined : `0x${tx.value.toString(16)}`,
+    },
+  ]);
+  for (let i = 0; i < 50; i++) {
+    const receipt = await rpc<{ status: string } | null>("eth_getTransactionReceipt", [hash]);
+    if (receipt) {
+      if (receipt.status !== "0x1") throw new Error(`Setup transaction reverted: ${hash}`);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`Setup transaction was never mined: ${hash}`);
+}
+
+/** Read-only contract call (eth_call) at the latest block. */
+export const call = (to: string, data: string) => rpc<string>("eth_call", [{ to, data }, "latest"]);

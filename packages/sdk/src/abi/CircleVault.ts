@@ -58,6 +58,11 @@ export const circleVaultAbi = [
             type: "uint16",
             internalType: "uint16",
           },
+          {
+            name: "dormantAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
         ],
       },
       {
@@ -109,6 +114,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "DORMANT_PASS_PCT",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "FOUNDER_INVITE_TTL",
     inputs: [],
     outputs: [
@@ -116,6 +134,19 @@ export const circleVaultAbi = [
         name: "",
         type: "uint64",
         internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MAX_DORMANT_AFTER",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
       },
     ],
     stateMutability: "view",
@@ -384,6 +415,32 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "dormantAfter",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint8",
+        internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "dormantCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "dueDay",
     inputs: [],
     outputs: [
@@ -436,7 +493,7 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
-    name: "finalizeJoin",
+    name: "finalize",
     inputs: [
       {
         name: "id",
@@ -459,7 +516,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "expiresAt",
+        name: "",
         type: "uint64",
         internalType: "uint64",
       },
@@ -480,10 +537,15 @@ export const circleVaultAbi = [
       {
         name: "",
         type: "tuple",
-        internalType: "struct CircleVault.JoinRequest",
+        internalType: "struct Membership.Request",
         components: [
           {
-            name: "applicant",
+            name: "kind",
+            type: "uint8",
+            internalType: "enum Membership.Kind",
+          },
+          {
+            name: "account",
             type: "address",
             internalType: "address",
           },
@@ -520,7 +582,7 @@ export const circleVaultAbi = [
           {
             name: "status",
             type: "uint8",
-            internalType: "enum CircleVault.JoinStatus",
+            internalType: "enum Membership.Status",
           },
           {
             name: "inviterConfirmed",
@@ -542,7 +604,7 @@ export const circleVaultAbi = [
     name: "hasVoted",
     inputs: [
       {
-        name: "requestId",
+        name: "id",
         type: "uint256",
         internalType: "uint256",
       },
@@ -750,10 +812,15 @@ export const circleVaultAbi = [
       {
         name: "",
         type: "tuple",
-        internalType: "struct CircleVault.Member",
+        internalType: "struct Membership.Member",
         components: [
           {
             name: "active",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "dormant",
             type: "bool",
             internalType: "bool",
           },
@@ -853,6 +920,25 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "openDormantOf",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "openRequestCount",
     inputs: [],
     outputs: [
@@ -876,7 +962,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "requestId",
+        name: "",
         type: "uint256",
         internalType: "uint256",
       },
@@ -907,10 +993,15 @@ export const circleVaultAbi = [
       {
         name: "page",
         type: "tuple[]",
-        internalType: "struct CircleVault.JoinRequest[]",
+        internalType: "struct Membership.Request[]",
         components: [
           {
-            name: "applicant",
+            name: "kind",
+            type: "uint8",
+            internalType: "enum Membership.Kind",
+          },
+          {
+            name: "account",
             type: "address",
             internalType: "address",
           },
@@ -947,7 +1038,7 @@ export const circleVaultAbi = [
           {
             name: "status",
             type: "uint8",
-            internalType: "enum CircleVault.JoinStatus",
+            internalType: "enum Membership.Status",
           },
           {
             name: "inviterConfirmed",
@@ -963,6 +1054,44 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "periodsOverdue",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposeDormant",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -1100,7 +1229,7 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
-    name: "voteOnJoin",
+    name: "vote",
     inputs: [
       {
         name: "id",
@@ -1128,6 +1257,13 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "wake",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
     type: "event",
@@ -1165,6 +1301,176 @@ export const circleVaultAbi = [
       },
     ],
     anonymous: false,
+  },
+  {
+    type: "event",
+    name: "HolidayDeclared",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "AdvancePaymentNotAllowed",
+    inputs: [
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "currentPeriod",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "DirectTransferNotAllowed",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "HolidayAlreadyDeclared",
+    inputs: [
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "HolidayLimitReached",
+    inputs: [
+      {
+        name: "year",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "HolidayTooLate",
+    inputs: [
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "InvalidConfig",
+    inputs: [
+      {
+        name: "reason",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "InvalidDueDay",
+    inputs: [
+      {
+        name: "dueDay",
+        type: "uint8",
+        internalType: "uint8",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "MainnetNotSupported",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "MemberIsDormant",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotAMember",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "PeriodAlreadyPaid",
+    inputs: [
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ReentrancyGuardReentrantCall",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "SafeCastOverflowedUintDowncast",
+    inputs: [
+      {
+        name: "bits",
+        type: "uint8",
+        internalType: "uint8",
+      },
+      {
+        name: "value",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "WrongAmount",
+    inputs: [
+      {
+        name: "expected",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "sent",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
   },
   {
     type: "event",
@@ -1206,6 +1512,49 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
+    name: "DormantProposed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "proposer",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "periodsOverdue",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "FounderInviteDeclined",
     inputs: [
       {
@@ -1232,44 +1581,6 @@ export const circleVaultAbi = [
         type: "uint256",
         indexed: false,
         internalType: "uint256",
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: "event",
-    name: "HolidayDeclared",
-    inputs: [
-      {
-        name: "member",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "period",
-        type: "uint256",
-        indexed: true,
-        internalType: "uint256",
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: "event",
-    name: "JoinRequestClosed",
-    inputs: [
-      {
-        name: "requestId",
-        type: "uint256",
-        indexed: true,
-        internalType: "uint256",
-      },
-      {
-        name: "status",
-        type: "uint8",
-        indexed: false,
-        internalType: "enum CircleVault.JoinStatus",
       },
     ],
     anonymous: false,
@@ -1319,7 +1630,89 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
-    name: "JoinVoted",
+    name: "MemberAdded",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "joinPeriod",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MemberDormant",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MemberWoke",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "nextPeriod",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RequestClosed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "kind",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Membership.Kind",
+      },
+      {
+        name: "status",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Membership.Status",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "Voted",
     inputs: [
       {
         name: "requestId",
@@ -1341,41 +1734,6 @@ export const circleVaultAbi = [
       },
     ],
     anonymous: false,
-  },
-  {
-    type: "event",
-    name: "MemberAdded",
-    inputs: [
-      {
-        name: "member",
-        type: "address",
-        indexed: true,
-        internalType: "address",
-      },
-      {
-        name: "joinPeriod",
-        type: "uint256",
-        indexed: true,
-        internalType: "uint256",
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: "error",
-    name: "AdvancePaymentNotAllowed",
-    inputs: [
-      {
-        name: "period",
-        type: "uint256",
-        internalType: "uint256",
-      },
-      {
-        name: "currentPeriod",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
   },
   {
     type: "error",
@@ -1412,11 +1770,6 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
-    name: "DirectTransferNotAllowed",
-    inputs: [],
-  },
-  {
-    type: "error",
     name: "DuplicateMember",
     inputs: [
       {
@@ -1439,63 +1792,8 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
-    name: "HolidayAlreadyDeclared",
-    inputs: [
-      {
-        name: "period",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-  },
-  {
-    type: "error",
-    name: "HolidayLimitReached",
-    inputs: [
-      {
-        name: "year",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-  },
-  {
-    type: "error",
-    name: "HolidayTooLate",
-    inputs: [
-      {
-        name: "period",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-  },
-  {
-    type: "error",
-    name: "InvalidConfig",
-    inputs: [
-      {
-        name: "reason",
-        type: "string",
-        internalType: "string",
-      },
-    ],
-  },
-  {
-    type: "error",
     name: "InvalidDisplayName",
     inputs: [],
-  },
-  {
-    type: "error",
-    name: "InvalidDueDay",
-    inputs: [
-      {
-        name: "dueDay",
-        type: "uint8",
-        internalType: "uint8",
-      },
-    ],
   },
   {
     type: "error",
@@ -1507,11 +1805,6 @@ export const circleVaultAbi = [
         internalType: "address",
       },
     ],
-  },
-  {
-    type: "error",
-    name: "MainnetNotSupported",
-    inputs: [],
   },
   {
     type: "error",
@@ -1541,14 +1834,8 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
-    name: "NotAMember",
-    inputs: [
-      {
-        name: "account",
-        type: "address",
-        internalType: "address",
-      },
-    ],
+    name: "NoOtherVoters",
+    inputs: [],
   },
   {
     type: "error",
@@ -1558,6 +1845,17 @@ export const circleVaultAbi = [
         name: "requestId",
         type: "uint256",
         internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotDormant",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
       },
     ],
   },
@@ -1579,19 +1877,19 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
-    name: "PeriodAlreadyPaid",
+    name: "NotOverdueEnough",
     inputs: [
       {
-        name: "period",
+        name: "periodsOverdue",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "required",
         type: "uint256",
         internalType: "uint256",
       },
     ],
-  },
-  {
-    type: "error",
-    name: "ReentrancyGuardReentrantCall",
-    inputs: [],
   },
   {
     type: "error",
@@ -1610,22 +1908,6 @@ export const circleVaultAbi = [
     inputs: [
       {
         name: "requestId",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-  },
-  {
-    type: "error",
-    name: "SafeCastOverflowedUintDowncast",
-    inputs: [
-      {
-        name: "bits",
-        type: "uint8",
-        internalType: "uint8",
-      },
-      {
-        name: "value",
         type: "uint256",
         internalType: "uint256",
       },
@@ -1653,22 +1935,6 @@ export const circleVaultAbi = [
     inputs: [
       {
         name: "requestId",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-  },
-  {
-    type: "error",
-    name: "WrongAmount",
-    inputs: [
-      {
-        name: "expected",
-        type: "uint256",
-        internalType: "uint256",
-      },
-      {
-        name: "sent",
         type: "uint256",
         internalType: "uint256",
       },

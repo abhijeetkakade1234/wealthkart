@@ -104,7 +104,7 @@ test.describe("membership", () => {
     await expect(card.getByText(/Voting time ran out/)).toBeVisible();
     await card.getByRole("button", { name: "Settle the vote" }).click();
     await expect(alice.getByText(/Settled: voting time ran out/)).toBeVisible();
-    await expect(alice.getByText(/No one is waiting to join/)).toBeVisible();
+    await expect(alice.getByText(/Nothing to vote on right now/)).toBeVisible();
 
     await dave.reload();
     await expect(dave.getByTestId("join-result")).toContainText("Voting time ran out");

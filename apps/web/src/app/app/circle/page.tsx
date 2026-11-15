@@ -13,6 +13,7 @@ import { Pagination, usePageParam } from "@/components/app/pagination";
 import { StatCard } from "@/components/app/stat-card";
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { Button, ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
+import { DormantNotice, ProposeDormantButton } from "@/components/membership/dormant";
 import { InviteCard } from "@/components/membership/invite-card";
 import { NameCard } from "@/components/membership/name-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -105,6 +106,14 @@ function CircleOverview() {
         }
       />
 
+      {d.iAmDormant && (
+        <div className="mb-10">
+          <ErrorBoundary preset="widget" name="Dormant">
+            <DormantNotice circle={id} onWoke={() => void c.refetch()} />
+          </ErrorBoundary>
+        </div>
+      )}
+
       <div className="grid gap-5 sm:grid-cols-3">
         <StatCard
           label="Circle value"
@@ -174,8 +183,8 @@ function CircleOverview() {
         <div className="mt-10">
           <InlineAlert tone="info">
             {d.openRequestCount === 1
-              ? "1 person is asking to join. "
-              : `${d.openRequestCount} people are asking to join. `}
+              ? "1 vote is open. "
+              : `${d.openRequestCount} votes are open. `}
             <Link
               href={`/app/circle/votes/?id=${id}`}
               className="font-semibold underline underline-offset-4"
@@ -191,7 +200,13 @@ function CircleOverview() {
           Members
         </h2>
         <ErrorBoundary preset="widget" name="Members">
-          <MembersTable id={id} total={Number(d.memberListLength)} currentPeriod={d.due?.period} />
+          <MembersTable
+            id={id}
+            total={Number(d.memberListLength)}
+            canPropose={d.isMember && !d.iAmDormant}
+            dormantAfter={d.dormantAfter}
+            onChanged={() => void c.refetch()}
+          />
         </ErrorBoundary>
       </section>
     </>
@@ -201,11 +216,16 @@ function CircleOverview() {
 function MembersTable({
   id,
   total,
-  currentPeriod,
+  canPropose,
+  dormantAfter,
+  onChanged,
 }: {
   id: Address;
   total: number;
-  currentPeriod?: bigint;
+  /** The viewer is an active member, so they may start a dormant vote. */
+  canPropose: boolean;
+  dormantAfter: number;
+  onChanged: () => void;
 }) {
   const page = usePageParam();
   const m = useCircleMembers(id, page);
@@ -225,20 +245,28 @@ function MembersTable({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-[14px]">
+          <table className="w-full min-w-[640px] text-[14px]">
             <thead>
               <tr className="border-b border-line-soft text-left text-[12.5px] text-muted-foreground">
                 <th className="px-6 py-3.5 font-medium">Member</th>
                 <th className="px-6 py-3.5 text-right font-medium">Stake (AVAX)</th>
                 <th className="px-6 py-3.5 font-medium">Paid up to</th>
+                <th className="px-6 py-3.5 font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {m.rows.map((r) => {
-                const behind =
-                  currentPeriod !== undefined &&
-                  r.nextPeriod !== null &&
-                  r.nextPeriod < currentPeriod;
+                const behind = r.overdue > 0;
+                const isMe = address?.toLowerCase() === r.address.toLowerCase();
+                const proposable =
+                  canPropose &&
+                  !isMe &&
+                  r.active &&
+                  !r.dormant &&
+                  r.overdue >= dormantAfter &&
+                  r.openDormantId === 0n;
                 return (
                   <tr key={r.address} className="border-b border-line-soft last:border-0">
                     <td className="px-6 py-[18px]">
@@ -251,7 +279,7 @@ function MembersTable({
                           </span>
                         </span>
                       </span>
-                      {address?.toLowerCase() === r.address.toLowerCase() && (
+                      {isMe && (
                         <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-[11.5px] text-brand">
                           You
                         </span>
@@ -261,6 +289,10 @@ function MembersTable({
                     <td className="px-6 py-[18px]">
                       {!r.active ? (
                         <span className="text-[12.5px] text-muted-foreground">Left</span>
+                      ) : r.dormant ? (
+                        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12.5px]">
+                          Dormant, payments paused
+                        </span>
                       ) : r.nextPeriod === null ? (
                         "–"
                       ) : r.shares === 0n ? (
@@ -275,6 +307,31 @@ function MembersTable({
                           {r.nextPeriod === 0n ? "Not started" : periodLabel(r.nextPeriod - 1n)}
                         </span>
                       )}
+                      {behind && !r.dormant && (
+                        <span className="mt-1 block text-[12px] text-muted-foreground">
+                          Missed {r.overdue} {r.overdue === 1 ? "month" : "months"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-[18px] text-right">
+                      {proposable ? (
+                        <ProposeDormantButton
+                          circle={id}
+                          member={r.address}
+                          name={r.name || shortAddress(r.address)}
+                          onProposed={() => {
+                            m.refetch();
+                            onChanged();
+                          }}
+                        />
+                      ) : r.openDormantId > 0n ? (
+                        <Link
+                          href={`/app/circle/votes/?id=${id}`}
+                          className="text-[13px] font-medium text-brand underline-offset-4 hover:underline"
+                        >
+                          Vote open
+                        </Link>
+                      ) : null}
                     </td>
                   </tr>
                 );

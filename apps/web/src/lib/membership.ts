@@ -7,8 +7,23 @@ export const NAME_MIN = 3;
 export const NAME_MAX = 24;
 /** Same as CircleVault.NAME_COOLDOWN. */
 export const NAME_COOLDOWN_SECONDS = 30 * 86_400;
-/** Same as CircleVault.ADMISSION_PASS_PCT. */
+/** Same as CircleVault.ADMISSION_PASS_PCT: join passes with at least 66% yes of votes cast. */
 export const ADMISSION_PASS_PCT = 66;
+/** Same as CircleVault.DORMANT_PASS_PCT: dormant passes with more than 50% yes (ADR 0032). */
+export const DORMANT_PASS_PCT = 50;
+
+/** Membership.Kind order. */
+export type RequestKind = "join" | "dormant";
+export function requestKind(kind: number): RequestKind {
+  return kind === 1 ? "dormant" : "join";
+}
+
+/** Same rule as Membership._passes. */
+function passes(kind: RequestKind, yes: number, total: number): boolean {
+  return kind === "join"
+    ? yes * 100 >= ADMISSION_PASS_PCT * total
+    : yes * 100 > DORMANT_PASS_PCT * total;
+}
 
 const ALLOWED = /^[A-Za-z0-9 _.-]+$/;
 
@@ -50,6 +65,8 @@ export interface Tally {
   no: number;
   /** Circle's quorum, percent of `eligible` who must vote. */
   quorumPct: number;
+  /** Join (66% yes) or dormant (more than 50% yes). Defaults to join. */
+  kind?: RequestKind;
 }
 
 /** Votes needed for quorum (rounded up, like the contract's `cast * 100 >= pct * e`). */
@@ -58,28 +75,33 @@ export function quorumVotes(eligible: number, quorumPct: number): number {
 }
 
 /**
- * Same decision as CircleVault._outcome. "open" means not decided yet. Before the window
+ * Same decision as Membership._outcome. "open" means not decided yet. Before the window
  * ends a request is decided only when the remaining votes can't change the result.
  */
 export function voteOutcome(t: Tally, ended: boolean): VoteOutcome {
   const { eligible: e, yes, no, quorumPct } = t;
+  const kind = t.kind ?? "join";
   const cast = yes + no;
   const quorum = cast * 100 >= quorumPct * e;
-  if (quorum && yes * 100 >= ADMISSION_PASS_PCT * e) return "approved";
-  if ((e - no) * 100 < ADMISSION_PASS_PCT * e) return "rejected";
+  if (quorum && passes(kind, yes, e)) return "approved";
+  if (!passes(kind, e - no, e)) return "rejected";
   if (!ended) return "open";
   if (!quorum) return "expired";
-  return yes * 100 >= ADMISSION_PASS_PCT * cast ? "approved" : "rejected";
+  return passes(kind, yes, cast) ? "approved" : "rejected";
 }
 
 /** One line voters can read: "2 of 3 votes needed · 2 yes, 0 no · needs 66% yes". */
 export function tallyLine(t: Tally): string {
   const need = quorumVotes(t.eligible, t.quorumPct);
   const cast = t.yes + t.no;
-  return `${cast} of ${need} ${need === 1 ? "vote" : "votes"} needed · ${t.yes} yes, ${t.no} no · needs ${ADMISSION_PASS_PCT}% yes`;
+  const mark =
+    (t.kind ?? "join") === "join"
+      ? `needs ${ADMISSION_PASS_PCT}% yes`
+      : `needs more than ${DORMANT_PASS_PCT}% yes`;
+  return `${cast} of ${need} ${need === 1 ? "vote" : "votes"} needed · ${t.yes} yes, ${t.no} no · ${mark}`;
 }
 
-/** JoinStatus enum order in CircleVault. */
+/** Membership.Status enum order. */
 export const JOIN_STATUS = [
   "none",
   "open",
@@ -121,7 +143,19 @@ export function nameChangeAllowedAt(nameChangedAt: number, nowSec: number): numb
 }
 
 /** What voters read once a request's result is certain but not yet recorded. */
-export function settledLine(outcome: VoteOutcome): string {
+export function settledLine(outcome: VoteOutcome, kind: RequestKind = "join"): string {
+  if (kind === "dormant") {
+    switch (outcome) {
+      case "approved":
+        return "Enough members voted yes, so their payments pause. Anyone can record the result.";
+      case "rejected":
+        return "There aren't enough yes votes to pause their payments. Anyone can record the result.";
+      case "expired":
+        return "Voting time ran out before enough members voted. Anyone can record the result.";
+      default:
+        return "";
+    }
+  }
   switch (outcome) {
     case "approved":
       return "Enough members voted yes, so they get in. Anyone can record the result.";
@@ -132,4 +166,19 @@ export function settledLine(outcome: VoteOutcome): string {
     default:
       return "";
   }
+}
+
+/** Member status shown in the members table. */
+export type MemberStatus = "active" | "late" | "dormant" | "invited";
+export function memberStatus(m: { dormant: boolean; overdue: number }): MemberStatus {
+  if (m.dormant) return "dormant";
+  return m.overdue > 0 ? "late" : "active";
+}
+
+/** What the members table says about someone the circle may vote dormant. */
+export function dormantHint(overdue: number, dormantAfter: number): string {
+  if (overdue >= dormantAfter) {
+    return `Missed ${overdue} ${overdue === 1 ? "month" : "months"}. The circle can vote to pause their payments.`;
+  }
+  return "";
 }

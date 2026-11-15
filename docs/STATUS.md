@@ -102,7 +102,8 @@ How to use this file:
 - [x] Sign-in page (`/login`, split layout) with safe return path (S-E2E-08..10)
 - [x] Contribute AVAX; shares minted at NAV
 - [x] Late fees 1 and 2 (lazy), capped at half the installment (ADR 0030)
-- [ ] Dormant-member vote
+- [x] Dormant-member vote (ADR 0032): propose after N missed months, >50% yes, pay or `wake()` to return; members table action, Votes card, dormant notice; forge S-MEM-07/08, S-RT-18, S-TRUST-03, invariants I-12/I-13; E2E S-E2E-11/12
+- [x] Vault split into linked libraries (ADR 0031): `Membership` module; factory 18.4 KB (was 23.99 KB)
 - [ ] Red-team leftovers for membership: vote only after N installments (RT-03), drop behind-on-dues members from the quorum count (RT-07), circle-name phishing check (RT-26), per-inviter request cap
 - [ ] Portfolio across circles; circle overview charts; contribution heatmap
 - [ ] Activity feed + Snowtrace links
@@ -111,7 +112,7 @@ How to use this file:
 
 ## Phase 2: Loans and governance
 
-- [ ] **First:** split CircleVault into modules (factory has ~587 bytes left under the 24 KB limit, ADR 0028)
+- [ ] Each Phase 2 feature lands as its own module under `src/modules/` (ADR 0031); watch `forge build --sizes` (factory has 6.2 KB left)
 - [ ] Re-enable Slither `locked-ether` once exits exist
 - [ ] Red-team Phase 2 items: NAV includes interest owed and marks down overdue loans (RT-08, RT-18), k rises with tenure (RT-15), guarantee locks shares (RT-16), no new loans while exits wait (RT-17), pull-payment fallback for wallets that reject AVAX (RT-20), migration targets from a timelocked registry (RT-13)
 - [ ] Loan request → vote → auto-disbursal

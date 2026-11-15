@@ -160,6 +160,19 @@ function NewCircle() {
                 onChange={set("holidays")}
               />
             </Field>
+            <Field
+              label="Missed months before a dormant vote"
+              hint="If someone loses their wallet, the circle can vote to pause their payments after this many missed months. Their savings stay theirs."
+              error={err("dormantAfter")}
+            >
+              <input
+                id="dormantAfter"
+                className={inputCls}
+                inputMode="numeric"
+                value={form.dormantAfter}
+                onChange={set("dormantAfter")}
+              />
+            </Field>
           </div>
         </Section>
 
