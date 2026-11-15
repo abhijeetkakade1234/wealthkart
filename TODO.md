@@ -16,8 +16,8 @@ Last updated: 2026-11-15
 - [ ] Loan request → member vote → AVAX sent automatically
 - [ ] Interest, partial payments, repayment order, tenors, medical loans, caps, reserve
 - [ ] Interest late fees, default after 2 missed months, frozen shares
-- [ ] Rule changes, fee waivers and other proposals by vote
-- [ ] Exits: notice period → payout (Chainlink Automation, with a manual fallback)
+- [x] Rule changes, fee waivers, dissolve and guardian-off by vote (contracts; screens in progress)
+- [x] Exits: notice period → payout (Chainlink Automation, with a manual fallback) (contracts; screens in progress)
 - [ ] Phase 2 red-team items (RT-08, 13, 15–18, 20)
 
 ## Phase 3 (audit and mainnet beta)
