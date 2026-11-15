@@ -113,7 +113,14 @@ export const messages = {
   circleDissolved: () =>
     "This circle has voted to close. Payments have stopped; members can claim their share.",
   notDissolved: () => "The circle hasn't voted to close, so there's nothing to claim yet.",
-  loansStillOutstanding: () => "Claims open once every loan is repaid or settled.",
+  claimBlockedByLoan: () =>
+    "Your loan, or the loan you guarantee, must be repaid or settled before you can claim.",
+  nothingToClaimYet: () =>
+    "There's no cash to share out right now. Claim again once loans are repaid.",
+  proposalTooSoon: () => "You started a proposal recently. You can start the next one tomorrow.",
+  memberExiting: () =>
+    "A member who has asked to leave can't take a loan or back one. Cancel the exit first.",
+  payoutGasTooLow: () => "This needs a little more gas to send the payment. Please try again.",
   exitAlreadyPending: () => "You've already asked to leave this circle.",
   noExitPending: () => "You haven't asked to leave this circle.",
   exitNotReady: () => "Your notice period isn't over yet. You can collect your share when it ends.",
@@ -121,7 +128,8 @@ export const messages = {
     "Your share is frozen because of an unpaid loan. Pay what's owed to unfreeze it.",
   hasLoanTies: () => "You can't leave while you have a loan, a loan request or a guarantee open.",
   notGuardian: () => "Only the circle's guardian can do this.",
-  guardianOff: () => "The circle voted the guardian off, so pausing isn't possible.",
+  guardianOff: () =>
+    "The guardian role has ended (voted off, or the creator left), so pausing isn't possible.",
   pauseTooSoon: () => "The guardian can pause at most once every 90 days.",
   notPaused: () => "The circle isn't paused.",
   circlePaused: () =>
@@ -295,7 +303,11 @@ export type FriendlyErrorCode =
   | "not-proposer"
   | "circle-dissolved"
   | "not-dissolved"
-  | "loans-still-outstanding"
+  | "claim-blocked-by-loan"
+  | "nothing-to-claim-yet"
+  | "proposal-too-soon"
+  | "member-exiting"
+  | "payout-gas-too-low"
   | "exit-already-pending"
   | "no-exit-pending"
   | "exit-not-ready"
@@ -533,7 +545,11 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NotProposer", "not-proposer", messages.notProposer],
     ["CircleDissolved", "circle-dissolved", messages.circleDissolved],
     ["NotDissolved", "not-dissolved", messages.notDissolved],
-    ["LoansStillOutstanding", "loans-still-outstanding", messages.loansStillOutstanding],
+    ["ClaimBlockedByLoan", "claim-blocked-by-loan", messages.claimBlockedByLoan],
+    ["NothingToClaimYet", "nothing-to-claim-yet", messages.nothingToClaimYet],
+    ["ProposalTooSoon", "proposal-too-soon", messages.proposalTooSoon],
+    ["MemberExiting", "member-exiting", messages.memberExiting],
+    ["PayoutGasTooLow", "payout-gas-too-low", messages.payoutGasTooLow],
     ["ExitAlreadyPending", "exit-already-pending", messages.exitAlreadyPending],
     ["NoExitPending", "no-exit-pending", messages.noExitPending],
     ["ExitNotReady", "exit-not-ready", messages.exitNotReady],
