@@ -6,7 +6,7 @@ Last updated: 2026-11-15
 
 ## Building now (Phase 1)
 
-- [ ] Activity feed with a Snowtrace link for every entry
+- [x] Activity feed with a Snowtrace link for every entry
 - [ ] Indexer, so charts and the feed stay fast for old circles (AvaCloud Data API, The Graph or a Cloudflare Worker cache; needs a choice and probably an account)
 - [ ] Phase 1 milestone: G1 plus 2–3 test circles on Fuji, demo video, Team1 application
 
