@@ -13,12 +13,14 @@ Last updated: 2026-11-15
 
 - [x] Foundation: blueprint factory, shared ledger, rules with on-chain limits
 
-- [ ] Loan request → member vote → AVAX sent automatically
-- [ ] Interest, partial payments, repayment order, tenors, medical loans, caps, reserve
-- [ ] Interest late fees, default after 2 missed months, frozen shares
+- [x] Loan request → member vote → AVAX sent automatically
+- [x] Interest, repayment, tenors, medical loans, caps, reserve (one loan per member for now)
+- [x] Interest late fees, default after 2 missed months, frozen shares, settle by vote
 - [x] Rule changes, fee waivers, dissolve and guardian-off by vote (contracts; screens in progress)
 - [x] Exits: notice period → payout (Chainlink Automation, with a manual fallback) (contracts; screens in progress)
-- [ ] Phase 2 red-team items (RT-08, 13, 15–18, 20)
+- [ ] Fix review findings (exits, governance) and review loans
+- [ ] Phase 2 red-team items still open (RT-08, 13, 15, 16, 18)
+- [ ] Screens: leaving, proposals, rule changes, waivers, dissolution (in progress); loans next
 
 ## Phase 3 (audit and mainnet beta)
 
