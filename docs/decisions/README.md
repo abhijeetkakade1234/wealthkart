@@ -50,3 +50,4 @@
 | [0038](0038-loans.md)                                   | Loans: LoanBook module, lazy O(1) interest, guarantor accept, default and settle by vote         | Accepted                           |
 | [0039](0039-exits-and-guardian.md)                      | Exits: notice, payout at NAV when paid, FIFO queue with `exitsWaiting`, guardian pause limits    | Accepted                           |
 | [0040](0040-governance.md)                              | Governance: rule changes with delay to next period, fee waivers, dissolve, guardian off          | Accepted                           |
+| [0043](0043-loans-screens.md)                           | Loans screens: one hook file, loan list from events, tall segmented money bar, `--chart-6`       | Accepted                           |

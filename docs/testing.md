@@ -267,6 +267,17 @@ Known gaps:
 - S-WEB-46 Every rule setting reads in plain words; a rule diff lists only what changed, before and after
 - S-WEB-47 `rulesProblem` refuses every out-of-bounds setting `Rules.validate` refuses, on the right field, and accepts the edges
 - S-WEB-48 The rule-change form round-trips the current rules and reads viem's struct output
+- S-WEB-49 Loan limits mirror `LoanBook._limit`: the lowest of the fund cap, k x (own + guarantor stake) and lendable cash, plus the medical cap for medical loans; each limit explained in plain words
+- S-WEB-50 Typed AVAX amounts parse to exact wei; zero, negatives, commas, exponents and more than 18 decimals are refused
+- S-WEB-51 The loan preview uses the rules engine: monthly interest per tenor rounded up, first charged month (later for medical), repay-by month, rule-17 minimum (none for medical)
+- S-WEB-52 The tenor timeline marks past, current and next terms and "due in full" after the third; the rate charged per month mirrors `LoanBook._span`
+- S-WEB-53 A loan is defaultable after `defaultAfter` late months or past the third tenor, never twice; the cure text says what to pay
+- S-WEB-54 The repay form refuses what `repay` refuses: overdue interest, closing with interest owed, a part payment that covers the whole loan
+- S-WEB-55 Asking for a loan is blocked with the first reason that applies (closed, paused, frozen, dormant, not a voter, loan or request open, too few members)
+- S-WEB-56 `loanOf` structs and request enums read correctly; small amounts keep four decimals; settled lines say what happens next
+- S-WEB-57 The loans list is built from events (voting, active, repaid, default, settled, didn't go ahead), filters by status, type and borrower name or address, and sorts by date, amount and rate; bad URL values fall back
+- S-WEB-58 "Loans outstanding per member" counts running and defaulted loans, biggest first; "Where the money is" splits value into lent out, reserve (rounded up, capped at cash) and free cash that add up
+- S-WEB-59 Every loan event reads as a plain sentence in the activity feed (request, guarantee, vote, payout, interest, repayment, default, cure, settle, not approved) under the "Loans" filter
 
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
@@ -293,6 +304,10 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-20 A rule change (notice 30 to 14 days) is proposed from the dialog, an out-of-bounds fee is refused before sending, a second member's yes passes it, the banner shows "New rules apply on" and members see they can leave with no notice; after the wait "Apply new rules" works and the rules card shows 14 days
 - S-E2E-21 A late member's fee waiver is proposed by another member (member, month, reason), the subject can't vote on it, a yes passes it, and she pays the late month with no late fee
 - S-E2E-22 Closing the circle is proposed and passes at 66% with a calm warning on the card; a member claims her share from the circle page, vault value goes down and she leaves
+- S-E2E-23 A member opens Loans from the nav and asks for 0.5 AVAX (limits shown, 0.9 refused before sending, monthly interest previewed); two others vote yes on the Votes page in their own browsers; the borrower's balance goes up by exactly 0.5 AVAX, the loan panel and the list show it, and the overview shows both loan charts with a table view
+- S-E2E-24 A month later the borrower pays the exact interest from the loan panel, then repays in full from the Repay dialog; the panel returns to "no loan" and the activity feed's Loans filter lists the interest and the repayment
+- S-E2E-25 A borrower names a guarantor in the dialog (the limit counts both savings); the card shows "not agreed yet"; after two yes votes it waits for the guarantor, who sees the notice explaining what backing means, clicks "Back this loan", and the AVAX reaches the borrower
+- S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
 
 ## Gates in CI
 
