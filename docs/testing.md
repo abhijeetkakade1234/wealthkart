@@ -195,6 +195,15 @@ Known gaps:
 - S-ACT-05 Activity feed: every known event becomes one plain sentence, newest first; join and dormant votes name who they're about; filter by type; search names, addresses and tx hashes
 - S-ACT-04 Event reading: lifetime split into RPC-sized block ranges; very old circles keep the newest chunks and say so; only known events are used
 
+### Indexer (S-IDX)
+
+- S-IDX-01 Bigints survive storage; strings that look like numbers stay strings
+- S-IDX-02 Catches up in chunks; a circle created and used in the same range is complete; API serves its logs with open CORS
+- S-IDX-03 Re-running changes nothing; stops at the chunk limit and resumes next time
+- S-IDX-04 Pages results; rejects bad addresses and paging values; 404 and 405 for other routes and methods
+- S-IDX-05 RPC down: answers from what is already indexed
+- S-IDX-06 App client: revives bigints, pages through, ignores logs past the first page's cursor, ignores an indexer on another chain
+
 ### Frontend / E2E (S-WEB)
 
 - S-WEB-01 Core not installed → install prompt

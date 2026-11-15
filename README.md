@@ -17,7 +17,7 @@ On-chain savings-and-lending circles for friends, on Avalanche. Members contribu
 | [`packages/contracts/`](packages/contracts/README.md) | Solidity + Foundry                                                                  | Working on money logic                          |
 | [`packages/sdk/`](packages/sdk/README.md)             | ABIs, addresses, formatters                                                         | Talking to the contracts from TypeScript        |
 | [`packages/rules/`](packages/rules/README.md)         | TS mirror of contract math                                                          | Previewing or checking numbers                  |
-| `workers/`                                            | Optional Cloudflare Workers (push, indexer)                                         | _(later)_                                       |
+| [`workers/`](workers/README.md)                       | Cloudflare Workers: the event indexer (D1); reminders later                         | Working on the indexer                          |
 | [`WealthKart-Guide.md`](WealthKart-Guide.md)          | Guide for the original G1 group app (Apps Script version)                           | Understanding the rules we're porting           |
 | `WealthKart G1 Monthly Investment.xlsx`               | G1's real 8-year ledger; test fixture source                                        | Building or checking the rule engine            |
 

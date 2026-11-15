@@ -7,8 +7,7 @@ Last updated: 2026-11-15
 ## Building now (Phase 1)
 
 - [x] Activity feed with a Snowtrace link for every entry
-- [ ] Indexer, so charts and the feed stay fast for old circles (AvaCloud Data API, The Graph or a Cloudflare Worker cache; needs a choice and probably an account)
-- [ ] Phase 1 milestone: G1 plus 2–3 test circles on Fuji, demo video, Team1 application
+- [x] Indexer: Cloudflare Worker + D1 (`workers/indexer`)
 
 ## Next phase (Phase 2: loans and governance)
 
@@ -21,6 +20,8 @@ Last updated: 2026-11-15
 
 ## Owner actions (saved for after all phases are coded)
 
+- [ ] Phase 1 milestone: G1 plus 2–3 test circles on Fuji, demo video, Team1 application
+- [ ] Deploy the indexer: create the D1 database, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, run **Deploy indexer**, set `NEXT_PUBLIC_INDEXER_URL`
 - [ ] Merge `abhijeet` → `dev` → `main` (ongoing): https://github.com/abhijeetkakade1234/wealthkart/compare/dev...abhijeet
 - [ ] Fuji deploy: GitHub environment `fuji` with `DEPLOYER_PRIVATE_KEY`, faucet AVAX, run the deploy workflow
 - [ ] Branch protection on `main` and `dev`
