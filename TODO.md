@@ -18,16 +18,17 @@ Last updated: 2026-11-15
 - [x] Interest late fees, default after 2 missed months, frozen shares, settle by vote
 - [x] Rule changes, fee waivers, dissolve and guardian-off by vote (contracts; screens in progress)
 - [x] Exits: notice period → payout (Chainlink Automation, with a manual fallback) (contracts; screens in progress)
-- [ ] Fix review findings (exits, governance) and review loans
+- [x] Independent reviews of loans, exits and governance; all high and medium findings fixed (ADR 0043)
 - [ ] Phase 2 red-team items still open (RT-08, 13, 15, 16, 18)
-- [ ] Screens: leaving, proposals, rule changes, waivers, dissolution (in progress); loans next
+- [x] Screens: leaving, pause, proposals, rule changes, waivers, closing a circle
+- [ ] Loan screens (in progress)
 
 ## Phase 3 (audit and mainnet beta)
 
 - [x] Returns, projections and history CSV
 - [x] Contract monitoring and alerts (indexer)
 - [x] Security policy, bug bounty terms, audit pack
-- [ ] Reputation record (soulbound) and public repayment record page
+- [x] Reputation record (soulbound), wired into payments and loans, and the public repayment record page
 
 ## Owner actions (saved for after all phases are coded)
 

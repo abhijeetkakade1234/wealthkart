@@ -5,15 +5,15 @@ Every task with its tick box is in [docs/STATUS.md](docs/STATUS.md); what each p
 
 Last updated: 2026-11-15
 
-| Phase | What it delivers                                                                   | Status                                                                                               |
-| ----- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 0     | Foundation: monorepo, CI, rules engine matching G1, Core sign-in, design system    | **Done** (owner actions left, see TODO)                                                              |
-| 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                                             |
-| 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **In progress**: all three modules merged (197 contract tests); review fixes and screens in progress |
-| 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **In progress**: returns, projections, CSV, monitoring, audit pack done; reputation next             |
-| 4     | Growth: reminders, circle templates, Hindi and Marathi, onboarding                 | Not started                                                                                          |
-| 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                                |
-| 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                                |
+| Phase | What it delivers                                                                   | Status                                                                                                              |
+| ----- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 0     | Foundation: monorepo, CI, rules engine matching G1, Core sign-in, design system    | **Done** (owner actions left, see TODO)                                                                             |
+| 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                                                            |
+| 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Almost done**: contracts reviewed and fixed (238 tests); loan screens being finished                              |
+| 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: returns, CSV, monitoring, reputation record + page, audit pack; audit and mainnet are owner/external |
+| 4     | Growth: reminders, circle templates, Hindi and Marathi, onboarding                 | Not started                                                                                                         |
+| 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                                               |
+| 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                                               |
 
 **When is it finished?** The full product is done at the end of **Phase 4**: Phase 3 puts it live on mainnet after an external audit, and Phase 4 adds the growth features. Phases 5 and 6 are optional expansion.
 
@@ -28,11 +28,12 @@ Done:
 
 - Loans: request with caps and an optional guarantor, member vote, automatic payout, monthly interest over three tenors, medical loans, late fees, default with frozen shares, settle by vote
 
+- Independent security reviews of all three modules (hardening + red-team skills), and every high and medium finding fixed (ADR 0043): closing a circle needs a majority of all members, risky rule changes need the higher bar, rules switch over on time, the exit queue can't be clogged, one safe payout path, no double-counted guarantees, nothing can get stuck after closing
+- Screens for leaving, the guardian pause, proposals, rule changes, fee waivers and closing a circle, with Playwright tests
+
 Being built now:
 
-- Fixes for the independent security reviews of exits and governance (0 critical; 1 high and 8 medium being fixed: dissolve needs a majority of all members, risky rule changes need the higher bar, rules switch over on time, the exit queue can't be clogged, one safe payout path)
-- Independent security review of loans
-- Screens for leaving, proposals, rule changes, waivers and dissolution, with Playwright tests
+- Loan screens: ask, vote, pay interest, repay, guarantor and default flows, and two new charts
 
 ## Phase 3 so far
 
@@ -41,10 +42,10 @@ Done:
 - Your returns: annual return for you and the circle, 5/10/30-year projection (labelled as an illustration), your history as CSV
 - Contract monitoring: the indexer checks every circle's money adds up and raises alerts
 - Security policy, testnet bug bounty terms and the audit pack (`docs/audit/`)
+- Reputation: a soulbound record per wallet that circles write on every payment, repayment and default, and a public repayment record page
 
 Left:
 
-- Reputation record (soulbound) and a public repayment record page
 - Owner/external: testnet bug bounty run, external audit, mainnet deploy with deposit caps, contract verification
 
 ## Phase 1 (done)
@@ -69,7 +70,7 @@ Left:
 ```
 Phase 0  ##########  done
 Phase 1  ##########  done (milestone deferred)
-Phase 2  ########--  loans, exits, governance merged; fixing review findings; screens in progress
-Phase 3  ####------  returns, projections, CSV export, monitoring, security + audit pack
+Phase 2  #########-  contracts reviewed and fixed; loan screens finishing
+Phase 3  ########--  code done; bug bounty, audit, mainnet deploy left (owner/external)
 Phase 4  ----------
 ```
