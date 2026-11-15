@@ -31,9 +31,18 @@ library Ledger {
         uint64 rageQuitUntil;
         /// @dev The circle voted to dissolve (ADR 0021). Written by Governance.
         bool dissolved;
-        /// @dev The circle voted the guardian off (ADR 0020). Written by Governance.
+        /// @dev The guardian role ended for good (ADR 0020, 0043): the circle voted it off
+        ///      (Governance), or the creator left the circle (Exits, EXIT-11).
         bool guardianDisabled;
     }
+
+    /// @dev Gas a payout transfer may use: enough for a smart wallet, too little to burn the
+    ///      caller's transaction (RT-20). No return data is copied, so a return bomb costs nothing.
+    uint256 internal constant PAYOUT_GAS = 50_000;
+    /// @dev Gas that must be left before a payout is sent: the full `PAYOUT_GAS` after the 63/64
+    ///      rule plus room to queue a refused payout. A caller can't starve the transfer to push a
+    ///      payout into `withdrawable` (EXIT-09).
+    uint256 internal constant PAYOUT_GAS_FLOOR = 90_000;
 
     event PayoutQueued(address indexed to, uint256 amount);
     event Withdrawn(address indexed to, uint256 amount);
@@ -41,19 +50,27 @@ library Ledger {
     error NothingToWithdraw();
     error WithdrawFailed();
     error InsufficientCash(uint256 needed, uint256 available);
+    /// @notice The transaction ran low on gas before a payout; send it again with more gas.
+    error PayoutGasTooLow();
 
     /// @notice AVAX the circle holds right now and may use (assets minus loans out).
     function cash(Store storage self) internal view returns (uint256) {
         return self.totalAssets - self.loansOutstanding;
     }
 
-    /// @dev Effects are done by the caller first; this is the last step. Push first; if the
-    ///      wallet refuses, keep it claimable instead of reverting, so one bad wallet never
+    /// @dev Effects are done by the caller first; this is the last step. The one send path for
+    ///      every payout (loans, exits, dissolution): push with a gas cap and no return data; if
+    ///      the wallet refuses, keep it claimable instead of reverting, so one bad wallet never
     ///      blocks a vote, an exit queue or a loan (RT-20).
     function payOut(Store storage self, address to, uint256 amount) internal {
         if (amount == 0) return;
-        // slither-disable-next-line arbitrary-send-eth,low-level-calls (to is a member/borrower chosen by the rules)
-        (bool ok,) = payable(to).call{value: amount}("");
+        if (gasleft() < PAYOUT_GAS_FLOOR) revert PayoutGasTooLow();
+        bool ok;
+        // `to` is a member or borrower chosen by the rules. Assembly so no return data is copied.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            ok := call(PAYOUT_GAS, to, amount, 0, 0, 0, 0)
+        }
         if (!ok) {
             self.withdrawable[to] += amount;
             self.totalWithdrawable += amount;

@@ -3,7 +3,6 @@ pragma solidity 0.8.28;
 
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {PeriodMath} from "../libraries/PeriodMath.sol";
-import {SharesMath} from "../libraries/SharesMath.sol";
 import {Membership} from "./Membership.sol";
 import {Ledger} from "./Ledger.sol";
 import {Rules} from "./Rules.sol";
@@ -12,7 +11,7 @@ import {Rules} from "./Rules.sol";
 /// @notice Circle-wide decisions taken by member vote (ADR 0040): rule changes that wait out a
 ///         delay while members may leave under the old rules (ADR 0019), late-fee waivers with a
 ///         fixed reason (PLAN.md D4b), dissolving the circle (ADR 0021) and voting the guardian
-///         off (ADR 0020).
+///         off (ADR 0020). Voting bars and automatic rule switch-over: ADR 0043.
 /// @dev External library (ADR 0037): linked into CircleVault and delegatecalled, so every write
 ///      lands in the vault's storage. The only module that writes `Ledger.rageQuitUntil`,
 ///      `Ledger.dissolved` and `Ledger.guardianDisabled`; it also clears `Ledger.pausedUntil` when
@@ -20,7 +19,6 @@ import {Rules} from "./Rules.sol";
 ///      (ADR 0015). All times are UTC (ADR 0014).
 library Governance {
     using Membership for Membership.Store;
-    using Ledger for Ledger.Store;
 
     // ------------------------------------------------------------------ types
 
@@ -29,7 +27,7 @@ library Governance {
         RuleChange,
         /// @dev Waive the late fees on one member's installment for one period.
         FeeWaiver,
-        /// @dev Wind the circle down; members claim their share once no loans are out.
+        /// @dev Wind the circle down; members claim their share of the cash (Exits).
         Dissolve,
         /// @dev Remove the guardian's pause power for good.
         GuardianOff
@@ -40,7 +38,8 @@ library Governance {
         Open,
         Approved,
         Rejected,
-        /// @dev Voting window ended without quorum.
+        /// @dev Voting window ended without quorum, or (member-bar proposals) without enough yes
+        ///      votes from all eligible members.
         Expired,
         /// @dev Withdrawn by the proposer.
         Cancelled
@@ -62,6 +61,9 @@ library Governance {
         Reason reason;
         /// @dev Pass mark copied from the rules when the proposal opened, in percent.
         uint8 passPct;
+        /// @dev Yes votes must reach `passPct` of all eligible members, not just of votes cast:
+        ///      dissolve, guardian off and risky rule changes (ADR 0043, GOV-01/03).
+        bool memberBar;
         uint32 seqSnapshot;
         /// @dev Voters possible at proposal time (minus a waiver's subject): quorum base.
         uint32 eligible;
@@ -89,6 +91,8 @@ library Governance {
         /// @dev A passed rule change waiting for `effectiveAt` (0 = none).
         Rules.Params pendingRules;
         uint64 effectiveAt;
+        /// @dev When each member last opened a proposal (GOV-08 cooldown).
+        mapping(address proposer => uint64) lastProposedAt;
     }
 
     /// @dev The vault's immutable settings this module needs.
@@ -103,6 +107,8 @@ library Governance {
     /// @dev Open proposals allowed at once and per proposer (RT-05).
     uint256 internal constant MAX_OPEN_PROPOSALS = 10;
     uint256 internal constant MAX_OPEN_PROPOSALS_PER_MEMBER = 2;
+    /// @dev Time a member waits between opening two proposals (GOV-08).
+    uint64 internal constant PROPOSAL_COOLDOWN = 1 days;
     uint256 private constant PERCENT = 100;
 
     // ------------------------------------------------------------------ events
@@ -126,7 +132,6 @@ library Governance {
     event FeeWaived(address indexed member, uint256 indexed period, Reason reason);
     event CircleDissolving(uint256 indexed id);
     event GuardianDisabled(uint256 indexed id);
-    event DissolutionClaimed(address indexed member, uint256 shares, uint256 amount);
 
     // ------------------------------------------------------------------ errors
 
@@ -146,13 +151,15 @@ library Governance {
     error ProposalNotDecided(uint256 id);
     error NotProposer(uint256 id);
     error CircleDissolved();
-    error NotDissolved();
-    error LoansStillOutstanding(uint256 amount);
+    /// @notice You opened a proposal recently; you can open the next one at `allowedAt`.
+    error ProposalTooSoon(uint256 allowedAt);
 
     // ------------------------------------------------------------------ proposals
 
     /// @notice Propose new rules. They must be inside the bounds now (`Rules.validate`). Your
-    ///         yes vote is counted. One rule change may be open or waiting at a time.
+    ///         yes vote is counted. One rule change may be open or waiting at a time. A change to
+    ///         a risky setting (`Rules.isRisky`) needs the dissolve pass mark of all eligible
+    ///         members (ADR 0043).
     function proposeRuleChange(
         Store storage g,
         Membership.Store storage m,
@@ -163,20 +170,28 @@ library Governance {
     ) external returns (uint256 id) {
         Rules.validate(newRules, p.installment);
         if (g.openRuleChange != 0) revert RuleChangeInProgress();
-        if (g.effectiveAt != 0) {
-            // A change that is due is applied first; one still waiting blocks a new proposal.
-            if (block.timestamp < g.effectiveAt) revert RuleChangeInProgress();
-            _apply(g, current, p.installment);
-        }
-        id = _proposeAsVoter(g, m, ledger, p, Kind.RuleChange, current.passPct);
+        // A change that is due is applied first; one still waiting blocks a new proposal.
+        _sync(g, current, p);
+        if (g.effectiveAt != 0) revert RuleChangeInProgress();
+        bool risky = Rules.isRisky(current, newRules);
+        id = _proposeAsVoter(
+            g,
+            m,
+            ledger,
+            p,
+            Kind.RuleChange,
+            risky ? current.dissolvePassPct : current.passPct,
+            risky
+        );
         g.proposedRules[id] = newRules;
         g.openRuleChange = id;
         _castVote(g, m, ledger, current, p, id, true);
     }
 
     /// @notice Ask the circle to waive the late fees on `member`'s installment for `period`.
-    ///         The member may ask for themselves; they can't vote on it. Another member's yes
-    ///         vote is counted when they propose it.
+    ///         Only a member who can vote may propose (GOV-09): a member who is behind asks
+    ///         another member. The member it is about can't vote on it; anyone else proposing it
+    ///         has their yes counted.
     function proposeFeeWaiver(
         Store storage g,
         Membership.Store storage m,
@@ -187,6 +202,7 @@ library Governance {
         uint256 period,
         Reason reason
     ) external returns (uint256 id) {
+        _sync(g, current, p);
         id = _open(
             g, m, ledger, p, Kind.FeeWaiver, current.passPct, _waiverVoters(m, member, period)
         );
@@ -198,8 +214,8 @@ library Governance {
         if (msg.sender != member) _castVote(g, m, ledger, current, p, id, true);
     }
 
-    /// @notice Propose dissolving the circle (ADR 0021), at the dissolve pass mark. Your yes
-    ///         vote is counted.
+    /// @notice Propose dissolving the circle (ADR 0021): passes only when yes votes reach the
+    ///         dissolve pass mark of all eligible members (ADR 0043). Your yes vote is counted.
     function proposeDissolve(
         Store storage g,
         Membership.Store storage m,
@@ -207,11 +223,13 @@ library Governance {
         Rules.Params storage current,
         Params calldata p
     ) external returns (uint256 id) {
-        id = _proposeAsVoter(g, m, ledger, p, Kind.Dissolve, current.dissolvePassPct);
+        _sync(g, current, p);
+        id = _proposeAsVoter(g, m, ledger, p, Kind.Dissolve, current.dissolvePassPct, true);
         _castVote(g, m, ledger, current, p, id, true);
     }
 
-    /// @notice Propose removing the guardian's pause power (ADR 0020). Your yes vote is counted.
+    /// @notice Propose removing the guardian's pause power (ADR 0020): passes only when yes votes
+    ///         reach the pass mark of all eligible members (ADR 0043). Your yes vote is counted.
     function proposeGuardianOff(
         Store storage g,
         Membership.Store storage m,
@@ -220,7 +238,8 @@ library Governance {
         Params calldata p
     ) external returns (uint256 id) {
         if (ledger.guardianDisabled) revert GuardianAlreadyOff();
-        id = _proposeAsVoter(g, m, ledger, p, Kind.GuardianOff, current.passPct);
+        _sync(g, current, p);
+        id = _proposeAsVoter(g, m, ledger, p, Kind.GuardianOff, current.passPct, true);
         _castVote(g, m, ledger, current, p, id, true);
     }
 
@@ -257,7 +276,8 @@ library Governance {
         _close(g, m, ledger, current, id, pr, outcome);
     }
 
-    /// @notice The proposer withdraws an open proposal.
+    /// @notice The proposer withdraws an open proposal, only while voting is still open and the
+    ///         result undecided (GOV-07): a decided vote can't be vetoed.
     function cancel(
         Store storage g,
         Membership.Store storage m,
@@ -268,10 +288,14 @@ library Governance {
     ) external {
         Proposal storage pr = _openProposal(g, id);
         if (msg.sender != pr.proposer) revert NotProposer(id);
+        // A decided vote closes itself on the deciding vote, so open + in time = undecided.
+        if (block.timestamp > pr.deadline) revert ProposalVotingClosed(id);
         _close(g, m, ledger, current, id, pr, Status.Cancelled);
     }
 
     /// @notice Put a passed rule change into force once its time has come. Anyone can call it.
+    ///         The vault also does this by itself at the start of every action that reads the
+    ///         rules (`syncRules`), so calling it is never needed (ADR 0043, RT-24).
     function applyRuleChange(
         Store storage g,
         Membership.Store storage,
@@ -286,31 +310,16 @@ library Governance {
         _apply(g, current, p.installment);
     }
 
-    // ------------------------------------------------------------------ dissolution
-
-    /// @notice After a dissolve vote, and once every loan is repaid, a member takes their share
-    ///         of the circle at NAV and leaves. The last one out empties the vault.
-    /// @dev CEI: shares and assets are reduced and the member removed before the payout, which
-    ///      is the last step and queues the AVAX if the wallet refuses it (RT-20).
-    function claimDissolution(
-        Store storage,
-        Membership.Store storage m,
-        Ledger.Store storage ledger,
-        Rules.Params storage,
-        Params calldata
+    /// @notice Applies a passed rule change if its time has come; does nothing otherwise.
+    /// @dev The vault calls this before any action that reads the rules (GOV-04).
+    function syncRules(
+        Store storage g,
+        Membership.Store storage,
+        Ledger.Store storage,
+        Rules.Params storage current,
+        Params calldata p
     ) external {
-        if (!ledger.dissolved) revert NotDissolved();
-        if (ledger.loansOutstanding != 0) revert LoansStillOutstanding(ledger.loansOutstanding);
-        uint256 shares = m.members[msg.sender].shares;
-        // The last holder gets everything left, so no dust stays behind.
-        uint256 amount = shares == ledger.totalShares
-            ? ledger.totalAssets
-            : SharesMath.assetsForShares(shares, ledger.totalAssets, ledger.totalShares);
-        ledger.totalShares -= shares;
-        ledger.totalAssets -= amount;
-        m.removeMember(msg.sender);
-        emit DissolutionClaimed(msg.sender, shares, amount);
-        ledger.payOut(msg.sender, amount);
+        _sync(g, current, p);
     }
 
     // ------------------------------------------------------------------ views
@@ -363,6 +372,18 @@ library Governance {
             && _canVoteOn(m, pr, voter) && !g.hasVoted[id][voter];
     }
 
+    function hasVotedOn(
+        Store storage g,
+        Membership.Store storage,
+        Ledger.Store storage,
+        Rules.Params storage,
+        Params calldata,
+        uint256 id,
+        address voter
+    ) external view returns (bool) {
+        return g.hasVoted[id][voter];
+    }
+
     function openPage(
         Store storage g,
         Membership.Store storage,
@@ -392,16 +413,19 @@ library Governance {
         Ledger.Store storage ledger,
         Params calldata p,
         Kind kind,
-        uint8 passPct
+        uint8 passPct,
+        bool memberBar
     ) private returns (uint256 id) {
         if (!m.isCurrentVoter(msg.sender)) revert NotAllowedToPropose(msg.sender);
         id = _open(g, m, ledger, p, kind, passPct, m.voterCount);
+        g.proposals[id - 1].memberBar = memberBar;
         _emitCreated(id, g.proposals[id - 1]);
     }
 
     /// @dev Checks a waiver request and returns its quorum base: voters now, minus the member
-    ///      it is about. Only an unpaid period that has started and isn't waived yet qualifies.
-    ///      The member may ask for themselves; anyone else must be a current voter.
+    ///      it is about. Only an unpaid period that has started and isn't waived yet qualifies,
+    ///      and never for a dormant member, who owes nothing (GOV-09). The proposer must be a
+    ///      current voter (that may be the member themselves).
     function _waiverVoters(Membership.Store storage m, address member, uint256 period)
         private
         view
@@ -409,13 +433,11 @@ library Governance {
     {
         Membership.Member storage s = m.members[member];
         if (
-            !s.active || period < s.nextPeriod || period > PeriodMath.periodOf(block.timestamp)
-                || m.feeWaived[member][period]
+            !s.active || s.dormant || period < s.nextPeriod
+                || period > PeriodMath.periodOf(block.timestamp) || m.feeWaived[member][period]
         ) revert InvalidWaiver(member, period);
-        if (msg.sender != member && !m.isCurrentVoter(msg.sender)) {
-            revert NotAllowedToPropose(msg.sender);
-        }
-        return m.voterCount - (s.voter && !s.dormant ? 1 : 0);
+        if (!m.isCurrentVoter(msg.sender)) revert NotAllowedToPropose(msg.sender);
+        return m.voterCount - (Membership.inVoterCount(m, member) ? 1 : 0);
     }
 
     function _open(
@@ -433,6 +455,11 @@ library Governance {
         if (g.openBy[msg.sender] >= MAX_OPEN_PROPOSALS_PER_MEMBER) {
             revert TooManyOpenProposalsBy(msg.sender);
         }
+        uint64 last = g.lastProposedAt[msg.sender];
+        if (last != 0 && block.timestamp < last + PROPOSAL_COOLDOWN) {
+            revert ProposalTooSoon(last + PROPOSAL_COOLDOWN);
+        }
+        g.lastProposedAt[msg.sender] = SafeCast.toUint64(block.timestamp);
         g.openBy[msg.sender] += 1;
         Proposal storage pr = g.proposals.push();
         pr.kind = kind;
@@ -483,7 +510,9 @@ library Governance {
     }
 
     /// @dev Open = not decided yet. Passes on quorum (of `eligible`) plus the pass mark of votes
-    ///      cast; decided early only when the remaining votes can't change the result.
+    ///      cast; decided early only when the remaining votes can't change the result. A
+    ///      member-bar proposal (ADR 0043) passes only on the pass mark of `eligible` itself, so a
+    ///      low turnout can never carry it.
     ///      `yes + no <= eligible` for the same reason as in Membership: only voters stamped
     ///      before the snapshot who are still voters vote, and each was counted in `eligible`.
     function _outcome(Proposal storage pr, uint8 quorumPct, bool ended)
@@ -499,7 +528,7 @@ library Governance {
         if (quorum && Rules.passes(yes, e, pct)) return Status.Approved;
         if (!Rules.passes(e - no, e, pct)) return Status.Rejected;
         if (!ended) return Status.Open;
-        if (!quorum) return Status.Expired;
+        if (!quorum || pr.memberBar) return Status.Expired;
         return Rules.passes(yes, yes + no, pct) ? Status.Approved : Status.Rejected;
     }
 
@@ -554,6 +583,11 @@ library Governance {
         uint256 start = PeriodMath.startOfDay(period, 1);
         // slither-disable-next-line incorrect-equality (calendar boundary, not a balance)
         return SafeCast.toUint64(start == t ? t : PeriodMath.startOfDay(period + 1, 1));
+    }
+
+    function _sync(Store storage g, Rules.Params storage current, Params calldata p) private {
+        uint64 at = g.effectiveAt;
+        if (at != 0 && block.timestamp >= at) _apply(g, current, p.installment);
     }
 
     function _apply(Store storage g, Rules.Params storage current, uint128 installment) private {

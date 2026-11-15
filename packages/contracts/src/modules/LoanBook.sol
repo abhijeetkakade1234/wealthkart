@@ -18,8 +18,9 @@ import {Rules} from "./Rules.sol";
 ///         paying everything owed lifts it; a second vote can use their shares to repay.
 /// @dev External library (ADR 0031, 0037): the vault delegatecalls it, so every write lands in the
 ///      vault's storage. Money goes only through `Ledger` (`payOut` last, CEI). Every number comes
-///      from `Rules.Params`; each loan copies its rates and tenor length at disbursal, so a later
-///      rule change never reprices a running loan. Phase 2 simplifications (ADR 0037): one active
+///      from `Rules.Params`; each loan copies its rates, tenor length, interest late fee and
+///      `defaultAfter` at disbursal, so a later rule change never reprices a running loan
+///      (ADR 0043, LOAN-04). Phase 2 simplifications (ADR 0037): one active
 ///      loan and one pending request per member; interest must be paid in full, not in parts.
 ///      No loops over time: interest for any range of months is computed in O(1) from the three
 ///      tenor segments, so a loan left unpaid for years still costs the same gas (ADR 0015).
@@ -95,6 +96,13 @@ library LoanBook {
         bool defaulted;
         /// @dev Some interest has been paid on this loan (rule 17 then no longer applies).
         bool charged;
+        /// @dev Missed interest months before default, copied at disbursal (LOAN-04).
+        uint8 defaultAfter;
+        /// @dev Period the loan was marked in default (0 = not in default). A settle charges
+        ///      interest and late fees only up to this month (LOAN-06).
+        uint32 defaultPeriod;
+        /// @dev Late fee per month of unpaid interest, copied at disbursal (LOAN-04).
+        uint128 interestFee;
     }
 
     /// @dev The vault's immutable settings this module needs.
@@ -102,6 +110,9 @@ library LoanBook {
         uint8 dueDay;
         uint32 votingWindow;
         uint8 quorumPct;
+        /// @dev The first exit in the queue has finished its notice and isn't paid yet: no
+        ///      disbursal until it is (RT-17, LOAN-07).
+        bool exitDue;
     }
 
     struct Store {
@@ -210,6 +221,8 @@ library LoanBook {
     error NotInDefault(address borrower);
     error AlreadyDefaulted(address borrower);
     error SettleOpen(uint256 requestId);
+    /// @notice A member who asked to leave can't borrow or guarantee (EXIT-06, LOAN-09).
+    error MemberExiting(address account);
 
     // ------------------------------------------------------------------ requests
 
@@ -266,7 +279,8 @@ library LoanBook {
     }
 
     /// @notice Propose using a defaulted borrower's shares, then the guarantor's, to repay the
-    ///         loan (ADR 0009). The proposer's yes is counted. The borrower and guarantor can't vote.
+    ///         loan (ADR 0009). The proposer's yes is counted. The borrower and guarantor can't
+    ///         vote. Once the circle is dissolved, anyone settles it at once with no vote.
     function proposeSettle(
         Store storage s,
         Membership.Store storage m,
@@ -279,6 +293,12 @@ library LoanBook {
         if (!ln.defaulted) revert NotInDefault(borrower);
         uint256 open = s.settleOf[borrower];
         if (open != 0) revert SettleOpen(open);
+        if (led.dissolved) {
+            // Winding down (LOAN-02, GOV-06): nobody pays installments any more, so nobody stays
+            // a voter. A defaulted loan is settled at once, by anyone, with no vote; returns 0.
+            _settle(s, m, led, c, borrower);
+            return 0;
+        }
         address g = ln.guarantor;
         if (msg.sender == borrower || msg.sender == g || !Membership.isCurrentVoter(m, msg.sender))
         {
@@ -348,12 +368,11 @@ library LoanBook {
         Store storage s,
         Membership.Store storage m,
         Ledger.Store storage led,
-        Rules.Params storage r,
         Ctx calldata c,
         uint256 value
     ) external {
         Loan storage ln = _loan(s, msg.sender);
-        (uint256 interest, uint256 fees,) = _owed(ln, r.interestFee, c.dueDay);
+        (uint256 interest, uint256 fees,) = _owed(ln, c.dueDay, _period());
         uint256 total = interest + fees;
         // slither-disable-next-line incorrect-equality (computed amount owed; 0 = nothing to pay)
         if (total == 0) revert NothingOwed();
@@ -366,7 +385,7 @@ library LoanBook {
         // Interest and fees are income: they raise NAV for every member (ADR 0009).
         led.totalAssets += value;
         emit InterestPaid(msg.sender, interest, fees, cur);
-        _maybeCure(s, m, r, c, msg.sender);
+        _maybeCure(s, m, c, msg.sender);
     }
 
     /// @notice Repay principal. Needs no overdue interest. This month's interest stays on the
@@ -384,7 +403,7 @@ library LoanBook {
     ) external {
         if (value == 0) revert ZeroAmount();
         Loan storage ln = _loan(s, msg.sender);
-        uint256 overdue = _overdueMonths(ln, c.dueDay);
+        uint256 overdue = _overdueMonths(ln, c.dueDay, _period());
         if (overdue != 0) revert InterestOverdue(overdue);
         _book(ln);
 
@@ -410,7 +429,7 @@ library LoanBook {
         }
         emit LoanRepaid(msg.sender, part, minInterest, owedPrincipal - part);
         if (part == owedPrincipal) _closeLoan(s, m, msg.sender);
-        else _maybeCure(s, m, r, c, msg.sender);
+        else _maybeCure(s, m, c, msg.sender);
     }
 
     // ------------------------------------------------------------------ default
@@ -421,18 +440,18 @@ library LoanBook {
     function markDefault(
         Store storage s,
         Membership.Store storage m,
-        Rules.Params storage r,
         Ctx calldata c,
         address borrower
     ) external {
         Loan storage ln = _loan(s, borrower);
         if (ln.defaulted) revert AlreadyDefaulted(borrower);
-        if (!_defaultable(ln, r.defaultAfter, c.dueDay)) revert NotInDefault(borrower);
+        if (!_defaultable(ln, c.dueDay)) revert NotInDefault(borrower);
         ln.defaulted = true;
+        ln.defaultPeriod = _period();
         address g = ln.guarantor;
         _syncFrozen(s, m, borrower);
         if (g != address(0)) _syncFrozen(s, m, g);
-        emit LoanDefaulted(borrower, g, _overdueMonths(ln, c.dueDay));
+        emit LoanDefaulted(borrower, g, _overdueMonths(ln, c.dueDay, _period()));
     }
 
     // ------------------------------------------------------------------ views
@@ -445,14 +464,14 @@ library LoanBook {
     /// @return interest Unpaid interest up to and including the current month.
     /// @return fees Late fees: `interestFee` for each month whose interest is overdue.
     /// @return overdueMonths Months whose interest is past its due moment and unpaid.
-    function interestDue(Store storage s, Rules.Params storage r, Ctx calldata c, address borrower)
+    function interestDue(Store storage s, Rules.Params storage, Ctx calldata c, address borrower)
         external
         view
         returns (uint256 interest, uint256 fees, uint256 overdueMonths)
     {
         Loan storage ln = s.loans[borrower];
         if (ln.principal == 0) return (0, 0, 0);
-        return _owed(ln, r.interestFee, c.dueDay);
+        return _owed(ln, c.dueDay, _period());
     }
 
     /// @notice What `repay` needs to close the loan right now: principal plus rule-17 interest.
@@ -472,6 +491,7 @@ library LoanBook {
     }
 
     function loanRequest(Store storage s, uint256 id) external view returns (Request memory) {
+        if (id == 0 || id > s.requests.length) revert LoanRequestNotOpen(id);
         return s.requests[id - 1];
     }
 
@@ -527,11 +547,14 @@ library LoanBook {
         if (led.dissolved) revert LoansClosed();
         if (Ledger.paused(led)) revert LoansPaused();
         address b = msg.sender;
-        if (!Membership.isCurrentVoter(m, b)) revert NotAVoter(b);
+        if (m.members[b].exiting) revert MemberExiting(b);
         if (m.members[b].frozen) revert MemberFrozen(b);
-        // TODO(merge): refuse if the member has a pending exit (Exits.Store isn't visible here).
+        if (!Membership.isCurrentVoter(m, b)) revert NotAVoter(b);
         uint256 open = s.pendingOf[b];
         if (open != 0) revert LoanRequestOpen(open);
+        // A guarantor backs exactly one loan and holds none of their own (LOAN-01).
+        address backed = s.guaranteeOf[b];
+        if (backed != address(0)) revert AlreadyGuaranteeing(b, backed);
         if (s.loans[b].principal != 0) revert LoanActive(b);
         if (m.memberCount < r.minMembersForLoans) {
             revert TooFewMembers(m.memberCount, r.minMembersForLoans);
@@ -555,14 +578,27 @@ library LoanBook {
         if (amount > limit) revert AmountTooLarge(amount, limit);
     }
 
-    /// @dev An active, non-dormant, non-frozen member with no other guarantee (RT-16).
+    /// @dev An active, non-dormant, non-frozen member who isn't leaving, has no loan or loan
+    ///      request of their own and no other guarantee, so one stake never backs two loans
+    ///      (RT-16, LOAN-01). Checked on request and on `acceptGuarantee`.
     function _checkGuarantor(Store storage s, Membership.Store storage m, address g) private view {
-        Membership.Member storage gm = m.members[g];
-        if (!gm.active || gm.dormant || gm.frozen) revert InvalidGuarantor(g);
-        // TODO(merge): refuse if the guarantor has a pending exit (checked on request and on
-        // acceptGuarantee; Exits.Store isn't visible here).
+        if (!_guarantorOk(s, m, g)) {
+            if (m.members[g].exiting) revert MemberExiting(g);
+            revert InvalidGuarantor(g);
+        }
         address backed = s.guaranteeOf[g];
         if (backed != address(0)) revert AlreadyGuaranteeing(g, backed);
+    }
+
+    /// @dev Guarantor standing apart from `guaranteeOf` (which may already be this request).
+    function _guarantorOk(Store storage s, Membership.Store storage m, address g)
+        private
+        view
+        returns (bool)
+    {
+        Membership.Member storage gm = m.members[g];
+        return gm.active && !gm.dormant && !gm.frozen && !gm.exiting && s.loans[g].principal == 0
+            && s.pendingOf[g] == 0;
     }
 
     /// @dev Largest loan allowed now: the fund cap (rule 13), k x (own + guarantor stake)
@@ -643,10 +679,9 @@ library LoanBook {
         return Membership.canVoteAt(m, voter, q.seqSnapshot);
     }
 
-    /// @dev 1 if `who` is counted in `voterCount` (voter, active, not dormant), else 0.
+    /// @dev 1 if `who` is counted in `voterCount`, else 0.
     function _inVoterCount(Membership.Store storage m, address who) private view returns (uint256) {
-        Membership.Member storage x = m.members[who];
-        return x.active && x.voter && !x.dormant ? 1 : 0;
+        return Membership.inVoterCount(m, who) ? 1 : 0;
     }
 
     /// @dev Same rule as Membership votes: quorum of `eligible`, pass mark of votes cast, decided
@@ -701,7 +736,7 @@ library LoanBook {
                 return;
             }
             _close(s, m, id, Status.Approved);
-            _settle(s, m, led, r, c, b);
+            _settle(s, m, led, c, b);
             return;
         }
         if (q.guarantor != address(0) && !q.guarantorAccepted) {
@@ -716,7 +751,7 @@ library LoanBook {
             _close(s, m, id, Status.Failed);
             return;
         }
-        if (led.exitsWaiting != 0 || Ledger.paused(led)) {
+        if (led.exitsWaiting != 0 || c.exitDue || Ledger.paused(led)) {
             // A passed vote waits at most one more voting window, so nobody is paid out on an
             // approval the circle gave long ago under different conditions.
             if (block.timestamp > uint256(q.deadline) + c.votingWindow) {
@@ -728,7 +763,14 @@ library LoanBook {
         }
         uint256 amount = q.amount;
         Membership.Member storage bm = m.members[b];
-        if (!bm.active || bm.frozen || amount > _limit(m, led, r, b, q.guarantor)) {
+        address g = q.guarantor;
+        // Standing and rules are checked again at payout (LOAN-05): the borrower may have gone
+        // dormant, frozen or started to leave, the guarantor too, or the rules changed.
+        if (
+            !bm.active || bm.dormant || bm.frozen || bm.exiting
+                || (g != address(0) && !_guarantorOk(s, m, g))
+                || (q.medical && amount > r.medicalCap) || amount > _limit(m, led, r, b, g)
+        ) {
             _close(s, m, id, Status.Failed);
             return;
         }
@@ -761,6 +803,8 @@ library LoanBook {
         ln.rate3 = r.tenor3Bps;
         ln.tenorMonths = r.tenorMonths;
         ln.freeMonths = r.medicalFreeMonths;
+        ln.defaultAfter = r.defaultAfter;
+        ln.interestFee = r.interestFee;
         ln.medical = medical;
         if (medical) s.medicalYear[b] = cur / 12 + 1;
         led.loansOutstanding += amount;
@@ -813,24 +857,29 @@ library LoanBook {
         return SafeCast.toUint32(PeriodMath.periodOf(block.timestamp));
     }
 
-    /// @dev Interest owed now (booked plus unbooked months up to the current one), late fees, and
-    ///      the number of overdue months.
-    function _owed(Loan storage ln, uint256 interestFee, uint8 dueDay)
+    /// @dev Interest owed for months up to `upTo` (booked plus unbooked), late fees at the loan's
+    ///      own fee, and the number of overdue months up to `upTo`.
+    function _owed(Loan storage ln, uint8 dueDay, uint256 upTo)
         private
         view
         returns (uint256 interest, uint256 fees, uint256 overdue)
     {
-        interest = uint256(ln.carried)
-            + _span(ln, uint256(ln.bookedThrough) + 1, _period(), ln.principal);
-        overdue = _overdueMonths(ln, dueDay);
-        fees = overdue * interestFee;
+        interest =
+            uint256(ln.carried) + _span(ln, uint256(ln.bookedThrough) + 1, upTo, ln.principal);
+        overdue = _overdueMonths(ln, dueDay, upTo);
+        fees = overdue * ln.interestFee;
     }
 
-    /// @dev Months after `paidThrough` whose due moment has passed and that charge interest.
-    ///      Interest-free months (medical, or a 0% rate) are never overdue.
-    function _overdueMonths(Loan storage ln, uint8 dueDay) private view returns (uint256) {
+    /// @dev Months after `paidThrough` (and up to `upTo`) whose due moment has passed and that
+    ///      charge interest. Interest-free months (medical, or a 0% rate) are never overdue.
+    function _overdueMonths(Loan storage ln, uint8 dueDay, uint256 upTo)
+        private
+        view
+        returns (uint256)
+    {
         uint256 cur = PeriodMath.periodOf(block.timestamp);
         uint256 lastDue = block.timestamp > PeriodMath.dueMoment(cur, dueDay) ? cur : cur - 1;
+        if (upTo < lastDue) lastDue = upTo;
         // principal 1: each charging month adds at least 1 wei, so the sum counts the months.
         return _months(ln, uint256(ln.paidThrough) + 1, lastDue);
     }
@@ -852,28 +901,24 @@ library LoanBook {
         return _ceilBps(ln.amount, ln.rate1);
     }
 
-    /// @dev `defaultAfter` overdue interest months, or the third tenor ended with principal left.
-    function _defaultable(Loan storage ln, uint8 defaultAfter, uint8 dueDay)
-        private
-        view
-        returns (bool)
-    {
+    /// @dev The loan's own `defaultAfter` overdue interest months, or the third tenor ended with
+    ///      principal left.
+    function _defaultable(Loan storage ln, uint8 dueDay) private view returns (bool) {
         if (ln.principal == 0) return false;
+        uint256 cur = PeriodMath.periodOf(block.timestamp);
         uint256 lastTenorMonth = uint256(ln.disbursedPeriod) + TENORS * ln.tenorMonths;
-        if (PeriodMath.periodOf(block.timestamp) > lastTenorMonth) return true;
-        return _overdueMonths(ln, dueDay) >= defaultAfter;
+        if (cur > lastTenorMonth) return true;
+        return _overdueMonths(ln, dueDay, cur) >= ln.defaultAfter;
     }
 
-    function _maybeCure(
-        Store storage s,
-        Membership.Store storage m,
-        Rules.Params storage r,
-        Ctx calldata c,
-        address b
-    ) private {
+    /// @dev A cure pays everything owed up to now (the default-month cap only limits a settle).
+    function _maybeCure(Store storage s, Membership.Store storage m, Ctx calldata c, address b)
+        private
+    {
         Loan storage ln = s.loans[b];
-        if (!ln.defaulted || _defaultable(ln, r.defaultAfter, c.dueDay)) return;
+        if (!ln.defaulted || _defaultable(ln, c.dueDay)) return;
         ln.defaulted = false;
+        ln.defaultPeriod = 0;
         _syncFrozen(s, m, b);
         if (ln.guarantor != address(0)) _syncFrozen(s, m, ln.guarantor);
         emit LoanCured(b);
@@ -908,17 +953,17 @@ library LoanBook {
     }
 
     /// @dev Uses the borrower's shares at NAV, then the guarantor's, to cover principal, interest
-    ///      and fees; writes off any principal left (the loss is shared through NAV).
+    ///      and fees up to the default month (LOAN-06); writes off any principal left (the loss is
+    ///      shared through NAV).
     function _settle(
         Store storage s,
         Membership.Store storage m,
         Ledger.Store storage led,
-        Rules.Params storage r,
         Ctx calldata c,
         address b
     ) private {
         Loan storage ln = s.loans[b];
-        (uint256 interest, uint256 fees,) = _owed(ln, r.interestFee, c.dueDay);
+        (uint256 interest, uint256 fees,) = _owed(ln, c.dueDay, ln.defaultPeriod);
         uint256 principalLeft = ln.principal;
         uint256 debt = principalLeft + interest + fees;
         address g = ln.guarantor;

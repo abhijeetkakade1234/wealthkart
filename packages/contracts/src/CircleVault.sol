@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {PeriodMath} from "./libraries/PeriodMath.sol";
 import {SharesMath} from "./libraries/SharesMath.sol";
@@ -25,9 +25,11 @@ import {LoanBook} from "./modules/LoanBook.sol";
 ///      All accounting is O(1) per action (ADR 0015) and uses internal bookkeeping, never
 ///      `address(this).balance` (ADR 0006). All times are UTC (ADR 0014).
 ///      Membership: ADR 0028. Display names: ADR 0029. Fee caps: ADR 0030. Dormant: ADR 0032.
-///      Loans, exits and governance follow in Phase 2.
+///      Loans, exits and governance follow in Phase 2. Review fixes: ADR 0043. The reentrancy
+///      lock lives in transient storage (GOV-05), so no storage slot is used for it and a
+///      skipped modifier epilogue can never outlive the transaction.
 // slither-disable-next-line missing-inheritance (ILoanBookViews only documents the forwarded outputs)
-contract CircleVault is ReentrancyGuard {
+contract CircleVault is ReentrancyGuardTransient {
     using Membership for Membership.Store;
     using Ledger for Ledger.Store;
     using LoanBook for LoanBook.Store;
@@ -114,7 +116,8 @@ contract CircleVault is ReentrancyGuard {
     Membership.Store internal _m;
     /// @dev Assets, shares, loans out and refused payouts, shared by every module (ADR 0037).
     Ledger.Store internal _ledger;
-    /// @dev Current rules; Governance changes them after the delay (ADR 0019).
+    /// @dev Current rules; Governance changes them after the delay (ADR 0019). Writes call
+    ///      `_syncRules` first and views read `_effRules`, so a due change is always in force.
     Rules.Params internal _rules;
     /// @dev Circle proposals: rule changes, fee waivers, dissolution, guardian off (ADR 0040).
     // slither-disable-next-line uninitialized-state (written by the library through its slot)
@@ -192,6 +195,11 @@ contract CircleVault is ReentrancyGuard {
         );
     }
 
+    // slither-disable-start incorrect-return,redundant-statements
+    // Intended, not a bug: `_govForward(sel, true)` ends the call with the Governance library's
+    // return data (see the GOVERNANCE section). `_syncRules` uses `ret = false`, which returns
+    // normally, but Slither can't tell the two paths apart and flags every write that syncs.
+
     // ------------------------------------------------------------------ contributions
 
     /// @notice Pay the oldest unpaid installment, plus any late fees owed on it.
@@ -199,6 +207,7 @@ contract CircleVault is ReentrancyGuard {
     /// @dev `msg.value` must equal exactly `installment + lateFees` (see `amountDue`).
     function contribute() external payable nonReentrant {
         if (_ledger.dissolved) revert Governance.CircleDissolved();
+        _syncRules();
         Membership.Member storage m = _m.members[msg.sender];
         if (!m.active) revert Membership.NotAMember(msg.sender);
         if (m.dormant) _m.wakeToPay();
@@ -329,22 +338,26 @@ contract CircleVault is ReentrancyGuard {
         nonReentrant
         returns (uint256 id)
     {
+        _syncRules();
         return _loans.requestLoan(_m, _ledger, _rules, _loanCtx(), amount, medical, guarantor);
     }
 
     /// @notice Agree to guarantee `borrower`'s open loan request. You can't exit until the loan
     ///         is repaid or settled, and your shares are at risk if it defaults.
     function acceptGuarantee(address borrower) external nonReentrant {
+        _syncRules();
         _loans.acceptGuarantee(_m, _ledger, _rules, _loanCtx(), borrower);
     }
 
     /// @notice Vote on a loan or settle request. A loan that passes is paid out in this call.
     function voteLoan(uint256 id, bool support) external nonReentrant {
+        _syncRules();
         _loans.vote(_m, _ledger, _rules, _loanCtx(), id, support);
     }
 
     /// @notice Settle a loan or settle request once decided or its window ended. Anyone can call.
     function finalizeLoan(uint256 id) external nonReentrant {
+        _syncRules();
         _loans.finalize(_m, _ledger, _rules, _loanCtx(), id);
     }
 
@@ -354,24 +367,27 @@ contract CircleVault is ReentrancyGuard {
     }
 
     /// @notice Pay all interest and late fees owed on your loan (see `interestDue`), exactly.
+    ///         Rates, fees and the default limit are the loan's own, fixed at payout.
     function payInterest() external payable nonReentrant {
-        _loans.payInterest(_m, _ledger, _rules, _loanCtx(), msg.value);
+        _loans.payInterest(_m, _ledger, _loanCtx(), msg.value);
     }
 
     /// @notice Repay principal with the AVAX sent. Closing the loan needs interest paid first and
     ///         may add one month's interest (rule 17): send `payoffDue` to close it.
     function repay() external payable nonReentrant {
+        _syncRules();
         _loans.repay(_m, _ledger, _rules, _loanCtx(), msg.value);
     }
 
     /// @notice Mark a loan in default once it qualifies; freezes borrower and guarantor.
     function markDefault(address borrower) external nonReentrant {
-        _loans.markDefault(_m, _rules, _loanCtx(), borrower);
+        _loans.markDefault(_m, _loanCtx(), borrower);
     }
 
     /// @notice Propose using a defaulted borrower's shares (then the guarantor's) to repay.
     /// @return id The settle request id.
     function proposeSettle(address borrower) external nonReentrant returns (uint256 id) {
+        _syncRules();
         return _loans.proposeSettle(_m, _ledger, _rules, _loanCtx(), borrower);
     }
 
@@ -432,11 +448,17 @@ contract CircleVault is ReentrancyGuard {
 
     /// @notice Cash that can be lent right now (cash minus the reserve, rule 12).
     function lendableCash() external view returns (uint256) {
-        return LoanBook.lendableCash(_ledger, _rules);
+        return LoanBook.lendableCash(_ledger, _effRules());
     }
 
     function _loanCtx() internal view returns (LoanBook.Ctx memory) {
-        return LoanBook.Ctx({dueDay: dueDay, votingWindow: votingWindow, quorumPct: quorumPct});
+        address head = _exits.first;
+        return LoanBook.Ctx({
+            dueDay: dueDay,
+            votingWindow: votingWindow,
+            quorumPct: quorumPct,
+            exitDue: head != address(0) && block.timestamp >= _exits.entries[head].maturesAt
+        });
     }
 
     function _loansSlot() internal pure returns (uint256 slot) {
@@ -446,10 +468,12 @@ contract CircleVault is ReentrancyGuard {
         }
     }
 
-    function _rulesSlot() internal pure returns (uint256 slot) {
+    /// @dev Slot of the rules in force right now (see `_effRules`).
+    function _rulesSlot() internal view returns (uint256 slot) {
+        Rules.Params storage r = _effRules();
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            slot := _rules.slot
+            slot := r.slot
         }
     }
 
@@ -490,26 +514,32 @@ contract CircleVault is ReentrancyGuard {
     // Phase 2 module: exit notice -> NAV snapshot -> payout, Chainlink Automation, guardian pause.
     // Entry points for the Exits library go in this section only (ADR 0037).
 
-    /// @notice Ask to leave. You are paid your shares at NAV once the notice ends (none during
-    ///         a rage-quit window), minus the exit fee. Not while frozen or tied to a loan.
+    /// @notice Ask to leave. You are paid your shares at NAV once the notice ends, minus the
+    ///         exit fee. While a rule change waits, the notice ends no later than the moment the
+    ///         new rules apply (ADR 0043). Not while frozen or tied to a loan, nor once dissolved.
+    ///         While you wait you can't vote, propose, borrow or guarantee.
     function requestExit() external nonReentrant {
+        _syncRules();
         Exits.requestExit(_exits, _ledger, _m, _rules);
     }
 
     /// @notice Withdraw your exit request before it is paid.
     function cancelExit() external nonReentrant {
-        Exits.cancelExit(_exits, _ledger);
+        Exits.cancelExit(_exits, _ledger, _m);
     }
 
-    /// @notice Collect your own exit after the notice (works even if automation is down).
-    /// @return paid False if other exits are waiting for cash first; you keep your place.
+    /// @notice Collect your own exit after the notice (works even if automation is down). Exits
+    ///         ahead of you whose notice has ended are settled first (first come, first served).
+    /// @return paid False if an exit ahead of you is waiting for cash; you keep your place.
     function claimExit() external nonReentrant returns (bool paid) {
+        _syncRules();
         return Exits.claimExit(_exits, _ledger, _m, _rules);
     }
 
-    /// @notice Pay matured exits in order, looking at up to `maxCount` queue slots. Anyone can
-    ///         call it; never blocked by the guardian pause.
+    /// @notice Pay matured exits in order, looking at up to `maxCount` exits from the front.
+    ///         Anyone can call it; never blocked by the guardian pause.
     function processExits(uint256 maxCount) external nonReentrant returns (uint256 paid) {
+        _syncRules();
         return Exits.processExits(_exits, _ledger, _m, _rules, maxCount);
     }
 
@@ -519,11 +549,12 @@ contract CircleVault is ReentrancyGuard {
         view
         returns (bool upkeepNeeded, bytes memory performData)
     {
-        return (Exits.upkeepNeeded(_exits, _ledger, _m, _rules), "");
+        return (Exits.upkeepNeeded(_exits, _ledger, _m, _effRules()), "");
     }
 
     /// @notice Chainlink Automation action: process one batch of the exit queue.
     function performUpkeep(bytes calldata) external nonReentrant {
+        _syncRules();
         // slither-disable-next-line unused-return (the count is only for direct callers)
         Exits.processExits(_exits, _ledger, _m, _rules, Exits.UPKEEP_BATCH);
     }
@@ -538,24 +569,36 @@ contract CircleVault is ReentrancyGuard {
         Exits.unpause(_ledger, _m, creator);
     }
 
-    /// @notice `member`'s pending exit (slot 0 = none).
+    /// @notice After a dissolve vote, take your share of the circle's cash now. While loans are
+    ///         out you keep the rest of your shares and claim again as they are repaid; once none
+    ///         are out you take the rest and leave. A refused payout waits for `withdraw`.
+    function claimDissolution() external nonReentrant {
+        Exits.claimDissolution(_exits, _ledger, _m);
+    }
+
+    /// @notice `member`'s pending exit (`requestedAt` 0 = none); `prev`/`next` link the queue.
     function exitOf(address member) external view returns (Exits.Entry memory) {
         return _exits.entries[member];
     }
 
-    /// @notice Queue slots from the front, settled ones included (see `exitQueuePage`).
+    /// @notice Exits in the queue right now.
     function exitQueueLength() external view returns (uint256) {
-        return _exits.queue.length - _exits.head;
+        return _exits.length;
     }
 
-    /// @notice Paginated exit queue from the front; settled slots are address(0).
+    /// @notice Paginated exit queue in payout order.
     function exitQueuePage(uint256 offset, uint256 limit) external view returns (address[] memory) {
         return Exits.queuePage(_exits, offset, limit);
     }
 
-    /// @notice What `member` would be paid right now, after the exit fee.
+    /// @notice What `member` would be paid right now, after the exit fee (none once dissolved).
     function exitValue(address member) external view returns (uint256) {
-        return Exits.exitValue(_exits, _ledger, _m, _rules, member);
+        return Exits.exitValue(_exits, _ledger, _m, _effRules(), member);
+    }
+
+    /// @notice Start of the guardian's last pause (0 = never); the next is allowed 90 days later.
+    function lastPauseAt() external view returns (uint64) {
+        return _exits.lastPauseAt;
     }
 
     /// @notice Exits whose notice ended and that wait for cash; no new loans while > 0.
@@ -579,7 +622,6 @@ contract CircleVault is ReentrancyGuard {
     // as is. This keeps the vault small (ADR 0040). The bare names in these bodies only mark
     // parameters and return values as used: the values travel in calldata and return data.
 
-    // slither-disable-start incorrect-return,redundant-statements (intended: see above)
     /// @notice Propose new rules (within the bounds of `Rules.validate`). If it passes, it
     ///         applies after the delay, from the next period; until then members may exit with
     ///         no notice (ADR 0019). Your yes vote is counted.
@@ -633,13 +675,6 @@ contract CircleVault is ReentrancyGuard {
         _govForward(Governance.applyRuleChange.selector, true);
     }
 
-    /// @notice After a dissolve vote and once no loans are out, take your share at NAV and
-    ///         leave. A refused payout waits for `withdraw`.
-    function claimDissolution() external nonReentrant {
-        // Returns normally so `nonReentrant` can release its lock.
-        _govForward(Governance.claimDissolution.selector, false);
-    }
-
     function proposal(uint256 id) external view returns (Governance.Proposal memory p) {
         _govView(Governance.proposal.selector);
         (id, p);
@@ -676,13 +711,16 @@ contract CircleVault is ReentrancyGuard {
         (id, voter, ok);
     }
 
-    // slither-disable-end incorrect-return,redundant-statements
+    function hasVotedProposal(uint256 id, address voter) external view returns (bool ok) {
+        _govView(Governance.hasVotedOn.selector);
+        (id, voter, ok);
+    }
 
     function proposalCount() external view returns (uint256) {
         return _gov.proposals.length;
     }
 
-    /// @notice Until this time members may exit with no notice (a rule change is pending).
+    /// @notice While a rule change waits, exits requested now mature by this time at the latest.
     function rageQuitUntil() external view returns (uint64) {
         return _ledger.rageQuitUntil;
     }
@@ -697,9 +735,13 @@ contract CircleVault is ReentrancyGuard {
 
     /// @dev Delegatecalls the Governance library function `sel` with the vault's storage slots
     ///      and settings first, then this call's own arguments (all static, so the encoding
-    ///      matches). Reverts are passed on unchanged. With `ret`, the library's return data is
-    ///      returned straight to the caller and this call ends here.
+    ///      matches; extra trailing bytes are ignored). Reverts are passed on unchanged. With
+    ///      `ret`, the library's return data is returned straight to the caller and this call
+    ///      ends here; such calls are refused inside another nonReentrant call (a payout
+    ///      callback), and they never set the lock, so nothing can leave it set (GOV-05).
+    ///      NEVER add modifiers to the forwarded entry points: the assembly `return` skips them.
     function _govForward(bytes4 sel, bool ret) internal {
+        if (ret && _reentrancyGuardEntered()) revert ReentrancyGuardReentrantCall();
         address lib = address(Governance);
         uint256 inst = installment;
         uint256 window = votingWindow;
@@ -935,9 +977,10 @@ contract CircleVault is ReentrancyGuard {
         return _ledger.withdrawable[account];
     }
 
-    /// @notice The circle's current loan, exit and governance settings.
+    /// @notice The circle's loan, exit and governance settings in force right now (a passed
+    ///         change counts from its `effectiveAt`, ADR 0043).
     function rules() external view returns (Rules.Params memory) {
-        return _rules;
+        return _effRules();
     }
 
     // ------------------------------------------------------------------ internals
@@ -996,6 +1039,20 @@ contract CircleVault is ReentrancyGuard {
         if (m.dormant) revert Membership.MemberIsDormant(who);
     }
 
+    /// @dev Applies a passed rule change once its time has come (GOV-04, RT-24). Called first by
+    ///      every write that reads the rules, so nobody can pick the moment a change lands.
+    function _syncRules() internal {
+        uint64 at = _gov.effectiveAt;
+        if (at != 0 && block.timestamp >= at) _govForward(Governance.syncRules.selector, false);
+    }
+
+    /// @dev The rules in force right now: the pending ones once their `effectiveAt` has passed.
+    function _effRules() internal view returns (Rules.Params storage r) {
+        r = _rules;
+        uint64 at = _gov.effectiveAt;
+        if (at != 0 && block.timestamp >= at) r = _gov.pendingRules;
+    }
+
     function _lateFees(address member, uint256 period, uint256 at) internal view returns (uint256) {
         // A fee waiver voted by the circle (Governance) clears both late fees for that period.
         if (_m.feeWaived[member][period]) return 0;
@@ -1003,6 +1060,8 @@ contract CircleVault is ReentrancyGuard {
             period, _m.holidayFor[member][period], at, dueDay, secondFeeDay, fee1, fee2
         );
     }
+
+    // slither-disable-end incorrect-return,redundant-statements
 
     // ------------------------------------------------------------------ no plain transfers
 
