@@ -116,6 +116,7 @@ How to use this file:
 - [ ] Each Phase 2 feature lands as its own module under `src/modules/` (ADR 0031, 0037); vault has ~9 KB runtime left
 - [ ] Re-enable Slither `locked-ether` once exits exist
 - [ ] Red-team Phase 2 items: NAV includes interest owed and marks down overdue loans (RT-08, RT-18), k rises with tenure (RT-15), guarantee locks shares (RT-16), no new loans while exits wait (RT-17), pull-payment fallback for wallets that reject AVAX (RT-20), migration targets from a timelocked registry (RT-13)
+- [x] Module security reviews (governance, exits, loans) and their fixes: member-bar votes, automatic rule switch-over, rage-quit notice, linked-list exit queue, cash-based dissolution claims, one capped payout path, transient reentrancy lock (ADR 0043, `S-RV-*`)
 - [ ] Loan request → vote → auto-disbursal
 - [ ] Interest, partial payments, repayment allocation, auto-close
 - [ ] Tenors (rule 15), minimum interest (rule 17), medical loans (rule 18), cap (rule 13), reserve (rule 12)

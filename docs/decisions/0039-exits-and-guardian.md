@@ -1,6 +1,6 @@
 # 0039. Exits and the guardian pause
 
-- **Status:** Accepted
+- **Status:** Accepted; zero-notice rage-quit, queue design and claim rule: Superseded by 0043
 - **Date:** 2026-11-15
 
 ## Context
