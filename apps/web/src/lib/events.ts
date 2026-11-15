@@ -192,7 +192,8 @@ export function useCircleEvents(id: Address | null) {
     refetchInterval: 30_000,
     staleTime: 15_000,
     queryFn: async (): Promise<CircleEvents> => {
-      const latest = await client!.getBlockNumber();
+      // No cache: a refetch right after a transaction must see the block it landed in.
+      const latest = await client!.getBlockNumber({ cacheTime: 0 });
       // History from the indexer when one is configured (ADR 0036); only the newest blocks
       // come from the RPC. Any indexer trouble falls back to reading the RPC directly.
       let start = createdAt!;

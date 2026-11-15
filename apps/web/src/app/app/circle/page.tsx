@@ -257,6 +257,15 @@ function CircleOverview() {
             currentPeriod={periodOf(chainNow)}
             chainNow={chainNow}
             dueDay={d.dueDay}
+            money={
+              gov?.rules
+                ? {
+                    totalAssets: d.totalAssets,
+                    loansOutstanding: gov.loansOutstanding,
+                    reserveBps: gov.rules.reserveBps,
+                  }
+                : undefined
+            }
             mine={
               d.isMember && address
                 ? {

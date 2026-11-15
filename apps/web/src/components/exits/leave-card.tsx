@@ -22,6 +22,14 @@ import { formatBps } from "@/lib/rules";
 import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
 
+/**
+ * Gas limit for `claimExit`. The exit queue walk stops quietly when less than 150k gas is left
+ * (Exits.MIN_GAS_PER_EXIT) instead of reverting, so a wallet's estimate finds the cheapest run,
+ * which pays nobody and still succeeds. A fixed limit covers the walk to you; unused gas is
+ * refunded. Remove once the contract reverts when it can't reach the caller.
+ */
+const CLAIM_EXIT_GAS = 1_500_000n;
+
 const dateFmt = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
   month: "long",
@@ -83,7 +91,7 @@ export function LeaveCard({
   }
 
   async function collect() {
-    const receipt = await claim.send("claimExit");
+    const receipt = await claim.send("claimExit", undefined, undefined, CLAIM_EXIT_GAS);
     if (!receipt) return;
     const logs = parseEventLogs({ abi: circleVaultAbi, logs: receipt.logs });
     const paid = logs.find((l) => l.eventName === "ExitPaid");

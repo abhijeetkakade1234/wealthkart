@@ -10,6 +10,10 @@
 - `events.ts`: reads a circle's events from the chain in block chunks (`useCircleEvents`)
 - `gov-hooks.ts`: exits, guardian and governance reads (`useCircleGov`, `useProposals`, `useMemberOptions`)
 - `governance.ts`: pure mirrors of Governance and Exits (proposal outcome, tally text, exit phase, waiver months)
+- `loans.ts`: pure LoanBook mirrors: limits, interest preview (rules engine), tenor timeline, defaultable, repay checks, loans from events, list filters, chart shaping
+- `loan-hooks.ts`: every loan read and write in one place (`useMyLoan`, `useOpenLoanRequests`, `useLoanTx`, ...), ADR 0044
+- `use-block-times.ts`: block timestamps for a page of rows, `formatWhen` (UTC)
+- `feed.ts`: activity feed sentences for every vault event, including loans
 - `rules.ts`: `Rules.Params` mirror: defaults, plain-words formatting, `ruleDiff`, `rulesProblem` (bounds of `Rules.validate`), form parsing
 - `use-vault-action.ts`: one typed vault write with its tracker state
 - `circle-form.ts`: create-circle form state and validation (mirrors contract bounds)
