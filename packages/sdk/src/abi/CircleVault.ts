@@ -513,6 +513,13 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "cancelExit",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "cancelJoinRequest",
     inputs: [],
     outputs: [],
@@ -530,6 +537,43 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "checkUpkeep",
+    inputs: [
+      {
+        name: "",
+        type: "bytes",
+        internalType: "bytes",
+      },
+    ],
+    outputs: [
+      {
+        name: "upkeepNeeded",
+        type: "bool",
+        internalType: "bool",
+      },
+      {
+        name: "performData",
+        type: "bytes",
+        internalType: "bytes",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "claimExit",
+    inputs: [],
+    outputs: [
+      {
+        name: "paid",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -626,6 +670,121 @@ export const circleVaultAbi = [
         name: "",
         type: "uint8",
         internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitOf",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct Exits.Entry",
+        components: [
+          {
+            name: "requestedAt",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "maturesAt",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "slot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "feeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "waiting",
+            type: "bool",
+            internalType: "bool",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitQueueLength",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitQueuePage",
+    inputs: [
+      {
+        name: "offset",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "address[]",
+        internalType: "address[]",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitValue",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitsWaiting",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
       },
     ],
     stateMutability: "view",
@@ -1300,6 +1459,39 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "pause",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "pausedUntil",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "performUpkeep",
+    inputs: [
+      {
+        name: "",
+        type: "bytes",
+        internalType: "bytes",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "periodsOverdue",
     inputs: [
       {
@@ -1316,6 +1508,25 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "processExits",
+    inputs: [
+      {
+        name: "maxCount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "paid",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -1361,6 +1572,13 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "requestExit",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -1582,6 +1800,13 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "unpause",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "vote",
     inputs: [
       {
@@ -1756,6 +1981,17 @@ export const circleVaultAbi = [
       },
       {
         name: "currentPeriod",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "CirclePaused",
+    inputs: [
+      {
+        name: "until",
         type: "uint256",
         internalType: "uint256",
       },
@@ -2411,6 +2647,256 @@ export const circleVaultAbi = [
         name: "reason",
         type: "string",
         internalType: "string",
+      },
+    ],
+  },
+  {
+    type: "event",
+    name: "ExitCancelled",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitDropped",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Exits.DropReason",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitPaid",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "shares",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "value",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "fee",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "payout",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitRequested",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "maturesAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "feeBps",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitWaiting",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "payout",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "cash",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "GuardianPaused",
+    inputs: [
+      {
+        name: "guardian",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "until",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "GuardianUnpaused",
+    inputs: [
+      {
+        name: "by",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "PayoutQueued",
+    inputs: [
+      {
+        name: "to",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "ExitAlreadyPending",
+    inputs: [
+      {
+        name: "maturesAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ExitNotReady",
+    inputs: [
+      {
+        name: "maturesAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuardianOff",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "HasLoanTies",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "ties",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "MemberFrozen",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NoExitPending",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotGuardian",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotPaused",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "PauseTooSoon",
+    inputs: [
+      {
+        name: "allowedAt",
+        type: "uint256",
+        internalType: "uint256",
       },
     ],
   },

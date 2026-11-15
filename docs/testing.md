@@ -108,9 +108,13 @@ Known gaps:
 - S-EXIT-04 Chainlink Automation is down for a week → member/anyone triggers `processExits()`, same result
 - S-EXIT-05 Exiting member is a contract wallet that reverts on receive → queue not blocked, funds claimable via pull
 - S-EXIT-06 Exiting member is a contract that re-enters on receive → no double payout
-- S-EXIT-07 NAV changes during the notice period (interest arrives) → payout uses the snapshot at the end of notice
+- S-EXIT-07 NAV changes during the notice period or before the exit is processed (interest, fees arrive) → payout uses NAV at the moment it is paid (ADR 0039)
 - S-EXIT-08 Member cancels exit during notice → restored to normal
 - S-EXIT-09 Last member exits → vault empties cleanly, no dust stuck
+- S-EXIT-10 Exit fee → stays in the vault; everyone else's NAV goes up
+- S-EXIT-11 Dormant member exits → paid for their shares; dormant count drops
+- S-EXIT-12 Rage-quit window open (ADR 0019) → exit has no notice and is paid even if an earlier exit is still in its notice
+- S-EXIT-13 Member takes a loan tie or is frozen during the notice → exit dropped at processing, `exitsWaiting` stays exact
 
 ### Governance (S-GOV)
 
@@ -290,7 +294,7 @@ From [`redteam/2026-11-plan-redteam.md`](redteam/2026-11-plan-redteam.md). Each 
 - S-RT-19 (RT-12) Proposal to lower the reserve or raise k / exit fee / notice / fees → needs 66% and a 14-day delay; a lower-risk change keeps the normal pass mark
 - S-RT-20 (RT-12) Member rage-quits during the delay → exit uses the old notice and fee even after the change takes effect
 - S-RT-21 (RT-13) Migration proposal targeting an address not created by a registered factory → can't be created
-- S-RT-22 (RT-14) Guardian pauses deposits over the due day → no late fees for paused days; second pause within 30 days → reverts; exits still process during a pause
+- S-RT-22 (RT-14) Guardian pause → new joins and loans stop for 14 days, deposits never stop (so no late-fee issue); second pause within 90 days of the last → reverts; voted-off or departed guardian can't pause and anyone can unpause; exits, claims and withdraw still work during a pause
 - S-RT-23 (RT-15) Pair with stakes 2 + 2, borrower has 3 paid periods → cap uses k = 1 (4 AVAX), not 8
 - S-RT-24 (RT-16) Guarantor backs a second loan with already-locked shares → rejected; locked shares can't be exited
 - S-RT-25 (RT-17) Exit queue non-empty and a loan vote passes → disbursal blocked until the queue is paid; reserve used for the queued exit
