@@ -97,6 +97,8 @@ export const messages = {
   noEligibleVoters: () => "There's nobody who could vote on this yet.",
   ruleChangeInProgress: () =>
     "A rule change is already being voted on or waiting to apply. One at a time.",
+  invalidRule: () =>
+    "One of these settings is outside what a circle allows. Check the numbers and try again.",
   noPendingRuleChange: () => "There's no rule change waiting to apply.",
   ruleChangeNotDue: () => "The new rules can't apply yet. They start once the waiting period ends.",
   invalidWaiver: () =>
@@ -215,6 +217,7 @@ export type FriendlyErrorCode =
   | "too-many-proposals-by"
   | "no-eligible-voters"
   | "rule-change-in-progress"
+  | "invalid-rule"
   | "no-pending-rule-change"
   | "rule-change-not-due"
   | "invalid-waiver"
@@ -421,6 +424,7 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["TooManyOpenProposalsBy", "too-many-proposals-by", messages.tooManyOpenProposalsBy],
     ["NoEligibleVoters", "no-eligible-voters", messages.noEligibleVoters],
     ["RuleChangeInProgress", "rule-change-in-progress", messages.ruleChangeInProgress],
+    ["InvalidRule", "invalid-rule", messages.invalidRule],
     ["NoPendingRuleChange", "no-pending-rule-change", messages.noPendingRuleChange],
     ["RuleChangeNotDue", "rule-change-not-due", messages.ruleChangeNotDue],
     ["InvalidWaiver", "invalid-waiver", messages.invalidWaiver],

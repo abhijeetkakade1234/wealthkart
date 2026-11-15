@@ -16,6 +16,11 @@ import { Pagination, usePageParam } from "@/components/app/pagination";
 import { StatCard } from "@/components/app/stat-card";
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { Button, ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
+import { LeaveCard } from "@/components/exits/leave-card";
+import { GuardianPause, PauseBanner } from "@/components/exits/pause";
+import { WithdrawAlert } from "@/components/exits/withdraw-alert";
+import { DissolvedNotice, RuleChangeBanner } from "@/components/governance/circle-notices";
+import { RulesCard } from "@/components/governance/rules-card";
 import { DormantNotice, ProposeDormantButton } from "@/components/membership/dormant";
 import { InviteCard } from "@/components/membership/invite-card";
 import { NameCard } from "@/components/membership/name-card";
@@ -29,6 +34,7 @@ import {
   useCircle,
   useCircleMembers,
 } from "@/lib/circle";
+import { useCircleGov } from "@/lib/gov-hooks";
 import { votingRightsNote } from "@/lib/membership";
 import type { Address } from "viem";
 
@@ -47,6 +53,7 @@ function CircleOverview() {
   const id = parseCircleId(useSearchParams().get("id"));
   const { chainId, address } = useCoreWallet();
   const c = useCircle(id);
+  const g = useCircleGov(id);
   const chainNow = useChainNow();
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
@@ -73,7 +80,12 @@ function CircleOverview() {
   if (c.isError) return <StateView state="error" onRetry={() => c.refetch()} />;
 
   const d = c.data;
+  const gov = g.data;
   const explorer = chainId ? explorerAddressUrl(chainId, id) : null;
+  const refetchAll = () => {
+    void c.refetch();
+    void g.refetch();
+  };
 
   return (
     <>
@@ -109,6 +121,23 @@ function CircleOverview() {
           ) : undefined
         }
       />
+
+      {gov && (
+        <div className="mb-10 grid gap-5 empty:hidden">
+          <ErrorBoundary preset="widget" name="Circle notices">
+            <PauseBanner circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
+            <DissolvedNotice
+              circle={id}
+              gov={gov}
+              isMember={d.isMember}
+              share={d.stake}
+              onChanged={refetchAll}
+            />
+            <RuleChangeBanner circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
+            <WithdrawAlert circle={id} amount={gov.withdrawable} onChanged={refetchAll} />
+          </ErrorBoundary>
+        </div>
+      )}
 
       {d.iAmDormant && (
         <div className="mb-10">
@@ -180,6 +209,24 @@ function CircleOverview() {
           <ErrorBoundary preset="widget" name="Invite">
             <InviteCard circle={id} me={address} />
           </ErrorBoundary>
+        </section>
+      )}
+
+      {gov?.rules && (
+        <section className="mt-16 grid gap-5 lg:grid-cols-2">
+          <ErrorBoundary preset="widget" name="Circle rules">
+            <RulesCard circle={id} rules={gov.rules} />
+          </ErrorBoundary>
+          {d.isMember && !gov.dissolved && (
+            <ErrorBoundary preset="widget" name="Leaving">
+              <LeaveCard circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
+            </ErrorBoundary>
+          )}
+          {d.isMember && (
+            <ErrorBoundary preset="widget" name="Guardian">
+              <GuardianPause circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
+            </ErrorBoundary>
+          )}
         </section>
       )}
 

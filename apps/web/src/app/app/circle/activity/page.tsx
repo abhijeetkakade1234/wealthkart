@@ -10,6 +10,7 @@ import { usePublicClient, useReadContracts } from "wagmi";
 
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
+import { CirclePauseBanner } from "@/components/exits/pause";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { EmptyArt } from "@/components/art";
 import { ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
@@ -59,6 +60,7 @@ function Activity() {
         title="Activity"
         subtitle={`${c.data.name} · every payment, member change and vote, straight from the blockchain.`}
       />
+      <CirclePauseBanner circle={id} />
       <ErrorBoundary preset="widget" name="Activity">
         <Feed id={id} />
       </ErrorBoundary>

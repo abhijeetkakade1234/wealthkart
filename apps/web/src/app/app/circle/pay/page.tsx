@@ -9,6 +9,7 @@ import { useBalance, useWriteContract } from "wagmi";
 import { CountdownUTC } from "@/components/app/countdown-utc";
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
+import { CirclePauseBanner } from "@/components/exits/pause";
 import { Button, InlineAlert, StateView, TxTracker } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
@@ -96,6 +97,7 @@ function Pay() {
   return (
     <div className="max-w-[640px]">
       <PageHeader title="Pay" subtitle={d.name} />
+      <CirclePauseBanner circle={id} />
 
       {!due?.payable ? (
         <StateView
