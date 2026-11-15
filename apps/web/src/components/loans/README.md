@@ -1,6 +1,6 @@
 # src/components/loans
 
-**What's here:** the Loans screens (ADR 0038, 0043): your loan, asking for one, backing one, voting on one, and the list of all loans.
+**What's here:** the Loans screens (ADR 0038, 0044): your loan, asking for one, backing one, voting on one, and the list of all loans.
 **Open this when:** changing anything a borrower, guarantor or voter sees about loans.
 
 | File                    | Purpose                                                                                                                                                           |

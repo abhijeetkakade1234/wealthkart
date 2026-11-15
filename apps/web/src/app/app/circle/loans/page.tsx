@@ -24,7 +24,7 @@ import { useCircleEvents } from "@/lib/events";
 import { useCircleGov } from "@/lib/gov-hooks";
 import { isAhead } from "@/lib/governance";
 import { useMemberName, useMyLoan, useOpenLoanRequests } from "@/lib/loan-hooks";
-import { askBlocker, avax, loansFromLogs } from "@/lib/loans";
+import { askBlocker, avax, loanTies, loansFromLogs } from "@/lib/loans";
 
 export default function LoansPage() {
   return (
@@ -45,6 +45,11 @@ function Loans() {
   const chainNow = useChainNow();
   const { address } = useCoreWallet();
   const guarantorName = useMemberName(id, my.data?.loan?.guarantor);
+  const events = useCircleEvents(id);
+  const ties = useMemo(
+    () => loanTies(events.data ? loansFromLogs(events.data.logs) : []),
+    [events.data],
+  );
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
   if (c.isPending || !c.data) {
@@ -72,6 +77,7 @@ function Loans() {
     void c.refetch();
     void g.refetch();
     void my.refetch();
+    void events.refetch();
     open.refetch();
   };
   const blocked =
@@ -86,6 +92,8 @@ function Loans() {
           minMembersForLoans: rules.minMembersForLoans,
           paused: isAhead(gov.pausedUntil, chainNow),
           dissolved: gov.dissolved,
+          exiting: my.data.exiting,
+          guaranteeing: Boolean(address && ties.guarantors.has(address.toLowerCase())),
         })
       : "Loading…";
   const lower = address?.toLowerCase();
@@ -113,6 +121,7 @@ function Loans() {
               currentPeriod={currentPeriod}
               dueDay={d.dueDay}
               blocked={blocked}
+              tied={ties}
               onAsked={refetchAll}
             />
           ) : undefined
@@ -187,6 +196,7 @@ function Loans() {
               rules={rules}
               currentPeriod={currentPeriod}
               openRequests={open.all}
+              dissolved={gov?.dissolved ?? false}
               onChanged={refetchAll}
             />
           ) : (

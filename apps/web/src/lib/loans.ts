@@ -162,6 +162,12 @@ export interface LoanState {
   medical: boolean;
   defaulted: boolean;
   charged: boolean;
+  /** Late months before a default, fixed at payout (ADR 0043); 0 = read from the rules. */
+  defaultAfter: number;
+  /** Month the loan was marked as defaulted (0 = never). */
+  defaultPeriod: number;
+  /** Late fee per month of unpaid interest, fixed at payout (ADR 0043). */
+  interestFee: bigint;
 }
 
 /** viem's struct output of `loanOf` to plain numbers; null when there is no loan. */
@@ -185,6 +191,9 @@ export function loanFromChain(raw: unknown): LoanState | null {
     medical: Boolean(r.medical),
     defaulted: Boolean(r.defaulted),
     charged: Boolean(r.charged),
+    defaultAfter: Number(r.defaultAfter ?? 0),
+    defaultPeriod: Number(r.defaultPeriod ?? 0),
+    interestFee: BigInt((r.interestFee as bigint | number | undefined) ?? 0),
   };
 }
 
@@ -281,16 +290,21 @@ export function loanPreview(
   };
 }
 
-/** LoanBook._defaultable: `defaultAfter` overdue months, or the third tenor is over. */
+/**
+ * LoanBook._defaultable: the loan's own `defaultAfter` overdue months (fixed at payout; the
+ * circle's current rule as a fallback), or the third tenor is over.
+ */
 export function isDefaultable(
-  l: Pick<LoanState, "disbursedPeriod" | "tenorMonths" | "principal" | "defaulted">,
+  l: Pick<LoanState, "disbursedPeriod" | "tenorMonths" | "principal" | "defaulted"> & {
+    defaultAfter?: number;
+  },
   overdueMonths: number,
   defaultAfter: number,
   currentPeriod: number,
 ): boolean {
   if (l.principal === 0n || l.defaulted) return false;
   if (currentPeriod > l.disbursedPeriod + TENORS * Math.max(1, l.tenorMonths)) return true;
-  return overdueMonths >= defaultAfter;
+  return overdueMonths >= (l.defaultAfter || defaultAfter);
 }
 
 /** How a borrower lifts a default, in plain words (LoanBook._maybeCure). */
@@ -346,6 +360,8 @@ export interface LoanRecord {
   status: LoanRowStatus;
   /** Why a request didn't go ahead (rejected, expired, cancelled, failed). */
   closedAs?: RequestStatus;
+  /** The named guarantor agreed (GuaranteeAccepted). */
+  guarantorAccepted: boolean;
   disbursedPeriod?: number;
   /** Principal still owed, from repayments seen in the events. */
   outstanding: bigint;
@@ -378,7 +394,13 @@ export function loansFromLogs(logs: readonly DecodedLog[]): LoanRecord[] {
           block: l.blockNumber ?? 0n,
           status: "voting",
           outstanding: 0n,
+          guarantorAccepted: false,
         });
+        break;
+      }
+      case "GuaranteeAccepted": {
+        const r = byId.get(Number(a.requestId as bigint));
+        if (r) r.guarantorAccepted = true;
         break;
       }
       case "LoanRequestClosed": {
@@ -596,6 +618,27 @@ export function shareText(part: bigint, whole: bigint): string {
 
 // ------------------------------------------------------------------ asking
 
+/**
+ * Who is tied to a loan right now, from the events (lower-case addresses): borrowers with an
+ * open request or a running loan, and guarantors who accepted one. One stake backs one loan
+ * (ADR 0043): a borrower can't guarantee, and a guarantor can't borrow.
+ */
+export function loanTies(rows: readonly LoanRecord[]): {
+  borrowers: Set<string>;
+  guarantors: Set<string>;
+} {
+  const borrowers = new Set<string>();
+  const guarantors = new Set<string>();
+  for (const r of rows) {
+    const live = r.status === "voting" || r.status === "active" || r.status === "default";
+    if (!live) continue;
+    borrowers.add(r.borrower.toLowerCase());
+    const g = r.guarantor.toLowerCase();
+    if (g !== ZERO && (r.status !== "voting" || r.guarantorAccepted)) guarantors.add(g);
+  }
+  return { borrowers, guarantors };
+}
+
 export interface AskState {
   voter: boolean;
   frozen: boolean;
@@ -606,6 +649,10 @@ export interface AskState {
   minMembersForLoans: number;
   paused: boolean;
   dissolved: boolean;
+  /** Asked to leave: in notice or waiting to be paid (Membership.Member.exiting). */
+  exiting?: boolean;
+  /** Backs someone else's loan (one stake, one loan). */
+  guaranteeing?: boolean;
 }
 
 /** Why this wallet can't ask for a loan right now (LoanBook._checkRequest), or null. */
@@ -614,10 +661,15 @@ export function askBlocker(s: AskState): string | null {
   if (s.paused) return "Loans are paused for a short time by the circle's guardian.";
   if (s.frozen)
     return "You're frozen because of a loan in default, so you can't ask for a new one.";
+  if (s.exiting)
+    return "You've asked to leave the circle, so you can't borrow. Stay to ask for a loan.";
   if (s.dormant) return "Your payments are paused (dormant). Come back first, then you can ask.";
   if (!s.voter) return "You can ask for a loan once you can vote in this circle.";
   if (s.hasLoan) return "You already have a loan. Repay it before asking for another.";
   if (s.hasRequest) return "You already asked for a loan. Wait for the vote, or withdraw it.";
+  if (s.guaranteeing) {
+    return "You're backing someone else's loan. Your savings can back one loan at a time, so you can borrow once theirs is repaid.";
+  }
   if (s.memberCount < s.minMembersForLoans) {
     return `Loans start once the circle has ${s.minMembersForLoans} members. It has ${s.memberCount}.`;
   }

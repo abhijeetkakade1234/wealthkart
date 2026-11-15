@@ -29,12 +29,15 @@ test.describe("loans", () => {
 
     await a.getByRole("button", { name: "Ask for a loan" }).click();
     const dialog = a.getByRole("dialog", { name: "Ask for a loan" });
-    await expect(dialog.getByText("You can ask for up to 0.60 AVAX right now.")).toBeVisible();
+    // 40% of the circle: 0.60 AVAX after one paid month (more if setup paid two).
+    await expect(
+      dialog.getByText(/You can ask for up to \d+\.\d\d AVAX right now\./),
+    ).toBeVisible();
     await expect(dialog.getByText("Biggest loan the circle allows")).toBeVisible();
     await expect(dialog.getByText("Cash free to lend")).toBeVisible();
 
     // Too much is refused before anything is sent.
-    await dialog.getByLabel("Amount in AVAX").fill("0.9");
+    await dialog.getByLabel("Amount in AVAX").fill("9");
     await expect(dialog.getByText(/That's more than you can ask for right now/)).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Ask the circle" })).toBeDisabled();
 
@@ -144,11 +147,13 @@ test.describe("loans", () => {
     await expect(notice.getByText(/asked you to back a loan of 0\.30 AVAX/)).toBeVisible();
     await expect(notice.getByText(/you're frozen too/)).toBeVisible();
     await notice.getByRole("button", { name: "Back this loan" }).click();
-    await expect(c.getByText(/You're backing .*'s loan\./).first()).toBeVisible();
+    await expect(c.getByText(/^You're backing 0x3C44…93BC's loan\.$/)).toBeVisible();
 
     expect((await balanceOf(bob)) - before).toBe((3n * AVAX) / 10n);
     await c.reload();
-    await expect(c.getByText(/You're backing .*'s loan/)).toBeVisible();
+    await expect(c.getByText(/^You're backing 0x3C44…93BC's loan$/)).toBeVisible();
+    // One stake backs one loan: Carol can't borrow while she backs Bob.
+    await expect(c.getByTestId("ask-blocked")).toContainText("backing someone else's loan");
     await expect(c.getByTestId("guarantor-notice")).toHaveCount(0);
 
     await b.reload();

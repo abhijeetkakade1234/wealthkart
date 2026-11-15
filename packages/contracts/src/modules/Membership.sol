@@ -38,6 +38,9 @@ library Membership {
         uint64 nameChangedAt;
         /// @dev Installments paid so far.
         uint16 paid;
+        /// @dev Asked to exit and waiting for the payout (ADR 0039, 0043): can't vote, propose,
+        ///      borrow or guarantee, and isn't counted in `voterCount`. Set and cleared by Exits.
+        bool exiting;
         uint128 shares;
     }
 
@@ -306,7 +309,7 @@ library Membership {
 
         // Everyone who could vote now, minus the member it is about (they can't vote on it).
         // The proposer is a voter and isn't the member, so this is at least 1.
-        uint256 voters = s.voterCount - (m.voter ? 1 : 0);
+        uint256 voters = s.voterCount - (m.voter && !m.exiting ? 1 : 0);
         id = _open(s, p, Kind.Dormant, member, msg.sender, SafeCast.toUint32(voters), "");
         s.openDormantOf[member] = id;
         Request storage r = s.requests[id - 1];
@@ -422,7 +425,8 @@ library Membership {
         if (!m.voter && m.paid >= minPaidToVote) {
             m.voter = true;
             m.seq = ++s.seqCounter;
-            s.voterCount += 1;
+            // A member who is leaving gets the right now but is counted when the exit is cancelled.
+            if (!m.exiting) s.voterCount += 1;
             emit VotingRightsGranted(who);
         }
     }
@@ -445,13 +449,35 @@ library Membership {
         return m.seq <= seqSnapshot && _isCurrentVoter(m);
     }
 
+    /// @notice Marks `who` as leaving (`on`) or staying after all. A leaving member is taken out
+    ///         of `voterCount`; one who stays is counted again with a fresh stamp, so they vote
+    ///         only on proposals opened from now on and `yes + no <= eligible` still holds.
+    /// @dev Exits only, for an active member. Dormant members aren't counted either way.
+    function setExiting(Store storage s, address who, bool on) internal {
+        Member storage m = s.members[who];
+        m.exiting = on;
+        if (!m.voter || m.dormant) return;
+        if (on) {
+            s.voterCount -= 1;
+        } else {
+            s.voterCount += 1;
+            m.seq = ++s.seqCounter;
+        }
+    }
+
+    /// @notice True if `who` counts in `voterCount`: active, a voter, not dormant, not leaving.
+    function inVoterCount(Store storage s, address who) internal view returns (bool) {
+        Member storage m = s.members[who];
+        return m.active && m.voter && !m.dormant && !m.exiting;
+    }
+
     /// @notice Removes `who` (an exit or dissolution, Phase 2). Counts stay exact; the member
     ///         list keeps the address for history, and the name is released after the cooldown.
     function removeMember(Store storage s, address who) internal {
         Member storage m = s.members[who];
         if (!m.active) revert NotAMember(who);
         if (m.dormant) s.dormantCount -= 1;
-        else if (m.voter) s.voterCount -= 1;
+        else if (m.voter && !m.exiting) s.voterCount -= 1;
         s.memberCount -= 1;
         string memory current = s.names[who];
         if (bytes(current).length != 0) {
@@ -462,6 +488,7 @@ library Membership {
         m.dormant = false;
         m.voter = false;
         m.frozen = false;
+        m.exiting = false;
         m.shares = 0;
         emit MemberRemoved(who);
     }
@@ -508,7 +535,7 @@ library Membership {
         m.nextPeriod = next;
         m.seq = ++s.seqCounter;
         s.dormantCount -= 1;
-        if (m.voter) s.voterCount += 1;
+        if (m.voter && !m.exiting) s.voterCount += 1;
         emit MemberWoke(who, next);
     }
 
@@ -525,6 +552,7 @@ library Membership {
             seq: seq,
             nameChangedAt: 0,
             paid: 0,
+            exiting: false,
             shares: 0
         });
         s.memberCount += 1;
@@ -544,10 +572,11 @@ library Membership {
         return m.active && !m.dormant;
     }
 
-    /// @dev Active, not dormant, and at most one period behind (RT-03, RT-07). A member still
-    ///      inside their first unpaid month is not behind.
+    /// @dev Active, not dormant, not leaving, not frozen by a loan default, and at most one
+    ///      period behind (RT-03, RT-07, EXIT-06, LOAN-08). A member still inside their first
+    ///      unpaid month is not behind.
     function _isCurrentVoter(Member storage m) private view returns (bool) {
-        return _isVoter(m) && m.voter
+        return _isVoter(m) && m.voter && !m.exiting && !m.frozen
             && uint256(m.nextPeriod) + MAX_PERIODS_BEHIND_TO_VOTE
                 >= PeriodMath.periodOf(block.timestamp);
     }
@@ -693,7 +722,7 @@ library Membership {
             Member storage target = s.members[account];
             target.dormant = true;
             s.dormantCount += 1;
-            if (target.voter) s.voterCount -= 1;
+            if (target.voter && !target.exiting) s.voterCount -= 1;
             emit MemberDormant(account, PeriodMath.periodOf(block.timestamp));
             return;
         }

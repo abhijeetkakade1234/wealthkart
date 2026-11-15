@@ -12,6 +12,7 @@ import {
   loanLimits,
   loanPreview,
   loanSettledLine,
+  loanTies,
   loansFromLogs,
   type LoanState,
   moneySplit,
@@ -53,6 +54,9 @@ const loan = (over: Partial<LoanState> = {}): LoanState => ({
   medical: false,
   defaulted: false,
   charged: false,
+  defaultAfter: 2,
+  defaultPeriod: 0,
+  interestFee: AVAX / 100n,
   ...over,
 });
 
@@ -69,7 +73,7 @@ const log = (eventName: string, args: Record<string, unknown>): DecodedLog => {
 };
 
 describe("loan limits (LoanBook._limit)", () => {
-  it("S-WEB-49 takes the lowest of the fund cap, k x stakes and lendable cash, and explains each", () => {
+  it("S-WEB-50 takes the lowest of the fund cap, k x stakes and lendable cash, and explains each", () => {
     // Circle of three paying 0.5 each: 1.5 AVAX, reserve 20% -> 1.2 lendable.
     const base = {
       totalAssets: (3n * AVAX) / 2n,
@@ -96,7 +100,7 @@ describe("loan limits (LoanBook._limit)", () => {
     expect(g.binding).toBe("cash");
   });
 
-  it("S-WEB-49 adds the medical cap only for medical loans", () => {
+  it("S-WEB-50 adds the medical cap only for medical loans", () => {
     const l = loanLimits({
       totalAssets: 10n * AVAX,
       myStake: 5n * AVAX,
@@ -110,7 +114,7 @@ describe("loan limits (LoanBook._limit)", () => {
     expect(l.binding).toBe("medical");
   });
 
-  it("S-WEB-50 parses typed AVAX amounts exactly and refuses anything else", () => {
+  it("S-WEB-51 parses typed AVAX amounts exactly and refuses anything else", () => {
     expect(parseAvaxInput("0.5")).toBe(AVAX / 2n);
     expect(parseAvaxInput(" 1 ")).toBe(AVAX);
     expect(parseAvaxInput("0.000000000000000001")).toBe(1n);
@@ -121,7 +125,7 @@ describe("loan limits (LoanBook._limit)", () => {
 });
 
 describe("interest preview and tenors (rule 15, 17, 18)", () => {
-  it("S-WEB-51 previews each tenor's monthly interest with the rules engine, rounded up", () => {
+  it("S-WEB-52 previews each tenor's monthly interest with the rules engine, rounded up", () => {
     const p = loanPreview(AVAX / 2n, rules, false, P);
     expect(p.firstCharged).toBe(P + 1);
     expect(p.tenors.map((t) => [t.from, t.to, t.rateBps])).toEqual([
@@ -139,14 +143,14 @@ describe("interest preview and tenors (rule 15, 17, 18)", () => {
     expect(ceilBps(3n, 100)).toBe(1n); // rounds up like the contract
   });
 
-  it("S-WEB-51 medical loans start later and owe no rule-17 minimum", () => {
+  it("S-WEB-52 medical loans start later and owe no rule-17 minimum", () => {
     const p = loanPreview(AVAX, { ...rules, medicalFreeMonths: 3 }, true, P);
     expect(p.firstCharged).toBe(P + 3);
     expect(p.freeMonths).toBe(3);
     expect(p.minimum).toBe(0n);
   });
 
-  it("S-WEB-52 tenor timeline marks the current term and the due month", () => {
+  it("S-WEB-53 tenor timeline marks the current term and the due month", () => {
     const l = loan();
     expect(tenorTimeline(l, P).steps.map((s) => s.state)).toEqual(["now", "next", "next"]);
     expect(tenorTimeline(l, P + 7).steps.map((s) => s.state)).toEqual(["past", "now", "next"]);
@@ -156,7 +160,7 @@ describe("interest preview and tenors (rule 15, 17, 18)", () => {
     expect(late.steps.every((s) => s.state === "past")).toBe(true);
   });
 
-  it("S-WEB-52 rate charged mirrors LoanBook._span (payout month free, medical free months)", () => {
+  it("S-WEB-53 rate charged mirrors LoanBook._span (payout month free, medical free months)", () => {
     const l = loan();
     expect(rateIn(l, P)).toBe(0);
     expect(rateIn(l, P + 1)).toBe(100);
@@ -170,21 +174,25 @@ describe("interest preview and tenors (rule 15, 17, 18)", () => {
 });
 
 describe("defaults", () => {
-  it("S-WEB-53 a loan is defaultable after defaultAfter late months or past the third tenor", () => {
+  it("S-WEB-54 a loan is defaultable after defaultAfter late months or past the third tenor", () => {
     const l = loan();
     expect(isDefaultable(l, 1, 2, P + 2)).toBe(false);
     expect(isDefaultable(l, 2, 2, P + 2)).toBe(true);
     expect(isDefaultable(l, 0, 2, P + 19)).toBe(true);
     expect(isDefaultable({ ...l, defaulted: true }, 5, 2, P + 3)).toBe(false);
     expect(isDefaultable({ ...l, principal: 0n }, 5, 2, P + 3)).toBe(false);
+    // The loan's own defaultAfter (fixed at payout, ADR 0043) wins over today's rule.
+    expect(isDefaultable({ ...l, defaultAfter: 3 }, 2, 2, P + 3)).toBe(false);
+    expect(isDefaultable({ ...l, defaultAfter: 1 }, 1, 2, P + 3)).toBe(true);
+    expect(isDefaultable({ ...l, defaultAfter: 0 }, 2, 2, P + 3)).toBe(true);
   });
 
-  it("S-WEB-53 the cure text says what to pay in plain words", () => {
+  it("S-WEB-54 the cure text says what to pay in plain words", () => {
     expect(cureText(loan(), AVAX / 100n, P + 3)).toMatch(/Pay the 0\.01 AVAX .* freeze lifts/);
     expect(cureText(loan(), 0n, P + 20)).toMatch(/whole loan is due\. Repay it in full/);
   });
 
-  it("S-WEB-54 repay form refuses what the contract refuses", () => {
+  it("S-WEB-55 repay form refuses what the contract refuses", () => {
     const pr = AVAX / 2n;
     expect(repayProblem("part", AVAX / 4n, pr, 0n, 1)).toMatch(/overdue interest first/);
     expect(repayProblem("full", null, pr, 5n, 0)).toMatch(/interest .* first/);
@@ -194,7 +202,7 @@ describe("defaults", () => {
     expect(repayProblem("part", AVAX / 4n, pr, 5n, 0)).toBeNull();
   });
 
-  it("S-WEB-55 asking is refused with the first reason that applies", () => {
+  it("S-WEB-56 asking is refused with the first reason that applies", () => {
     const ok = {
       voter: true,
       frozen: false,
@@ -214,11 +222,13 @@ describe("defaults", () => {
     expect(askBlocker({ ...ok, paused: true })).toMatch(/paused/);
     expect(askBlocker({ ...ok, dissolved: true, frozen: true })).toMatch(/voted to close/);
     expect(askBlocker({ ...ok, voter: false })).toMatch(/once you can vote/);
+    expect(askBlocker({ ...ok, exiting: true })).toMatch(/asked to leave/);
+    expect(askBlocker({ ...ok, guaranteeing: true })).toMatch(/backing someone else's loan/);
   });
 });
 
 describe("chain values", () => {
-  it("S-WEB-56 reads viem's loanOf struct and the request enums", () => {
+  it("S-WEB-57 reads viem's loanOf struct and the request enums", () => {
     expect(loanFromChain({ principal: 0n })).toBeNull();
     expect(loanFromChain(undefined)).toBeNull();
     const l = loanFromChain({
@@ -241,6 +251,10 @@ describe("chain values", () => {
     expect(l.principal).toBe(5n);
     expect(l.amount).toBe(7n);
     expect(l.defaulted).toBe(true);
+    expect(l.defaultAfter).toBe(0);
+    expect(
+      loanFromChain({ principal: 1n, defaultAfter: 3, defaultPeriod: P + 2, interestFee: 9n })!,
+    ).toMatchObject({ defaultAfter: 3, defaultPeriod: P + 2, interestFee: 9n });
     expect(requestStatus(2)).toBe("approved");
     expect(requestStatus(6)).toBe("failed");
     expect(requestStatus(99)).toBe("none");
@@ -250,7 +264,7 @@ describe("chain values", () => {
     expect(avax(AVAX / 2n)).toBe("0.50");
   });
 
-  it("S-WEB-56 settled lines say what happens next", () => {
+  it("S-WEB-57 settled lines say what happens next", () => {
     expect(loanSettledLine("approved", "loan", true)).toMatch(/guarantor agrees/);
     expect(loanSettledLine("approved", "loan", false)).toMatch(/send the AVAX/);
     expect(loanSettledLine("approved", "settle", false)).toMatch(/settle it now/);
@@ -317,7 +331,7 @@ describe("loans from events", () => {
     log("LoanRequestClosed", { requestId: 5n, kind: 1, status: 3 }),
   ];
 
-  it("S-WEB-57 builds each request's status, outstanding and type", () => {
+  it("S-WEB-58 builds each request's status, outstanding and type", () => {
     const rows = loansFromLogs(logs);
     const by = new Map(rows.map((r) => [r.requestId, r]));
     expect(rows).toHaveLength(4);
@@ -353,7 +367,7 @@ describe("loans from events", () => {
     expect(settled.find((r) => r.requestId === 3)!.status).toBe("settled");
   });
 
-  it("S-WEB-57 filters by status, type and borrower name or address, and sorts", () => {
+  it("S-WEB-58 filters by status, type and borrower name or address, and sorts", () => {
     const rows = loansFromLogs(logs);
     const name = (a: string) => (a === ALICE ? "Alice_A" : a === BOB ? "Bobby" : "Carol_C");
     expect(filterLoans(rows, "active", "all", "", name).map((r) => r.requestId)).toEqual([1]);
@@ -376,8 +390,30 @@ describe("loans from events", () => {
   });
 });
 
+describe("one stake, one loan (ADR 0043)", () => {
+  it("S-WEB-61 borrowers and accepted guarantors of live loans are tied; closed loans free them", () => {
+    const req = (id: bigint, borrower: string, guarantor: string) =>
+      log("LoanRequested", { requestId: id, borrower, guarantor, amount: AVAX, medical: false });
+    const rows = loansFromLogs([
+      req(1n, ALICE, BOB),
+      req(2n, CAROL, BOB),
+      log("GuaranteeAccepted", { requestId: 2n, borrower: CAROL, guarantor: BOB }),
+      req(3n, BOB, ZERO),
+      log("LoanRequestClosed", { requestId: 3n, kind: 0, status: 5 }),
+    ]);
+    const t = loanTies(rows);
+    expect([...t.borrowers].sort()).toEqual([ALICE, CAROL].map((a) => a.toLowerCase()).sort());
+    // Bob is named on request 1 (not accepted: not tied) and accepted request 2 (tied).
+    expect([...t.guarantors]).toEqual([BOB.toLowerCase()]);
+    expect(t.borrowers.has(BOB.toLowerCase())).toBe(false);
+
+    const none = loanTies(loansFromLogs([req(1n, ALICE, BOB)]));
+    expect(none.guarantors.size).toBe(0);
+  });
+});
+
 describe("loan charts", () => {
-  it("S-WEB-58 outstanding per member counts running and defaulted loans, biggest first", () => {
+  it("S-WEB-59 outstanding per member counts running and defaulted loans, biggest first", () => {
     const rows = loansFromLogs([
       log("LoanRequested", {
         requestId: 1n,
@@ -410,7 +446,7 @@ describe("loan charts", () => {
     ]);
   });
 
-  it("S-WEB-58 where the money is: lent out, reserve (rounded up, capped at cash) and free cash", () => {
+  it("S-WEB-59 where the money is: lent out, reserve (rounded up, capped at cash) and free cash", () => {
     const s = moneySplit(10n * AVAX, 4n * AVAX, 2000);
     expect(s).toEqual({ lent: 4n * AVAX, reserve: 2n * AVAX, free: 4n * AVAX, total: 10n * AVAX });
     expect(s.lent + s.reserve + s.free).toBe(s.total);

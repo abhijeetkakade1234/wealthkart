@@ -15,16 +15,16 @@ import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 ///      frozen, loanTies, rageQuitUntil, guardianDisabled) are set with `vm.store`. Slots come
 ///      from `forge inspect CircleVault storageLayout`; `_checkLayout` fails loudly if they move.
 contract CircleVaultExitsTest is CircleVaultBase {
-    uint256 internal constant MEMBERS_SLOT = 2; // _m.members (first field of Membership.Store)
-    uint256 internal constant LEDGER_SLOT = 24; // _ledger.totalAssets
-    uint256 internal constant LOANS_SLOT = LEDGER_SLOT + 2;
-    uint256 internal constant FLAGS_SLOT = LEDGER_SLOT + 6; // pausedUntil|rageQuitUntil|...
+    uint256 internal constant MEMBERS_SLOT = SLOT_MEMBERS;
+    uint256 internal constant LEDGER_SLOT = SLOT_LEDGER;
+    uint256 internal constant LOANS_SLOT = SLOT_LOANS_OUTSTANDING;
+    uint256 internal constant FLAGS_SLOT = SLOT_SWITCHES;
     uint256 internal constant BYTE_FROZEN = 3;
     uint256 internal constant BYTE_LOAN_TIES = 4;
     uint256 internal constant NOTICE = 30 days;
     /// @dev _rules second slot: interestFee(16) defaultAfter minMembers passPct dissolvePct
     ///      delayDays exitNoticeDays(2) exitFeeBps(2) -> exitFeeBps at byte 23.
-    uint256 internal constant RULES_SLOT_2 = 32;
+    uint256 internal constant RULES_SLOT_2 = SLOT_RULES + 1;
     uint256 internal constant BYTE_EXIT_FEE = 23;
 
     function setUp() public override {
@@ -148,7 +148,7 @@ contract CircleVaultExitsTest is CircleVaultBase {
         _requestExit(leaver);
         Exits.Entry memory e = vault.exitOf(leaver);
         assertEq(e.maturesAt, block.timestamp + NOTICE);
-        assertEq(e.slot, 1);
+        assertGt(e.requestedAt, 0);
         assertEq(vault.exitQueueLength(), 1);
 
         // Too early: nothing happens, and a self-claim reverts.
@@ -173,7 +173,7 @@ contract CircleVaultExitsTest is CircleVaultBase {
         assertEq(vault.memberCount(), 11);
         assertEq(vault.voterCount(), 11);
         assertEq(vault.totalShares(), total - shares);
-        assertEq(vault.exitOf(leaver).slot, 0);
+        assertEq(vault.exitOf(leaver).requestedAt, 0);
         assertEq(vault.exitQueueLength(), 0);
         _assertBooks(vault);
         _assertSharesSum(vault);
@@ -221,7 +221,7 @@ contract CircleVaultExitsTest is CircleVaultBase {
         assertEq(vault.processExits(10), 0);
         assertTrue(vault.isMember(late));
         assertTrue(vault.isMember(honest));
-        assertEq(vault.exitOf(late).slot, 0);
+        assertEq(vault.exitOf(late).requestedAt, 0);
         assertEq(vault.exitQueueLength(), 0);
         assertEq(vault.exitsWaiting(), 0);
     }
@@ -475,7 +475,7 @@ contract CircleVaultExitsTest is CircleVaultBase {
         emit Exits.ExitCancelled(members[6]);
         vm.prank(members[6]);
         vault.cancelExit();
-        assertEq(vault.exitOf(members[6]).slot, 0);
+        assertEq(vault.exitOf(members[6]).requestedAt, 0);
 
         vm.warp(block.timestamp + NOTICE);
         assertEq(vault.processExits(10), 0);
@@ -586,25 +586,27 @@ contract CircleVaultExitsTest is CircleVaultBase {
         vault.requestToJoin("Back_Again", honest);
         _votes(vault.requestCount(), 0, 12, true);
         assertTrue(vault.isMember(members[5]));
-        assertEq(vault.exitOf(members[5]).slot, 0);
+        assertEq(vault.exitOf(members[5]).requestedAt, 0);
         assertEq(vault.processExits(10), 0);
     }
 
     // ---------------------------------------------------------------- S-EXIT-12 (rage-quit)
 
-    function test_S_EXIT_12_rageQuitWindowMeansNoNotice() public {
+    /// @dev EXIT-03 (ADR 0043): a rage-quit exit matures when the new rules apply, never at once.
+    function test_S_EXIT_12_rageQuitExitMaturesWhenTheNewRulesApply() public {
         _requestExit(members[1]); // normal 30-day notice, first in the queue
         _setRageQuitUntil(uint64(block.timestamp + 7 days));
         _requestExit(members[2]);
-        assertEq(vault.exitOf(members[2]).maturesAt, block.timestamp);
+        assertEq(vault.exitOf(members[2]).maturesAt, block.timestamp + 7 days);
+        assertEq(vault.processExits(10), 0, "no instant exit");
 
-        // The rage-quitter is paid now, even though the exit ahead is still in its notice.
+        // At the switch the rage-quitter is paid, though the exit ahead is still in its notice.
+        vm.warp(block.timestamp + 7 days);
         assertEq(vault.processExits(10), 1);
         assertFalse(vault.isMember(members[2]));
         assertTrue(vault.isMember(members[1]));
-        assertEq(vault.exitQueueLength(), 2); // members[1] still blocks the head
+        assertEq(vault.exitQueueLength(), 1); // members[1] is still waiting out its notice
 
-        vm.warp(block.timestamp + 7 days);
         _requestExit(members[3]); // window over: full notice again
         assertEq(vault.exitOf(members[3]).maturesAt, block.timestamp + NOTICE);
     }

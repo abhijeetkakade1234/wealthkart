@@ -54,9 +54,10 @@ test.describe("circle proposals", () => {
     await expect(banner.getByText(/New rules apply on \d+ \w+ \d{4}/)).toBeVisible();
     await expect(banner.getByRole("button", { name: "Apply new rules" })).toHaveCount(0);
 
-    // Until the change applies, members may leave with no notice (rage-quit, ADR 0019).
+    // Until the change applies, members may leave under today's rules; the notice ends by the
+    // time the new rules start (rage-quit, ADR 0019, 0043).
     await bob.goto(`/app/circle/?id=${circle}`);
-    await expect(bob.getByText("You can leave with no notice right now")).toBeVisible();
+    await expect(bob.getByText("You can leave before the new rules start")).toBeVisible();
 
     // The wait (7 days, then the 1st of the next month) passes.
     await increaseTime(40 * 86_400);

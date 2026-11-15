@@ -22,6 +22,8 @@ export function useVaultAction(circle: Address) {
     args?: ContractFunctionArgs<typeof circleVaultAbi, "nonpayable" | "payable", F>,
     /** AVAX to send with a payable call (e.g. `payInterest`, `repay`). */
     value?: bigint,
+    /** A fixed gas limit instead of the wallet's estimate (see `CLAIM_EXIT_GAS`). */
+    gas?: bigint,
   ): Promise<TransactionReceipt | null> {
     return tx.run(() =>
       writeContractAsync({
@@ -30,6 +32,7 @@ export function useVaultAction(circle: Address) {
         functionName,
         args,
         ...(value !== undefined ? { value } : {}),
+        ...(gas !== undefined ? { gas } : {}),
       } as unknown as Parameters<typeof writeContractAsync>[0]),
     );
   }

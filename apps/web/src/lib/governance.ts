@@ -95,7 +95,6 @@ export interface ExitEntry {
   requestedAt: number;
   maturesAt: number;
   /** Queue index + 1; 0 = no exit pending. */
-  slot: number;
   feeBps: number;
   waiting: boolean;
 }
@@ -107,7 +106,7 @@ export type ExitPhase = "none" | "notice" | "ready" | "waiting";
  * cash (marked by the contract, or ready while other exits wait first).
  */
 export function exitPhase(e: ExitEntry | null, now: number, exitsWaiting = 0): ExitPhase {
-  if (!e || e.slot === 0) return "none";
+  if (!e || e.requestedAt === 0) return "none";
   if (now < e.maturesAt) return "notice";
   if (e.waiting || exitsWaiting > (e.waiting ? 1 : 0)) return "waiting";
   return "ready";
@@ -116,6 +115,20 @@ export function exitPhase(e: ExitEntry | null, now: number, exitsWaiting = 0): E
 /** True while a timestamp (seconds) is still ahead of chain time. */
 export function isAhead(until: number, now: number): boolean {
   return until > now;
+}
+
+/**
+ * Notice for an exit asked for now (ADR 0043): the usual notice, shortened while a rule change
+ * waits so the exit matures by the time the new rules apply. Whole days, rounded up.
+ */
+export function effectiveNoticeDays(
+  noticeDays: number,
+  rageQuitUntil: number,
+  now: number,
+): number {
+  if (rageQuitUntil <= now) return noticeDays;
+  const untilChange = Math.ceil((rageQuitUntil - now) / 86_400);
+  return Math.min(noticeDays, untilChange);
 }
 
 /** Notice in plain words: "30 days", "no notice". */

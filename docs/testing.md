@@ -41,7 +41,8 @@ Known gaps:
 - I-9 `memberCount` = creator + accepted founders + admitted members; the member list never holds duplicates
 - I-10 A display name in use maps back to exactly one member, ignoring case
 - I-11 Open join requests stay ≤ 20, each is Open and indexed by its applicant
-- I-12 Vault balance = total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets)
+- I-12 Vault balance ≥ total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets); `≥` because AVAX can be forced in (EXIT-10)
+- I-13 The exit queue is a consistent linked list of live exits; exactly the queued members are flagged `exiting`, and `voterCount` leaves them out (ADR 0043)
 
 ## Scenario catalogue
 
@@ -125,19 +126,19 @@ Known gaps:
 - S-EXIT-09 Last member exits → vault empties cleanly, no dust stuck
 - S-EXIT-10 Exit fee → stays in the vault; everyone else's NAV goes up
 - S-EXIT-11 Dormant member exits → paid for their shares; dormant count drops
-- S-EXIT-12 Rage-quit window open (ADR 0019) → exit has no notice and is paid even if an earlier exit is still in its notice
+- S-EXIT-12 Rage-quit window open (ADR 0019, 0043) → exit matures at `min(now + notice, rageQuitUntil)` under the old rules, never instantly, and is paid at the switch even if an earlier exit is still in its notice
 - S-EXIT-13 Member takes a loan tie or is frozen during the notice → exit dropped at processing, `exitsWaiting` stays exact
 
 ### Governance (S-GOV)
 
 - S-GOV-01 Rule change passes → applies from the next period, not retroactively
 - S-GOV-02 Timelock: a passed change can't execute early
-- S-GOV-03 Proposal spam by one member → rate limited
+- S-GOV-03 Proposal spam by one member → rate limited (2 open per member, 10 in all, one new proposal per member per day)
 - S-GOV-04 Fee waiver vote passes → fee removed, NAV adjusted correctly; the member it is about can't vote on it; unpaid started periods only
 - S-GOV-05 Rule change outside the bounds → refused when proposed
 - S-GOV-06 One rule change at a time: a second is refused while one is open or waiting; a due one is applied first
 - S-GOV-07 Only current voters propose (non-members and members two periods behind can't)
-- S-GOV-08 Quorum and pass mark: no quorum → expired; quorum but no majority → rejected; majority at the end → passes
+- S-GOV-08 Quorum and pass mark: no quorum → expired; quorum but no majority → rejected; majority at the end → passes (ordinary rule changes); guardian-off and dissolve need the pass mark of all eligible members (ADR 0043)
 - S-GOV-09 Vote guards: twice, outsider, after the window, unknown id → revert
 - S-GOV-10 Proposer cancels an open proposal; nobody else can
 - S-GOV-11 Guardian voted off → pause cleared and can't be voted off twice
@@ -267,17 +268,19 @@ Known gaps:
 - S-WEB-46 Every rule setting reads in plain words; a rule diff lists only what changed, before and after
 - S-WEB-47 `rulesProblem` refuses every out-of-bounds setting `Rules.validate` refuses, on the right field, and accepts the edges
 - S-WEB-48 The rule-change form round-trips the current rules and reads viem's struct output
-- S-WEB-49 Loan limits mirror `LoanBook._limit`: the lowest of the fund cap, k x (own + guarantor stake) and lendable cash, plus the medical cap for medical loans; each limit explained in plain words
-- S-WEB-50 Typed AVAX amounts parse to exact wei; zero, negatives, commas, exponents and more than 18 decimals are refused
-- S-WEB-51 The loan preview uses the rules engine: monthly interest per tenor rounded up, first charged month (later for medical), repay-by month, rule-17 minimum (none for medical)
-- S-WEB-52 The tenor timeline marks past, current and next terms and "due in full" after the third; the rate charged per month mirrors `LoanBook._span`
-- S-WEB-53 A loan is defaultable after `defaultAfter` late months or past the third tenor, never twice; the cure text says what to pay
-- S-WEB-54 The repay form refuses what `repay` refuses: overdue interest, closing with interest owed, a part payment that covers the whole loan
-- S-WEB-55 Asking for a loan is blocked with the first reason that applies (closed, paused, frozen, dormant, not a voter, loan or request open, too few members)
-- S-WEB-56 `loanOf` structs and request enums read correctly; small amounts keep four decimals; settled lines say what happens next
-- S-WEB-57 The loans list is built from events (voting, active, repaid, default, settled, didn't go ahead), filters by status, type and borrower name or address, and sorts by date, amount and rate; bad URL values fall back
-- S-WEB-58 "Loans outstanding per member" counts running and defaulted loans, biggest first; "Where the money is" splits value into lent out, reserve (rounded up, capped at cash) and free cash that add up
-- S-WEB-59 Every loan event reads as a plain sentence in the activity feed (request, guarantee, vote, payout, interest, repayment, default, cure, settle, not approved) under the "Loans" filter
+- S-WEB-49 Rage-quit shortens the exit notice to the moment new rules apply (ADR 0043)
+- S-WEB-50 Loan limits mirror `LoanBook._limit`: the lowest of the fund cap, k x (own + guarantor stake) and lendable cash, plus the medical cap for medical loans; each limit explained in plain words
+- S-WEB-51 Typed AVAX amounts parse to exact wei; zero, negatives, commas, exponents and more than 18 decimals are refused
+- S-WEB-52 The loan preview uses the rules engine: monthly interest per tenor rounded up, first charged month (later for medical), repay-by month, rule-17 minimum (none for medical)
+- S-WEB-53 The tenor timeline marks past, current and next terms and "due in full" after the third; the rate charged per month mirrors `LoanBook._span`
+- S-WEB-54 A loan is defaultable after `defaultAfter` late months or past the third tenor, never twice; the cure text says what to pay
+- S-WEB-55 The repay form refuses what `repay` refuses: overdue interest, closing with interest owed, a part payment that covers the whole loan
+- S-WEB-56 Asking for a loan is blocked with the first reason that applies (closed, paused, frozen, dormant, not a voter, loan or request open, too few members)
+- S-WEB-57 `loanOf` structs and request enums read correctly; small amounts keep four decimals; settled lines say what happens next
+- S-WEB-58 The loans list is built from events (voting, active, repaid, default, settled, didn't go ahead), filters by status, type and borrower name or address, and sorts by date, amount and rate; bad URL values fall back
+- S-WEB-59 "Loans outstanding per member" counts running and defaulted loans, biggest first; "Where the money is" splits value into lent out, reserve (rounded up, capped at cash) and free cash that add up
+- S-WEB-60 Every loan event reads as a plain sentence in the activity feed (request, guarantee, vote, payout, interest, repayment, default, cure, settle, not approved) under the "Loans" filter
+- S-WEB-61 One stake, one loan (ADR 0043): borrowers with a live request or loan and guarantors who accepted one are tied, so the guarantor picker leaves them out and a guarantor can't ask; asking is also refused while you've asked to leave; a loan's own `defaultAfter` decides when it can be marked as defaulted
 
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
@@ -301,10 +304,10 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-13 The sign-in page fits one screen with no scrolling on a small phone, a laptop and a desktop; Back returns to the previous page on this site, or home
 - S-E2E-18 A member asks to leave from the circle page: the dialog shows the 30-day notice and today's value; the card shows the notice with UTC and local time and "Stay in the circle"; after the chain passes the notice, "Collect my share" pays out, vault value goes down and the member count drops
 - S-E2E-19 The guardian pauses from a confirm dialog that explains the 14-day and 90-day limits; the banner shows on the overview and Pay pages for everyone, only the guardian gets Unpause, another member can still ask to leave, and Unpause ends it
-- S-E2E-20 A rule change (notice 30 to 14 days) is proposed from the dialog, an out-of-bounds fee is refused before sending, a second member's yes passes it, the banner shows "New rules apply on" and members see they can leave with no notice; after the wait "Apply new rules" works and the rules card shows 14 days
+- S-E2E-20 A rule change (notice 30 to 14 days) is proposed from the dialog, an out-of-bounds fee is refused before sending, a second member's yes passes it, the banner shows "New rules apply on" and members see they can leave before the new rules start; after the wait "Apply new rules" works and the rules card shows 14 days
 - S-E2E-21 A late member's fee waiver is proposed by another member (member, month, reason), the subject can't vote on it, a yes passes it, and she pays the late month with no late fee
 - S-E2E-22 Closing the circle is proposed and passes at 66% with a calm warning on the card; a member claims her share from the circle page, vault value goes down and she leaves
-- S-E2E-23 A member opens Loans from the nav and asks for 0.5 AVAX (limits shown, 0.9 refused before sending, monthly interest previewed); two others vote yes on the Votes page in their own browsers; the borrower's balance goes up by exactly 0.5 AVAX, the loan panel and the list show it, and the overview shows both loan charts with a table view
+- S-E2E-23 A member opens Loans from the nav and asks for 0.5 AVAX (limits shown, an amount over the limit refused before sending, monthly interest previewed); two others vote yes on the Votes page in their own browsers; the borrower's balance goes up by exactly 0.5 AVAX, the loan panel and the list show it, and the overview shows both loan charts with a table view
 - S-E2E-24 A month later the borrower pays the exact interest from the loan panel, then repays in full from the Repay dialog; the panel returns to "no loan" and the activity feed's Loans filter lists the interest and the repayment
 - S-E2E-25 A borrower names a guarantor in the dialog (the limit counts both savings); the card shows "not agreed yet"; after two yes votes it waits for the guarantor, who sees the notice explaining what backing means, clicks "Back this loan", and the AVAX reaches the borrower
 - S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
@@ -316,6 +319,38 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - No new Slither high/medium findings
 - Gas snapshot diff reviewed
 - Playwright E2E suite green (`pnpm --filter @wealthkart/web e2e`)
+
+## Security review fixes (S-RV)
+
+From the November 2026 module reviews ([governance](redteam/2026-11-governance-review.md), [exits](redteam/2026-11-exits-review.md), [loans](redteam/2026-11-loans-review.md)); decisions in ADR 0043. Tests: `packages/contracts/test/CircleVault.reviewFixes.t.sol`.
+
+- S-RV-LAYOUT Storage slots the tests poke with `vm.store` haven't moved (transient lock, `exiting` byte, exit list head, rules)
+- S-RV-GOV-01 6 of 12 members vote to dissolve with quorum met → expires, not dissolved; in a 5-member circle at 20% quorum the proposer alone can't dissolve
+- S-RV-GOV-02 Exit pending when the circle dissolves → paid with no exit fee; new exits refused; a waiting exit is cleared when its member claims dissolution (`exitsWaiting` exact)
+- S-RV-GOV-03 Rule change that lowers the dissolve bar (or touches any risky field) → needs the dissolve pass mark of all eligible members; safer changes keep the ordinary bar
+- S-RV-GOV-04 A passed change is shown in force from `effectiveAt` and the next write applies it, with no poke
+- S-RV-GOV-05 Every forwarded Governance write, then a `nonReentrant` call in the same transaction → the lock was never left set
+- S-RV-GOV-07 Proposer tries to cancel after the window closed → refused; the vote is finalised as passed
+- S-RV-GOV-09 Member two periods behind proposes a waiver for themselves → refused; nobody can open a waiver for a dormant member
+- S-RV-GOV-13 Dirty or short calldata through the forwarder → reverts; a view called by CALL writes nothing
+- S-RV-EXIT-01 Two members churn request/cancel hundreds of times → queue holds only live exits, cancel stays O(1); two waiting exits are both paid once cash returns
+- S-RV-EXIT-02 Seven self-claims at the front → keeper still sees the next matured exit
+- S-RV-EXIT-03 Rage-quit exit matures at the earlier of the notice and the switch, never at once
+- S-RV-EXIT-04 Member four months behind exits → paid full value (arrears forgiven by design)
+- S-RV-EXIT-05 Later exit claims while an earlier matured one is unmarked → the earlier one is paid first
+- S-RV-EXIT-06 Member asks to exit → can't vote or propose and leaves the quorum base; cancel → votes again on new proposals only
+- S-RV-EXIT-09 Caller sweeps gas limits on a payout → never pushes it into `withdrawable`
+- S-RV-EXIT-11 Creator leaves → guardian role and any pause end for good, even after rejoining
+- S-RV-LOAN-01 Mutual guarantees, a borrower guaranteeing, or a guarantor with an open request → refused
+- S-RV-LOAN-02 Circle dissolves with a loan out → untied members claim cash now; the default is settled by anyone with no vote; everyone claims the rest and the vault empties
+- S-RV-LOAN-03 Borrower wallet return-bombs or burns gas → the vote still closes; a refused payout becomes withdrawable
+- S-RV-LOAN-04 `defaultAfter` and the interest late fee change after payout → the running loan keeps its own
+- S-RV-LOAN-05 Medical cap lowered before payout → the request closes as Failed
+- S-RV-LOAN-06 Settle months after a default → charges interest and fees only up to the default month
+- S-RV-LOAN-07 Exit matured but unmarked at the head of the queue → disbursal waits until it is paid
+- S-RV-LOAN-08 Frozen member → can't vote on loans or proposals
+- S-RV-LOAN-09 Member in exit notice → can't borrow or guarantee
+- S-RV-LOAN-11 `loanRequest(0)` → clean revert, not a panic
 
 ## Red-team scenarios
 

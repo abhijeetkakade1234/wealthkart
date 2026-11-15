@@ -101,7 +101,7 @@ describe("activity feed (D7)", () => {
     ]);
   });
 
-  it("S-WEB-59 loan events read as plain sentences and filter as Loans", () => {
+  it("S-WEB-60 loan events read as plain sentences and filter as Loans", () => {
     const f = toFeed([
       log("LoanRequested", {
         requestId: 1n,
@@ -183,7 +183,7 @@ describe("activity feed (D7)", () => {
     expect(filterFeed(f, "payment", "", names)).toHaveLength(0);
   });
 
-  it("S-WEB-59 a loan that didn't go ahead says why", () => {
+  it("S-WEB-60 a loan that didn't go ahead says why", () => {
     const req = (id: bigint) =>
       log("LoanRequested", {
         requestId: id,

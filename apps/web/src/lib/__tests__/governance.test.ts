@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  effectiveNoticeDays,
   exitPhase,
   isAhead,
   noticeText,
@@ -81,21 +82,27 @@ describe("proposal outcome (mirror Governance._outcome and Rules.passes)", () =>
 
 describe("exits (mirror Exits, ADR 0039)", () => {
   const entry = (maturesAt: number, waiting = false) => ({
-    requestedAt: 0,
+    requestedAt: 1,
     maturesAt,
-    slot: 1,
     feeBps: 0,
     waiting,
   });
 
   it("S-WEB-43 phase: none, notice, ready, waiting", () => {
     expect(exitPhase(null, 100)).toBe("none");
-    expect(exitPhase({ ...entry(0), slot: 0 }, 100)).toBe("none");
+    expect(exitPhase({ ...entry(0), requestedAt: 0 }, 100)).toBe("none");
     expect(exitPhase(entry(200), 100)).toBe("notice");
     expect(exitPhase(entry(100), 100)).toBe("ready");
     expect(exitPhase(entry(50, true), 100, 1)).toBe("waiting");
     // Someone else is waiting first: this exit waits too.
     expect(exitPhase(entry(50), 100, 1)).toBe("waiting");
+  });
+
+  it("S-WEB-49 rage-quit shortens the notice to the moment new rules apply (ADR 0043)", () => {
+    const day = 86_400;
+    expect(effectiveNoticeDays(30, 0, 100)).toBe(30);
+    expect(effectiveNoticeDays(30, 100 + 5 * day, 100)).toBe(5);
+    expect(effectiveNoticeDays(3, 100 + 10 * day, 100)).toBe(3);
   });
 
   it("S-WEB-43 notice text and future checks", () => {

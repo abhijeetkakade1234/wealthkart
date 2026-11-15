@@ -12,4 +12,4 @@
 | `payments-heatmap.tsx`  | Members × months for one year (`?year=`, paged with `?hpage=`); icon + label in every square |
 | `portfolio-summary.tsx` | Home page: value, installments paid, gain, and where your money is, across all circles       |
 
-Data comes from `src/lib/events.ts` (reads logs) and `src/lib/analytics.ts` (pure shaping, unit tested). Colours: series use `--chart-1` / `--chart-2`, plus `--chart-6` as a third part (validated, see ADR 0034 and 0043); status colours only for heatmap states. Charts use the shadcn chart wrapper in `src/components/ui/chart.tsx` (Recharts).
+Data comes from `src/lib/events.ts` (reads logs) and `src/lib/analytics.ts` (pure shaping, unit tested). Colours: series use `--chart-1` / `--chart-2`, plus `--chart-6` as a third part (validated, see ADR 0034 and 0044); status colours only for heatmap states. Charts use the shadcn chart wrapper in `src/components/ui/chart.tsx` (Recharts).

@@ -71,7 +71,7 @@ export function RuleChangeBanner({
             <p className="max-w-[60ch] text-[13.5px] leading-relaxed text-foreground/80">
               {due
                 ? "The waiting time is over. Anyone in the circle can put them into force now."
-                : "The members voted for these changes. Until they apply, anyone who doesn't want them can leave with no notice under today's rules."}
+                : "The members voted for these changes. Until they apply, anyone who doesn't want them can ask to leave and be out under today's rules."}
             </p>
             <Deadline
               deadline={gov.pendingAt}
@@ -120,7 +120,10 @@ export function DissolvedNotice({
 }) {
   const claim = useVaultAction(circle);
   if (!gov.dissolved) return null;
-  const blocked = gov.loansOutstanding > 0n ? messages.loansStillOutstanding() : undefined;
+  // Claims pay your share of the cash now; while loans are out, claim again as they're repaid
+  // (ADR 0043). Members tied to a loan or frozen wait until it's repaid or settled.
+  const blocked = gov.frozen || gov.loanTies > 0 ? messages.claimBlockedByLoan() : undefined;
+  const partial = gov.loansOutstanding > 0n;
 
   async function claimShare() {
     const value = share;
@@ -158,7 +161,9 @@ export function DissolvedNotice({
         {isMember
           ? blocked
             ? `${blocked} Your share stays safe in the circle until then.`
-            : `Each member takes their share at today's value. Yours is about ${formatAvax(share)} AVAX.`
+            : partial
+              ? `You can claim your share of the cash now. Some money is still lent out, so claim again as loans are repaid. Your whole share is worth about ${formatAvax(share)} AVAX.`
+              : `Each member takes their share at today's value. Yours is about ${formatAvax(share)} AVAX.`
           : "Every member who was still in has a share to claim."}
       </InlineAlert>
       <TxFor tx={claim.tx} />

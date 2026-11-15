@@ -111,6 +111,19 @@ library Rules {
         if (p.exitFeeBps > 1000) revert InvalidRule("exit fee must be 0-10%");
     }
 
+    /// @notice True if moving from `cur` to `nxt` touches a risky setting (ADR 0043, GOV-03): any
+    ///         change to a pass mark or the rule-change delay, a shorter exit notice, a higher exit
+    ///         fee or interest rate, a smaller reserve, or a bigger loan cap. Such a change needs
+    ///         the dissolve pass mark of all eligible members, like a dissolve vote.
+    function isRisky(Params storage cur, Params calldata nxt) internal view returns (bool) {
+        return nxt.passPct != cur.passPct || nxt.dissolvePassPct != cur.dissolvePassPct
+            || nxt.ruleChangeDelayDays != cur.ruleChangeDelayDays
+            || nxt.exitNoticeDays < cur.exitNoticeDays || nxt.exitFeeBps > cur.exitFeeBps
+            || nxt.interestBps > cur.interestBps || nxt.tenor2Bps > cur.tenor2Bps
+            || nxt.tenor3Bps > cur.tenor3Bps || nxt.reserveBps < cur.reserveBps
+            || nxt.maxLoanBps > cur.maxLoanBps || nxt.kMultiplier > cur.kMultiplier;
+    }
+
     /// @notice True if `yes` of `total` meets the pass mark: strictly more than half at 50%,
     ///         otherwise at least `pct`.
     function passes(uint256 yes, uint256 total, uint8 pct) internal pure returns (bool) {

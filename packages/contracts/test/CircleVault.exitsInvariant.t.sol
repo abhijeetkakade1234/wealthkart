@@ -12,7 +12,7 @@ import {RejectingWallet} from "./helpers/Actors.sol";
 ///      simulated lending (LoanBook isn't in this branch, so loans are set with `vm.store`).
 ///      One member is a wallet that refuses AVAX, so refused payouts are exercised too.
 contract ExitsHandler is Test {
-    uint256 internal constant LOANS_SLOT = 26; // _ledger.loansOutstanding
+    uint256 internal constant LOANS_SLOT = 25; // CircleVaultBase.SLOT_LOANS_OUTSTANDING
 
     CircleVault public vault;
     address[] public members;
@@ -116,13 +116,14 @@ contract CircleVaultExitsInvariantTest is CircleVaultBase {
         targetContract(address(handler));
     }
 
-    /// I-9: the vault holds exactly its cash plus refused payouts waiting for `withdraw`.
+    /// I-9: the vault holds at least its cash plus refused payouts waiting for `withdraw`
+    ///      (`>=`: AVAX can be forced in, EXIT-10).
     function invariant_I9_balanceIsCashPlusWithdrawable() public view {
         uint256 owed;
         for (uint256 i = 0; i < everyone.length; ++i) {
             owed += vault.withdrawable(everyone[i]);
         }
-        assertEq(address(vault).balance, vault.totalAssets() - vault.loansOutstanding() + owed);
+        assertGe(address(vault).balance, vault.totalAssets() - vault.loansOutstanding() + owed);
     }
 
     /// I-2 (with exits): member shares sum to total shares; removed members hold none.
@@ -142,8 +143,33 @@ contract CircleVaultExitsInvariantTest is CircleVaultBase {
         for (uint256 i = 0; i < everyone.length; ++i) {
             Exits.Entry memory e = vault.exitOf(everyone[i]);
             if (e.waiting) ++waiting;
-            if (e.slot != 0) assertTrue(vault.isMember(everyone[i]));
+            if (e.requestedAt != 0) assertTrue(vault.isMember(everyone[i]));
         }
         assertEq(vault.exitsWaiting(), waiting);
+    }
+
+    /// I-10b (S-RT-EXIT-LIST): the queue is a consistent linked list of live exits; each
+    ///      member in it is flagged `exiting`, and nobody outside it is.
+    function invariant_I10b_exitQueueIsAConsistentList() public view {
+        uint256 n = vault.exitQueueLength();
+        address[] memory page = vault.exitQueuePage(0, n + 1);
+        assertEq(page.length, n);
+        address prev = address(0);
+        for (uint256 i = 0; i < n; ++i) {
+            Exits.Entry memory e = vault.exitOf(page[i]);
+            assertGt(e.requestedAt, 0, "queued entry is live");
+            assertEq(e.prev, prev, "prev link");
+            assertTrue(vault.memberOf(page[i]).exiting, "queued member flagged");
+            prev = page[i];
+        }
+        uint256 flagged;
+        uint256 voters;
+        for (uint256 i = 0; i < everyone.length; ++i) {
+            Membership.Member memory m = vault.memberOf(everyone[i]);
+            if (m.exiting) ++flagged;
+            if (m.active && m.voter && !m.dormant && !m.exiting) ++voters;
+        }
+        assertEq(flagged, n, "exiting flag only on queued members");
+        assertEq(vault.voterCount(), voters, "leavers are out of the quorum base");
     }
 }

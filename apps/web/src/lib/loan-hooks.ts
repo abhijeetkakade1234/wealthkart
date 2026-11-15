@@ -19,15 +19,15 @@ import { useVaultAction } from "@/lib/use-vault-action";
  * Every LoanBook read and write the app makes (ADR 0038), in one file, so a contract change
  * (ABI or behaviour) is adjusted here and nowhere else. Components get plain numbers back.
  *
- * Assumptions about the loan fixes in progress:
- * - a member who guarantees a loan can't hold a loan of their own: the contract refuses it and
- *   the friendly error explains; the UI does not pre-check it;
- * - settling after a dissolve may need no vote: `finalizeLoan` / `proposeSettle` call sites
- *   stay the same;
- * - payouts recheck eligibility: a passed request can still close as Failed, which the cards
- *   and the feed already describe;
- * - rules are snapshotted per loan: the "Your loan" panel already reads rates and tenor length
- *   from `loanOf`, never from the live rules.
+ * Contract behaviour this file follows (ADR 0043):
+ * - one stake, one loan: a member with a loan or request can't guarantee and a guarantor can't
+ *   borrow. There is no `guaranteeOf` view, so the page works it out from the events
+ *   (`loanTies`) and the guarantor picker leaves those members out;
+ * - after a dissolve, `proposeSettle` settles at once with no vote (returns 0);
+ * - the payout re-checks eligibility, so a passed request can still close as Failed;
+ * - each loan fixes its rates, tenor, `defaultAfter` and `interestFee` at payout: the panel
+ *   reads them from `loanOf`, never from the live rules;
+ * - exiting and frozen members can't borrow, guarantee or vote (`memberOf.exiting`).
  */
 
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
@@ -54,6 +54,8 @@ export interface MyLoan {
   frozen: boolean;
   dormant: boolean;
   active: boolean;
+  /** Asked to leave the circle (in notice or waiting to be paid). */
+  exiting: boolean;
 }
 
 /** The connected wallet's loan, what it owes now, and what it needs to ask for one. */
@@ -80,7 +82,13 @@ export function useMyLoan(circle: Address | null) {
   const ok = <T>(i: number): T | undefined =>
     r?.[i]?.status === "success" ? (r[i].result as T) : undefined;
   const due = ok<readonly [bigint, bigint, bigint]>(1);
-  const member = ok<{ voter: boolean; frozen: boolean; dormant: boolean; active: boolean }>(8);
+  const member = ok<{
+    voter: boolean;
+    frozen: boolean;
+    dormant: boolean;
+    active: boolean;
+    exiting: boolean;
+  }>(8);
   const data: MyLoan | undefined = r
     ? {
         loan: loanFromChain(ok<object>(0)),
@@ -97,6 +105,7 @@ export function useMyLoan(circle: Address | null) {
         frozen: member?.frozen ?? false,
         dormant: member?.dormant ?? false,
         active: member?.active ?? false,
+        exiting: member?.exiting ?? false,
       }
     : undefined;
   return { ...q, data };
@@ -251,7 +260,7 @@ export interface LoanMember {
   address: Address;
   name: string;
   stake: bigint;
-  /** Can be named as guarantor: active, not dormant, not frozen (LoanBook._checkGuarantor). */
+  /** Can be named as guarantor: active, not dormant, frozen or exiting (LoanBook._checkGuarantor). */
   canGuarantee: boolean;
 }
 
@@ -278,7 +287,12 @@ export function useLoanMembers(circle: Address | null, enabled = true) {
   members.forEach((m, i) => {
     const mo = info.data?.[i * 3];
     if (mo?.status !== "success") return;
-    const x = mo.result as { active: boolean; dormant: boolean; frozen: boolean };
+    const x = mo.result as {
+      active: boolean;
+      dormant: boolean;
+      frozen: boolean;
+      exiting?: boolean;
+    };
     if (!x.active) return;
     const nm = info.data?.[i * 3 + 1];
     const st = info.data?.[i * 3 + 2];
@@ -286,7 +300,7 @@ export function useLoanMembers(circle: Address | null, enabled = true) {
       address: m,
       name: nm?.status === "success" ? (nm.result as string) : "",
       stake: st?.status === "success" ? (st.result as bigint) : 0n,
-      canGuarantee: !x.dormant && !x.frozen,
+      canGuarantee: !x.dormant && !x.frozen && !x.exiting,
     });
   });
   return { members: out, isPending: list.isPending || (members.length > 0 && info.isPending) };

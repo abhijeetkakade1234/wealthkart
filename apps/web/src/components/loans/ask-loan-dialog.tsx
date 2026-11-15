@@ -35,6 +35,7 @@ export function AskLoanButton({
   currentPeriod,
   dueDay,
   blocked,
+  tied,
   onAsked,
 }: {
   circle: Address;
@@ -45,6 +46,8 @@ export function AskLoanButton({
   dueDay: number;
   /** Why asking isn't possible now (shown on the disabled button). */
   blocked: string | null;
+  /** Members already tied to a loan (borrowers and guarantors), left out of the picker. */
+  tied: { borrowers: Set<string>; guarantors: Set<string> };
   onAsked: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -79,6 +82,7 @@ export function AskLoanButton({
               my={my}
               currentPeriod={currentPeriod}
               dueDay={dueDay}
+              tied={tied}
               action={action}
               onDone={() => {
                 setOpen(false);
@@ -101,6 +105,7 @@ function AskForm({
   my,
   currentPeriod,
   dueDay,
+  tied,
   action,
   onDone,
 }: {
@@ -110,6 +115,7 @@ function AskForm({
   my: MyLoan;
   currentPeriod: number;
   dueDay: number;
+  tied: { borrowers: Set<string>; guarantors: Set<string> };
   action: ReturnType<typeof useLoanTx>;
   onDone: () => void;
 }) {
@@ -119,9 +125,14 @@ function AskForm({
   const typed = useDebounced(text, 300);
   const amount = parseAvaxInput(typed);
   const { members, isPending } = useLoanMembers(circle);
-  const options = members.filter(
-    (m) => m.canGuarantee && m.address.toLowerCase() !== me.toLowerCase(),
-  );
+  // One stake backs one loan (ADR 0043): nobody with a loan, a request or a guarantee of
+  // their own can back yours.
+  const options = members.filter((m) => {
+    const a = m.address.toLowerCase();
+    return (
+      m.canGuarantee && a !== me.toLowerCase() && !tied.borrowers.has(a) && !tied.guarantors.has(a)
+    );
+  });
   const chosen = options.find((m) => m.address === guarantor) ?? null;
   const medicalOn = rules.medicalCap > 0n;
 

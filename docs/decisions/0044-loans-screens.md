@@ -1,4 +1,4 @@
-# 0043. Loans screens: one hook file, loan list from events, third chart hue
+# 0044. Loans screens: one hook file, loan list from events, third chart hue
 
 - **Status:** Accepted
 - **Date:** 2026-11-16

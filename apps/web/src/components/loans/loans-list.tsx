@@ -64,6 +64,7 @@ export function LoansList({
   rules,
   currentPeriod,
   openRequests,
+  dissolved,
   onChanged,
 }: {
   circle: Address;
@@ -71,6 +72,8 @@ export function LoansList({
   rules: RulesParams;
   currentPeriod: number;
   openRequests: readonly LoanRequestView[];
+  /** After a dissolve a defaulted loan is settled at once, by anyone, with no vote. */
+  dissolved: boolean;
   onChanged: () => void;
 }) {
   const router = useRouter();
@@ -300,7 +303,8 @@ export function LoansList({
                     (o) =>
                       o.kind === "settle" && o.borrower.toLowerCase() === r.borrower.toLowerCase(),
                   );
-                  const canSettle = r.status === "default" && !isMe && !isG && !settleOpen;
+                  const canSettle =
+                    r.status === "default" && (dissolved || (!isMe && !isG && !settleOpen));
                   return (
                     <tr
                       key={r.requestId}
@@ -366,6 +370,7 @@ export function LoansList({
                             borrower={r.borrower as Address}
                             name={name(r.borrower)}
                             onDone={refresh}
+                            now={dissolved}
                           />
                         ) : null}
                       </td>
@@ -450,11 +455,14 @@ function ProposeSettleButton({
   circle,
   borrower,
   name,
+  now,
   onDone,
 }: {
   circle: Address;
   borrower: Address;
   name: string;
+  /** The circle is dissolved: this settles straight away instead of starting a vote. */
+  now: boolean;
   onDone: () => void;
 }) {
   const action = useLoanTx(circle);
@@ -469,12 +477,16 @@ function ProposeSettleButton({
         onClick={async () => {
           const ok = await action.proposeSettle(borrower);
           if (ok) {
-            notify.success(`Settle vote started for ${name}'s loan. Your yes is counted.`);
+            notify.success(
+              now
+                ? `${name}'s loan was settled from their savings.`
+                : `Settle vote started for ${name}'s loan. Your yes is counted.`,
+            );
             onDone();
           }
         }}
       >
-        Ask the circle to settle
+        {now ? "Settle from savings now" : "Ask the circle to settle"}
       </Button>
       <TxFor tx={action.tx} />
     </div>

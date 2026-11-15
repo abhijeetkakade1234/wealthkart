@@ -1,6 +1,6 @@
 # 0038. Loans: LoanBook module, lazy interest, default and settle by vote
 
-- **Status:** Accepted
+- **Status:** Accepted; collateral, payout re-checks, fixed late fee and default limit, settle after a dissolve: Superseded by 0043
 - **Date:** 2026-11-15
 
 ## Context

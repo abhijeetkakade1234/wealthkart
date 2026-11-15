@@ -198,10 +198,11 @@ function ActiveLoan({
       ) : my.overdueMonths > 0 ? (
         <InlineAlert tone="warn" title="Your interest is late">
           {my.overdueMonths} {my.overdueMonths === 1 ? "month is" : "months are"} unpaid, with{" "}
-          {avax(rules.interestFee)} AVAX added for each late month. After {rules.defaultAfter} late{" "}
-          {rules.defaultAfter === 1 ? "month" : "months"}, anyone in the circle can mark the loan as
-          defaulted, which freezes you{hasGuarantor ? " and your guarantor" : ""}. Pay now to stay
-          clear.
+          {avax(loan.interestFee || rules.interestFee)} AVAX added for each late month. After{" "}
+          {loan.defaultAfter || rules.defaultAfter} late{" "}
+          {(loan.defaultAfter || rules.defaultAfter) === 1 ? "month" : "months"}, anyone in the
+          circle can mark the loan as defaulted, which freezes you
+          {hasGuarantor ? " and your guarantor" : ""}. Pay now to stay clear.
         </InlineAlert>
       ) : null}
 

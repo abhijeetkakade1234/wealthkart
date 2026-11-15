@@ -116,6 +116,7 @@ How to use this file:
 - [ ] Each Phase 2 feature lands as its own module under `src/modules/` (ADR 0031, 0037); vault has ~9 KB runtime left
 - [ ] Re-enable Slither `locked-ether` once exits exist
 - [ ] Red-team Phase 2 items: NAV includes interest owed and marks down overdue loans (RT-08, RT-18), k rises with tenure (RT-15), guarantee locks shares (RT-16), no new loans while exits wait (RT-17), pull-payment fallback for wallets that reject AVAX (RT-20), migration targets from a timelocked registry (RT-13)
+- [x] Module security reviews (governance, exits, loans) and their fixes: member-bar votes, automatic rule switch-over, rage-quit notice, linked-list exit queue, cash-based dissolution claims, one capped payout path, transient reentrancy lock (ADR 0043, `S-RV-*`)
 - [ ] Loan request → vote → auto-disbursal
 - [ ] Interest, partial payments, repayment allocation, auto-close
 - [ ] Tenors (rule 15), minimum interest (rule 17), medical loans (rule 18), cap (rule 13), reserve (rule 12)
@@ -123,7 +124,7 @@ How to use this file:
 - [x] Governance contracts (ADR 0040): rule change (delay, then next period; rage-quit window), fee waiver with a fixed reason, dissolve + pro-rata claims, guardian off; admit member and dormant votes live in Membership. Risky-parameter supermajority (RT-12) still open
 - [ ] Exit: notice → NAV snapshot → Chainlink Automation payout + permissionless fallback
 - [x] Exits and governance screens: leave with notice, collect, waiting-for-cash and rage-quit notes, guardian pause banner and button, withdraw refused payouts; proposals on Votes (rule change with before/after and apply, fee waiver, dissolve + claim, guardian off) with a "New proposal" dialog checked against `Rules.validate` bounds; E2E S-E2E-18..22
-- [x] Loans screens (ADR 0043): Loans page (your loan with interest due, tenor timeline, pay interest, repay part or full, default notice and how to lift it; ask dialog with live limit checks and a cost preview; guarantor notice with "Back this loan"; all loans with URL filters, sort and search, "Mark as defaulted", "Ask the circle to settle"), loan and settle cards on Votes (`?lpage=`), loan sentences in Activity; unit S-WEB-49..59, E2E S-E2E-23..26
+- [x] Loans screens (ADR 0044): Loans page (your loan with interest due, tenor timeline, pay interest, repay part or full, default notice and how to lift it; ask dialog with live limit checks and a cost preview; guarantor notice with "Back this loan"; all loans with URL filters, sort and search, "Mark as defaulted", "Ask the circle to settle"), loan and settle cards on Votes (`?lpage=`), loan sentences in Activity; unit S-WEB-50..61, E2E S-E2E-23..26
 - [ ] Charts: vote tallies (done: loans outstanding per member, where the money is, inflows, NAV per share)
 - [ ] **Milestone:** full rulebook on-chain; test report published
 
