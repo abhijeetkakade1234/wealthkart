@@ -210,6 +210,17 @@ function CircleOverview() {
             currentPeriod={periodOf(chainNow)}
             chainNow={chainNow}
             dueDay={d.dueDay}
+            mine={
+              d.isMember && address
+                ? {
+                    me: address,
+                    stake: d.stake,
+                    totalAssets: d.totalAssets,
+                    installment: d.installment,
+                    circleName: d.name,
+                  }
+                : undefined
+            }
           />
         </ErrorBoundary>
       </section>

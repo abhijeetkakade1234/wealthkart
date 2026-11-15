@@ -91,3 +91,31 @@ test("S-E2E-16 the activity page lists every payment and change, with filters, s
   await expect(alice.getByText("Nothing matches.", { exact: false })).toBeVisible();
   await expect(alice).toHaveURL(/q=nobody-here/);
 });
+
+test("S-E2E-17 your returns: annual return, a labelled projection and your history as CSV", async ({
+  browser,
+}) => {
+  const alice = await asWallet(browser, ACCOUNTS.alice);
+  await alice.goto(`/app/circle/?id=${circle}`);
+  const card = alice.getByRole("region", { name: "Your returns" });
+  await expect(card).toBeVisible();
+  // One month of history: too short for a fair annual rate.
+  await expect(card.getByTestId("my-return")).toHaveText("Not enough history yet");
+  await expect(card.getByText("An illustration, not a promise.", { exact: false })).toBeVisible();
+  await card.getByRole("button", { name: "30 years" }).click();
+  await expect(card.getByRole("button", { name: "30 years" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  const download = alice.waitForEvent("download");
+  await card.getByRole("button", { name: "Download my history (CSV)" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/-my-history\.csv$/);
+  const path = await file.path();
+  const text = (await import("node:fs")).readFileSync(path!, "utf8");
+  expect(text.split("\r\n")[0]).toBe(
+    "Type,Month,Installment (AVAX),Late fees (AVAX),Total (AVAX),Block,Transaction",
+  );
+  expect(text).toContain("Payment,");
+});
