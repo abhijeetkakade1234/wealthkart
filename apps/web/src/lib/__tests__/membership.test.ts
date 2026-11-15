@@ -10,6 +10,9 @@ import {
   quorumVotes,
   tallyLine,
   voteOutcome,
+  memberStatus,
+  requestKind,
+  settledLine,
 } from "@/lib/membership";
 
 const CIRCLE = "0x2222222222222222222222222222222222222222";
@@ -97,5 +100,39 @@ describe("join vote outcome (mirrors CircleVault._outcome)", () => {
     expect(joinStatusName(2)).toBe("approved");
     expect(joinStatusName(4)).toBe("expired");
     expect(joinStatusName(99)).toBe("none");
+  });
+
+  describe("dormant votes (ADR 0032)", () => {
+    const d = (eligible: number, yes: number, no: number) => ({
+      eligible,
+      yes,
+      no,
+      quorumPct: 50,
+      kind: "dormant" as const,
+    });
+
+    it("S-RT-18 needs more than half: settles early once a majority is certain", () => {
+      expect(voteOutcome(d(11, 6, 0), false)).toBe("approved"); // 6 of 11 > 50%
+      expect(voteOutcome(d(11, 5, 0), false)).toBe("open");
+      expect(voteOutcome(d(11, 1, 6), false)).toBe("rejected"); // at most 5 yes left
+      expect(voteOutcome(d(10, 1, 5), false)).toBe("rejected"); // 5 of 10 is not more than half
+    });
+
+    it("S-RT-18 after the window: ties fail, majorities pass", () => {
+      expect(voteOutcome(d(10, 3, 3), true)).toBe("rejected");
+      expect(voteOutcome(d(10, 4, 2), true)).toBe("approved");
+      expect(voteOutcome(d(10, 2, 0), true)).toBe("expired");
+    });
+
+    it("S-RT-18 reads plainly", () => {
+      expect(tallyLine(d(11, 1, 0))).toBe(
+        "1 of 6 votes needed · 1 yes, 0 no · needs more than 50% yes",
+      );
+      expect(settledLine("approved", "dormant")).toMatch(/payments pause/);
+      expect(requestKind(1)).toBe("dormant");
+      expect(requestKind(0)).toBe("join");
+      expect(memberStatus({ dormant: true, overdue: 0 })).toBe("dormant");
+      expect(memberStatus({ dormant: false, overdue: 2 })).toBe("late");
+    });
   });
 });

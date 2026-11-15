@@ -18,7 +18,15 @@ describe("create-circle validation (mirrors ADR 0022 bounds)", () => {
 
   it("S-LIFE-10 rejects out-of-range settings with plain messages", () => {
     const v = validate(
-      { ...DEFAULTS, name: "", installment: "0", dueDay: "31", secondFeeDay: "5", holidays: "13" },
+      {
+        ...DEFAULTS,
+        name: "",
+        installment: "0",
+        dueDay: "31",
+        secondFeeDay: "5",
+        holidays: "13",
+        dormantAfter: "0",
+      },
       SELF,
     );
     expect(v.ok).toBe(false);
@@ -27,6 +35,7 @@ describe("create-circle validation (mirrors ADR 0022 bounds)", () => {
     expect(v.errors.dueDay).toBe("Pick a day from 1 to 28.");
     expect(v.errors.secondFeeDay).toMatch(/after the due day/);
     expect(v.errors.holidays).toBe("Pick 0 to 12.");
+    expect(v.errors.dormantAfter).toBe("Pick 1 to 12.");
   });
 
   it("rejects bad addresses and de-duplicates founders", () => {

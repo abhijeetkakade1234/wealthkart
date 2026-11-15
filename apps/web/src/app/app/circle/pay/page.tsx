@@ -105,6 +105,12 @@ function Pay() {
         />
       ) : (
         <div className="grid gap-8">
+          {d.iAmDormant && (
+            <InlineAlert tone="info" title="Paying brings you back">
+              The circle marked you dormant, so nothing from the months you missed is owed. This
+              payment covers {month} only, and your monthly payments start again after it.
+            </InlineAlert>
+          )}
           <div className="grid gap-5 rounded-[14px] border border-[#f1e2c4] bg-warn-soft p-8">
             <span className="text-[13px] text-muted-foreground">Installment for {month}</span>
             <span className="font-display text-[56px] leading-none tracking-tight tabular">

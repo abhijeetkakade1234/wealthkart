@@ -79,6 +79,12 @@ export const messages = {
   alreadyVoted: () => "You've already voted on this request.",
   notDecidedYet: () => "The vote isn't decided yet. It can be settled once the voting time ends.",
   noOpenRequest: () => "You don't have a join request waiting in this circle.",
+  memberIsDormant: () =>
+    "Your payments are paused because the circle marked you dormant. Wake up on the circle page, or just pay, to come back.",
+  notDormant: () => "You're already active in this circle.",
+  notOverdueEnough: () =>
+    "They haven't missed enough months yet. The circle can only pause someone's payments after the number of missed months it agreed on.",
+  noOtherVoters: () => "There's nobody else in the circle who could vote on this yet.",
 
   // Success
   paid: (month: string, amountAvax: string) =>
@@ -156,6 +162,10 @@ export type FriendlyErrorCode =
   | "already-voted"
   | "not-decided-yet"
   | "no-open-request"
+  | "member-dormant"
+  | "not-dormant"
+  | "not-overdue-enough"
+  | "no-other-voters"
   | "unknown";
 
 /** The only error shape that ever reaches the UI. `details` is for the "Details" toggle. */
@@ -302,7 +312,7 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
   if (hasName("LoanAboveCap", "LoanExceedsCap")) {
     return friendlyError("loan-above-cap", messages.loanAboveCap(ctx.maxLoanAvax), details);
   }
-  // Membership errors (ADR 0028, 0029), plus the factory's NotACircle.
+  // Membership errors (ADR 0028, 0029, 0032), plus the factory's NotACircle.
   const membership: Array<[string, FriendlyErrorCode, () => string]> = [
     ["NotACircle", "not-a-circle", messages.notACircle],
     ["NoFounderInvite", "no-founder-invite", messages.noFounderInvite],
@@ -324,6 +334,11 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["AlreadyVoted", "already-voted", messages.alreadyVoted],
     ["NotDecidedYet", "not-decided-yet", messages.notDecidedYet],
     ["NoOpenRequest", "no-open-request", messages.noOpenRequest],
+    // Dormant members (ADR 0032).
+    ["MemberIsDormant", "member-dormant", messages.memberIsDormant],
+    ["NotDormant", "not-dormant", messages.notDormant],
+    ["NotOverdueEnough", "not-overdue-enough", messages.notOverdueEnough],
+    ["NoOtherVoters", "no-other-voters", messages.noOtherVoters],
   ];
   for (const [name, code, message] of membership) {
     if (hasName(name)) return friendlyError(code, message(), details);

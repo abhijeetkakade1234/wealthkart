@@ -52,9 +52,9 @@ function Votes() {
     <div className="max-w-[760px]">
       <PageHeader
         title="Votes"
-        subtitle={`${d.name} · people asking to join. At least ${d.quorumPct}% of members must vote, and 66% of votes must be yes. Each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
+        subtitle={`${d.name} · people asking to join, and members the circle may mark dormant. At least ${d.quorumPct}% of members must vote. A newcomer needs 66% yes; pausing someone's payments needs more than half. Each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
       />
-      <ErrorBoundary preset="widget" name="Join requests">
+      <ErrorBoundary preset="widget" name="Open votes">
         <RequestList id={id} quorumPct={d.quorumPct} onChanged={() => void c.refetch()} />
       </ErrorBoundary>
     </div>
@@ -79,7 +79,7 @@ function RequestList({
     return (
       <StateView
         state="loading"
-        label="Loading join requests"
+        label="Loading votes"
         skeleton={
           <div className="grid gap-6">
             {[0, 1].map((i) => (
@@ -95,7 +95,7 @@ function RequestList({
     return (
       <StateView
         state="empty"
-        message="No one is waiting to join right now. Share your invite link from the circle page to bring a friend in."
+        message="Nothing to vote on right now. Share your invite link from the circle page to bring a friend in."
         action={{ label: "Go to the circle", onAction: () => router.push(`/app/circle/?id=${id}`) }}
       />
     );
@@ -117,7 +117,7 @@ function RequestList({
           />
         ))}
       </div>
-      <Pagination page={page} pageSize={REQUESTS_PAGE_SIZE} total={q.total ?? 0} noun="requests" />
+      <Pagination page={page} pageSize={REQUESTS_PAGE_SIZE} total={q.total ?? 0} noun="votes" />
     </div>
   );
 }
