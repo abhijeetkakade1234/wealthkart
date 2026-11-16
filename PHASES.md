@@ -3,17 +3,17 @@
 Where WealthKart is, phase by phase. The open items for right now are in [TODO.md](TODO.md).
 Every task with its tick box is in [docs/STATUS.md](docs/STATUS.md); what each phase is for is in [PLAN.md](PLAN.md) §5.
 
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
-| Phase | What it delivers                                                                   | Status                                                                                                                        |
-| ----- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 0     | Foundation: monorepo, CI, rules engine matching G1, Core sign-in, design system    | **Done** (owner actions left, see TODO)                                                                                       |
-| 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                                                                      |
-| 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Done**: contracts reviewed and fixed (239 tests), all screens with Playwright tests                                         |
-| 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: bug bounty, external audit and mainnet deploy are owner/external                                               |
-| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page, reminders, templates, onboarding guide, draft legal pages, test USDT faucet, `pnpm dev:local` done |
-| 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                                                         |
-| 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                                                         |
+| Phase | What it delivers                                                                   | Status                                                                                                                                                                                                         |
+| ----- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Foundation: monorepo, CI, rules engine matching G1, Core sign-in, design system    | **Done** (owner actions left, see TODO)                                                                                                                                                                        |
+| 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                                                                                                                                                       |
+| 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Done**: contracts reviewed and fixed (239 tests), all screens with Playwright tests                                                                                                                          |
+| 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: bug bounty, external audit and mainnet deploy are owner/external                                                                                                                                |
+| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **All features built**: landing page, reminders, templates, onboarding guide, Hindi and Marathi, draft legal pages, test USDT faucet, `pnpm dev:local`; open: USDT loan E2E, lawyer and native-speaker reviews |
+| 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                                                                                                                                          |
+| 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                                                                                                                                          |
 
 **When is it finished?** The full product is done at the end of **Phase 4**: Phase 3 puts it live on mainnet after an external audit, and Phase 4 adds the growth features. Phases 5 and 6 are optional expansion.
 
@@ -27,9 +27,11 @@ Done:
 - Reminders on your phone or computer (Web Push): an installment due in 3 days, tomorrow or today, a late fee about to start, loan interest, a vote waiting for you, money ready to collect. Keyed by wallet only, one signature to turn on, switches per circle, times in UTC with your own time added (ADR 0052)
 - Backup wallet (nominee, ADR 0016 and 0056): a member names one wallet that can ask for their share after they go dormant; the circle votes, a notice of at least 30 days runs, and the member can cancel until it is paid
 
+- Hindi and Marathi (ADR 0057): every app screen, sign-in and the checklist, switchable in the header or Settings and remembered on the device; the landing page, `/start` and `/how-it-works` also at `/hi/` and `/mr/` for search engines
+
 Left:
 
-- Hindi and Marathi
+- A native speaker reviews the Hindi and Marathi wording before mainnet
 
 ## Phase 2 (done)
 
@@ -88,5 +90,5 @@ Phase 0  ##########  done
 Phase 1  ##########  done (milestone deferred)
 Phase 2  ##########  done
 Phase 3  ########--  code done; bug bounty, audit, mainnet deploy left (owner/external)
-Phase 4  ########--  landing page, reminders, templates, onboarding, legal drafts done
+Phase 4  #########-  landing page, reminders, templates, onboarding, Hindi + Marathi, legal drafts done
 ```

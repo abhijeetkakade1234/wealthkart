@@ -147,6 +147,8 @@ Every data-driven component renders through `StateView`, so no screen can forget
 - **Dialog**: only to confirm money or irreversible actions (pay, request exit, vote to dissolve), showing exactly what will happen.
 - Layout: z-index scale `base 0 · sticky 10 · dropdown 20 · overlay 30 · dialog 40 · toast 50`; one dialog at a time; sticky bars reserve space; long names truncate with a tooltip.
 
+**Languages (ADR 0057):** every string the app shows lives in `src/i18n/` (English, Hindi, Marathi); `messages.ts` reads the `msg` namespace. Never hard-code English in a screen; see `docs/i18n.md` for how to add a string and the glossary. Hindi and Marathi run longer: let text wrap, keep the whitespace.
+
 **Writing rules:** say what happened, then what to do. No jargon, no error codes in the main text (codes go under "Details"). No blame. Short sentences.
 
 **Message catalogue (examples):**

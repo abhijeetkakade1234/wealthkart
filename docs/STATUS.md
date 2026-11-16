@@ -1,7 +1,7 @@
 # Status: where we are and what's left
 
 **Current phase: Phase 4, growth** (Phases 0–2 done; Phase 3 code done, its audit, bug bounty and mainnet deploy are owner/external; the Phase 1 milestone is deferred by the owner). Work lands on `abhijeet`.
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
 How to use this file:
 
@@ -149,7 +149,8 @@ How to use this file:
 - [ ] Lawyer review of privacy, terms and risks (checklist in `docs/legal/README.md`), then remove the draft notes
 - [x] Reminders (Web Push, wallet-keyed, ADR 0052): indexer cron sends installment, late-fee, interest, vote and money-waiting reminders in UTC stages; SIWE to turn on, device token after; Reminders card per circle and a Settings page; unit S-REM-01..44, E2E S-E2E-33..36. VAPID keys are an owner action
 - [x] Circle templates (friends / family / office / custom) on the create form (ADR 0054)
-- [ ] Hindi + Marathi
+- [x] Hindi + Marathi (ADR 0057): typed dictionaries in `src/i18n` (hi and mr load on demand), all of `/app`, sign-in, the checklist and the message catalogue; language picker in the header, sign-in and Settings, saved as `wk.locale`; static `/hi/` and `/mr/` landing, `/start` and `/how-it-works` with hreflang and sitemap entries; Noto Devanagari fonts only for hi/mr; glossary in `docs/i18n.md`; S-I18N-01..24
+- [ ] Native-speaker review of the Hindi and Marathi copy before mainnet (`docs/i18n.md`)
 - [x] Onboarding guide `/start` (install Core, back up phrase, get AVAX) + first-run checklist (ADR 0054)
 - [x] "Get test USDT" faucet button on test network builds (ADR 0053)
 - [x] Dev tools: `pnpm dev:local` (anvil + contracts + app on a PC) and configurable / free E2E ports (`pnpm e2e:isolated`) (ADR 0053)
