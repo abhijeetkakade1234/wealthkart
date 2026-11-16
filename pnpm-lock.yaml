@@ -47,6 +47,9 @@ importers:
       cn:
         specifier: ^0.5.2
         version: 0.5.2
+      gsap:
+        specifier: 3.15.0
+        version: 3.15.0
       lucide-react:
         specifier: ^1.73.0
         version: 1.73.0(@types/react@19.3.0)(react@19.1.0)
@@ -4442,6 +4445,9 @@ packages:
 
   graceful-fs@4.2.12:
     resolution: {integrity: sha512-iuyGF2E4oafQfPsRrG2wtY2ILupMhvtdrhzrxB+0VcjsPpSPttpfYdjnGFGsTi5MaJFjI1jOKHPQ6UTbTj9TAw==}
+
+  gsap@3.15.0:
+    resolution: {integrity: sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==}
 
   h3@1.15.11:
     resolution: {integrity: sha512-L3THSe2MPeBwgIZVSH5zLdBBU90TOxarvhK9d04IDY2AmVS8j2Jz2LIWtwsGOU3lu2I5jCN7FNvVfY2+XyF+mg==}
@@ -12395,6 +12401,8 @@ snapshots:
   graceful-fs@4.2.10: {}
 
   graceful-fs@4.2.12: {}
+
+  gsap@3.15.0: {}
 
   h3@1.15.11:
     dependencies:

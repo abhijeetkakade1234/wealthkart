@@ -14,6 +14,11 @@ export const circleVaultAbi = [
             internalType: "string",
           },
           {
+            name: "asset",
+            type: "uint8",
+            internalType: "enum CircleVault.Asset",
+          },
+          {
             name: "installment",
             type: "uint128",
             internalType: "uint128",
@@ -208,19 +213,6 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
-    name: "AVALANCHE_MAINNET_CHAIN_ID",
-    inputs: [],
-    outputs: [
-      {
-        name: "",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
     name: "DORMANT_PASS_PCT",
     inputs: [],
     outputs: [
@@ -280,6 +272,19 @@ export const circleVaultAbi = [
         name: "",
         type: "uint8",
         internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "MAX_MAX_MEMBERS",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint16",
+        internalType: "uint16",
       },
     ],
     stateMutability: "view",
@@ -509,6 +514,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "asset",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "canVote",
     inputs: [
       {
@@ -524,7 +542,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "ok",
         type: "bool",
         internalType: "bool",
       },
@@ -794,7 +812,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "e",
         type: "tuple",
         internalType: "struct Exits.Entry",
         components: [
@@ -863,7 +881,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "page",
         type: "address[]",
         internalType: "address[]",
       },
@@ -1011,7 +1029,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "r",
         type: "tuple",
         internalType: "struct Membership.Request",
         components: [
@@ -1275,7 +1293,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "ok",
         type: "bool",
         internalType: "bool",
       },
@@ -1564,7 +1582,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "a",
         type: "address",
         internalType: "address",
       },
@@ -1609,7 +1627,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "m",
         type: "tuple",
         internalType: "struct Membership.Member",
         components: [
@@ -1735,7 +1753,7 @@ export const circleVaultAbi = [
     ],
     outputs: [
       {
-        name: "",
+        name: "n",
         type: "string",
         internalType: "string",
       },
@@ -2782,6 +2800,19 @@ export const circleVaultAbi = [
   {
     type: "function",
     name: "repay",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "repay",
     inputs: [],
     outputs: [],
     stateMutability: "payable",
@@ -2878,7 +2909,7 @@ export const circleVaultAbi = [
     inputs: [],
     outputs: [
       {
-        name: "",
+        name: "r",
         type: "tuple",
         internalType: "struct Rules.Params",
         components: [
@@ -3244,6 +3275,31 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
+    name: "TokenFeeAbsorbed",
+    inputs: [
+      {
+        name: "payer",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "expected",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "received",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "VotingRightsGranted",
     inputs: [
       {
@@ -3289,6 +3345,11 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "AvaxNotAccepted",
+    inputs: [],
   },
   {
     type: "error",
@@ -3368,11 +3429,6 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
-    name: "MainnetNotSupported",
-    inputs: [],
-  },
-  {
-    type: "error",
     name: "MemberIsDormant",
     inputs: [
       {
@@ -3429,6 +3485,70 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "SafeERC20FailedOperation",
+    inputs: [
+      {
+        name: "token",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TokenAllowanceTooLow",
+    inputs: [
+      {
+        name: "needed",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "allowance",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TokenAmountMismatch",
+    inputs: [
+      {
+        name: "expected",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "received",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TokenBalanceTooLow",
+    inputs: [
+      {
+        name: "needed",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "balance",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "UsdtNotAvailable",
+    inputs: [],
   },
   {
     type: "error",

@@ -1,11 +1,12 @@
 # src/content
 
 **What's here:** the words on the public pages, as typed data (ADR 0027). One source feeds the HTML pages, their `.md` twins, `/llms.txt`, `/llms-full.txt`, the sitemap and JSON-LD.
-**Open this when:** editing copy on `/how-it-works`, `/rules`, `/security` or `/faq`, or changing the site URL or crawler list.
+**Open this when:** editing copy on `/` (landing), `/how-it-works`, `/rules`, `/security` or `/faq`, or changing the site URL or crawler list.
 
-| File       | Purpose                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------ |
-| `pages.ts` | Public pages: question heading + direct answer + optional blocks (paragraph, list, steps, table) |
-| `site.ts`  | `SITE_URL` (override with `NEXT_PUBLIC_SITE_URL`), summary, private paths, AI crawler list       |
+| File         | Purpose                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| `pages.ts`   | Public pages: question heading + direct answer + optional blocks (paragraph, list, steps, table) |
+| `landing.ts` | Landing page copy (ADR 0049); FAQ teaser reads from `pages.ts`; also feeds `/llms-full.txt`      |
+| `site.ts`    | `SITE_URL` (override with `NEXT_PUBLIC_SITE_URL`), summary, private paths, AI crawler list       |
 
 **Rules:** question-style headings with a 1–3 sentence answer first (`docs/seo.md` §3). Never promise returns (ADR 0005); `seo.test.ts` (S-WEB-20) fails on words like "returns" or "profit". Keep section `id`s stable: answer engines deep-link to them. Bump `updated` when a page changes.

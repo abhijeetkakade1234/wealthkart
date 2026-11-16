@@ -3,7 +3,8 @@ import type { Db } from "./store";
 /**
  * Contract monitoring (Phase 3, ADR 0041). Every cron run checks a batch of circles, round
  * robin, for the one invariant that must never break: the vault holds at least its cash
- * (total assets minus loans out). Refused payouts waiting in `withdrawable` only add to the
+ * (total assets minus loans out), in the circle's asset: AVAX balance, or the USDT token
+ * balance for USDT circles (ADR 0046). Refused payouts waiting in `withdrawable` only add to the
  * balance, so `balance < cash` always means money is missing. Problems are stored as alerts,
  * served by the API, and optionally posted to a webhook.
  */

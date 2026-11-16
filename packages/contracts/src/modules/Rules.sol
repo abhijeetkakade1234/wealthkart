@@ -78,6 +78,11 @@ library Rules {
         });
     }
 
+    /// @notice A copy of `p`; the vault forwards its `rules()` view here (ADR 0038).
+    function read(Params storage p) external view returns (Params memory) {
+        return p;
+    }
+
     /// @notice Reverts with a plain reason unless every setting is inside its bounds.
     function validate(Params calldata p, uint128 installment) external pure {
         if (p.interestBps > 500) revert InvalidRule("interest must be 0-5% a month");

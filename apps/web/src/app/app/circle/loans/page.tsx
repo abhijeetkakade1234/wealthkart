@@ -19,12 +19,13 @@ import { SectionLabel } from "@/components/loans/parts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { money, useCircleAsset } from "@/lib/asset";
 import { parseCircleId, useChainNow, useCircle } from "@/lib/circle";
 import { useCircleEvents } from "@/lib/events";
 import { useCircleGov } from "@/lib/gov-hooks";
 import { isAhead } from "@/lib/governance";
 import { useMemberName, useMyLoan, useOpenLoanRequests } from "@/lib/loan-hooks";
-import { askBlocker, avax, loanTies, loansFromLogs } from "@/lib/loans";
+import { askBlocker, loanTies, loansFromLogs } from "@/lib/loans";
 
 export default function LoansPage() {
   return (
@@ -110,7 +111,7 @@ function Loans() {
     <div className="max-w-[960px]">
       <PageHeader
         title="Loans"
-        subtitle={`${d.name} · borrow from the circle when you need to. Members vote, and the AVAX goes out on its own.`}
+        subtitle={`${d.name} · borrow from the circle when you need to. Members vote, and the money goes out on its own.`}
         actions={
           rules && my.data && address ? (
             <AskLoanButton
@@ -251,6 +252,7 @@ function BackingLine({
   defaulted: boolean;
 }) {
   const name = useMemberName(circle, borrower) || shortAddress(borrower);
+  const { asset } = useCircleAsset(circle);
   return defaulted ? (
     <InlineAlert tone="bad" title={`${name}'s loan is in default`}>
       You back it, so you&apos;re frozen too until it&apos;s paid: no leaving and no new loans. If
@@ -258,7 +260,7 @@ function BackingLine({
     </InlineAlert>
   ) : (
     <InlineAlert tone="info" title={`You're backing ${name}'s loan`}>
-      {avax(outstanding)} AVAX is still owed. You can leave the circle once it&apos;s repaid.
+      {money(outstanding, asset)} is still owed. You can leave the circle once it&apos;s repaid.
     </InlineAlert>
   );
 }

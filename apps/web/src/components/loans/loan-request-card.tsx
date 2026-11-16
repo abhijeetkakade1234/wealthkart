@@ -9,8 +9,9 @@ import { TxFor } from "@/components/app/tx-for";
 import { Avatar } from "@/components/art";
 import { Button } from "@/components/kit";
 import { proposalOutcome, proposalTallyLine } from "@/lib/governance";
+import { money, useCircleAsset } from "@/lib/asset";
 import { type LoanRequestView, useLoanTx } from "@/lib/loan-hooks";
-import { avax, loanSettledLine } from "@/lib/loans";
+import { loanSettledLine } from "@/lib/loans";
 import { notify } from "@/lib/toast";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -37,6 +38,7 @@ export function LoanRequestCard({
   onChanged: () => void;
 }) {
   const voteA = useLoanTx(circle);
+  const { asset } = useCircleAsset(circle);
   const settleA = useLoanTx(circle);
   const otherA = useLoanTx(circle);
   const tally = { eligible: r.eligible, yes: r.yes, no: r.no, passPct, quorumPct };
@@ -50,7 +52,9 @@ export function LoanRequestCard({
   const waiting = !settle && hasGuarantor && !r.guarantorAccepted;
   const borrower = r.borrowerName || shortAddress(r.borrower);
   const guarantor = r.guarantorName || shortAddress(r.guarantor);
-  const title = settle ? `Settle ${borrower}'s default` : `${avax(r.amount)} AVAX for ${borrower}`;
+  const title = settle
+    ? `Settle ${borrower}'s default`
+    : `${money(r.amount, asset)} for ${borrower}`;
 
   async function vote(support: boolean) {
     const ok = await voteA.vote(r.id, support);
@@ -120,7 +124,7 @@ export function LoanRequestCard({
       <div className="grid gap-4 text-[13.5px] leading-relaxed">
         {settle ? (
           <p className="text-muted-foreground">
-            {borrower}&apos;s loan is in default with {avax(r.amount)} AVAX still owed. If this
+            {borrower}&apos;s loan is in default with {money(r.amount, asset)} still owed. If this
             passes, {borrower}&apos;s savings repay it at today&apos;s value
             {hasGuarantor ? `, then ${guarantor}'s as guarantor` : ""}. Anything still uncovered is
             shared by everyone through the share value. If {borrower} pays up first, the vote is

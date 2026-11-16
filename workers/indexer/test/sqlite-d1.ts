@@ -25,7 +25,13 @@ export function memoryDb(): Db {
     bind: (...v: unknown[]) => stmt(sql, v),
     all: async <T>() => ({ results: db.prepare(sql).all(...(values as never[])) as T[] }),
     first: async <T>() => (db.prepare(sql).get(...(values as never[])) as T | undefined) ?? null,
-    run: async () => db.prepare(sql).run(...(values as never[])),
+    run: async () => {
+      const result = db.prepare(sql).run(...(values as never[]));
+      // Like D1: report the database size after the write.
+      const pages = db.prepare("PRAGMA page_count").get() as { page_count: number };
+      const size = db.prepare("PRAGMA page_size").get() as { page_size: number };
+      return { ...result, meta: { size_after: pages.page_count * size.page_size } };
+    },
     exec: () => {
       db.prepare(sql).run(...(values as never[]));
     },

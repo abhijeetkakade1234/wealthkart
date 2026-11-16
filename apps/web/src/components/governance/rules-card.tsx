@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Address } from "viem";
 
+import { useCircleAsset } from "@/lib/asset";
 import { formatRule, RULE_META, type RuleKey, type RulesParams } from "@/lib/rules";
 
 /** The settings most members ask about, in this order. The full list is in the proposal form. */
@@ -18,6 +19,7 @@ const SHOWN: readonly RuleKey[] = [
 
 /** "Circle rules" on the overview: the current settings in plain words (ADR 0022, 0040). */
 export function RulesCard({ circle, rules }: { circle: Address; rules: RulesParams }) {
+  const { asset } = useCircleAsset(circle);
   return (
     <section
       aria-labelledby="rules-heading"
@@ -46,7 +48,7 @@ export function RulesCard({ circle, rules }: { circle: Address; rules: RulesPara
             className="flex items-baseline justify-between gap-4 border-b border-line-soft pb-3"
           >
             <dt className="text-[13.5px] text-muted-foreground">{RULE_META[k].label}</dt>
-            <dd className="font-mono text-[13.5px] tabular">{formatRule(k, rules[k])}</dd>
+            <dd className="font-mono text-[13.5px] tabular">{formatRule(k, rules[k], asset)}</dd>
           </div>
         ))}
       </dl>

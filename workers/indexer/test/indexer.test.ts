@@ -173,3 +173,38 @@ describe("indexer (ADR 0036)", () => {
     expect(body.indexedTo).toBe("12");
   });
 });
+
+describe("D1 size guard (ADR 0047)", () => {
+  it("S-IDX-07 stops storing new events at the soft limit and says so", async () => {
+    const db = memoryDb();
+    const chain = fakeChain({
+      tip: 30n,
+      circles: [{ address: CIRCLE_A, block: 10n }],
+      logs: [log(CIRCLE_A, 11n, 0), log(CIRCLE_A, 25n, 0)],
+    });
+    // A limit any real database exceeds after its first write.
+    const tiny = { ...cfg, sizeLimitBytes: 1 };
+    const first = await indexStep(db, chain, tiny, 10);
+    expect(first.chunks).toBe(1);
+    expect(first.caughtUp).toBe(false);
+    const again = await indexStep(db, chain, tiny, 10);
+    expect(again.chunks).toBe(0);
+
+    const health = (await (
+      await handle(new Request("https://x/v1/health"), db, chain, tiny, 0)
+    ).json()) as { full: boolean; sizeBytes: number; indexedTo: string };
+    expect(health.full).toBe(true);
+    expect(health.sizeBytes).toBeGreaterThan(0);
+    expect(health.indexedTo).toBe("14"); // the app reads newer blocks from the RPC
+  });
+
+  it("S-IDX-07 no limit keeps indexing", async () => {
+    const db = memoryDb();
+    const chain = fakeChain({
+      tip: 30n,
+      circles: [{ address: CIRCLE_A, block: 10n }],
+      logs: [log(CIRCLE_A, 11n, 0)],
+    });
+    expect((await indexStep(db, chain, { ...cfg, sizeLimitBytes: 0 }, 10)).caughtUp).toBe(true);
+  });
+});

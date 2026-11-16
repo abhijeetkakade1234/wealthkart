@@ -18,6 +18,10 @@
 | `test/`          | Unit tests on Node's built-in SQLite through the same D1 interface (`sqlite-d1.ts`)                          |
 | `wrangler.toml`  | Fuji settings, D1 binding, cron; `[env.e2e]` points at the local anvil chain                                 |
 
+**Free tier:** D1 allows 500 MB per database. At `D1_SOFT_LIMIT_MB` (450) the indexer stops storing new events and raises an `index-full` alert; the app reads newer blocks from the RPC (ADR 0047).
+
 **Commands:** `pnpm test`, `pnpm typecheck`, `pnpm dev` (needs a local D1: `pnpm migrate:local` first). E2E starts it for you (`apps/web/e2e/indexer.mjs`).
+
+**Networks (ADR 0051):** the top of `wrangler.toml` is Fuji; `[env.mainnet]` is mainnet with its own D1 database. The **Deploy indexer** workflow takes the network as an input.
 
 **Deploy (owner action, after the Fuji deploy):** `wrangler d1 create wealthkart-indexer`, put the id and the factory address in `wrangler.toml`, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` to the `fuji` environment, run the **Deploy indexer** workflow, then set `NEXT_PUBLIC_INDEXER_URL` for the web build.

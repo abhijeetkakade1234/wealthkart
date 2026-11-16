@@ -25,6 +25,8 @@ export interface StoredLog {
 }
 
 const INDEXED_TO = "indexed_to";
+const DB_SIZE = "db_size";
+const DB_FULL = "db_full";
 const CHECKED_AT = "checked_at";
 /** D1 accepts large batches, but smaller ones keep each write well inside limits. */
 const BATCH = 50;
@@ -69,7 +71,7 @@ export async function saveRange(
   circles: Array<{ address: string; block: bigint }>,
   logs: StoredLog[],
   to: bigint,
-) {
+): Promise<number | undefined> {
   const stmts: Stmt[] = [];
   for (const c of circles) {
     stmts.push(
@@ -88,7 +90,7 @@ export async function saveRange(
     );
   }
   for (let i = 0; i < stmts.length; i += BATCH) await db.batch(stmts.slice(i, i + BATCH));
-  await db
+  const written = await db
     .prepare(
       `INSERT INTO meta (key, value) VALUES (?, ?)
        ON CONFLICT(key) DO UPDATE SET value = CASE
@@ -97,6 +99,40 @@ export async function saveRange(
     )
     .bind(INDEXED_TO, to.toString())
     .run();
+  // D1 reports the database size after every write (ADR 0047).
+  const size = (written as { meta?: { size_after?: number } } | undefined)?.meta?.size_after;
+  if (size !== undefined) await setMeta(db, DB_SIZE, String(size));
+  return size;
+}
+
+async function setMeta(db: Db, key: string, value: string) {
+  await db
+    .prepare(
+      "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )
+    .bind(key, value)
+    .run();
+}
+
+async function getMeta(db: Db, key: string): Promise<string | null> {
+  const row = await db.prepare("SELECT value FROM meta WHERE key = ?").bind(key).first<{
+    value: string;
+  }>();
+  return row ? row.value : null;
+}
+
+/** Last database size seen, in bytes (0 before the first write). */
+export async function dbSize(db: Db): Promise<number> {
+  return Number((await getMeta(db, DB_SIZE)) ?? 0);
+}
+
+/** True once the soft size limit was reached: no new events are stored (ADR 0047). */
+export async function isFull(db: Db): Promise<boolean> {
+  return (await getMeta(db, DB_FULL)) === "1";
+}
+
+export async function markFull(db: Db) {
+  await setMeta(db, DB_FULL, "1");
 }
 
 export interface LogRow {

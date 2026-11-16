@@ -1,7 +1,6 @@
 import { type CashFlow, dueMoment, xirr } from "@wealthkart/rules";
-import { formatEther } from "viem";
-
 import type { CircleEvent } from "@/lib/analytics";
+import { AVAX, type CircleAsset, toNumber } from "@/lib/asset";
 
 /**
  * Returns, projections and CSV export (PLAN.md D7, Phase 3). Pure and unit tested.
@@ -10,8 +9,6 @@ import type { CircleEvent } from "@/lib/analytics";
  * (ADR 0024): the page says so next to them.
  */
 
-const avax = (wei: bigint) => Number(formatEther(wei));
-
 /** Cash flows for XIRR: payments in (negative) and today's value out (positive). */
 export function cashFlows(
   events: readonly CircleEvent[],
@@ -19,15 +16,17 @@ export function cashFlows(
   valueNow: bigint,
   nowSec: number,
   member?: string,
+  asset: CircleAsset = AVAX,
 ): CashFlow[] {
+  const num = (units: bigint) => toNumber(units, asset);
   const who = member?.toLowerCase();
   const flows: CashFlow[] = [];
   for (const e of events) {
     if (e.type !== "contributed") continue;
     if (who && e.member.toLowerCase() !== who) continue;
-    flows.push({ at: dueMoment(e.period, dueDay), amount: -avax(e.installment + e.fees) });
+    flows.push({ at: dueMoment(e.period, dueDay), amount: -num(e.installment + e.fees) });
   }
-  if (flows.length > 0 && valueNow > 0n) flows.push({ at: nowSec, amount: avax(valueNow) });
+  if (flows.length > 0 && valueNow > 0n) flows.push({ at: nowSec, amount: num(valueNow) });
   return flows;
 }
 
@@ -46,9 +45,9 @@ export function annualReturn(flows: readonly CashFlow[]): number | null {
 
 export interface ProjectionPoint {
   year: number;
-  /** Value in AVAX if the same installment keeps going in and the rate holds. */
+  /** Value in the circle's asset if the same installment keeps going in and the rate holds. */
   value: number;
-  /** Installments paid in by then, AVAX. */
+  /** Installments paid in by then, in the circle's asset. */
   paidIn: number;
 }
 
@@ -99,7 +98,8 @@ export function memberHistoryCsv(
   events: readonly CircleEvent[],
   member: string,
   label: (period: number) => string,
-  amount: (wei: bigint) => string,
+  amount: (units: bigint) => string,
+  symbol = "AVAX",
 ): string {
   const who = member.toLowerCase();
   const rows: string[][] = [];
@@ -125,9 +125,9 @@ export function memberHistoryCsv(
     [
       "Type",
       "Month",
-      "Installment (AVAX)",
-      "Late fees (AVAX)",
-      "Total (AVAX)",
+      `Installment (${symbol})`,
+      `Late fees (${symbol})`,
+      `Total (${symbol})`,
       "Block",
       "Transaction",
     ],

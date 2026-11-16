@@ -1,7 +1,16 @@
 import { decode } from "./codec";
 import { type ChainReader, type Config, indexStep } from "./indexer";
 import { openAlerts } from "./monitor";
-import { checkedAt, circleLogs, type Db, indexedTo, isKnownCircle, markChecked } from "./store";
+import {
+  checkedAt,
+  circleLogs,
+  type Db,
+  dbSize,
+  indexedTo,
+  isFull,
+  isKnownCircle,
+  markChecked,
+} from "./store";
 
 /**
  * HTTP API (ADR 0036). Read-only, public chain data, so CORS is open and nothing is secret.
@@ -60,7 +69,12 @@ export async function handle(
   const url = new URL(request.url);
   if (url.pathname === "/v1/health") {
     const to = await indexedTo(db);
-    return json({ chainId: cfg.chainId, indexedTo: to === null ? null : to.toString() });
+    return json({
+      chainId: cfg.chainId,
+      indexedTo: to === null ? null : to.toString(),
+      sizeBytes: await dbSize(db),
+      full: await isFull(db),
+    });
   }
 
   if (url.pathname === "/v1/alerts") {

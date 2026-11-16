@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { Address } from "viem";
 
 import { Deadline } from "@/components/app/deadline";
+import { PayButton, PayProgress } from "@/components/app/asset-pay";
 import { TxFor } from "@/components/app/tx-for";
 import { Button, InlineAlert } from "@/components/kit";
 import {
@@ -15,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { money, useCircleAsset } from "@/lib/asset";
 import { proposalOutcome, proposalTallyLine } from "@/lib/governance";
 import { type MyLoan, useLoanAmounts, useLoanRequest, useLoanTx } from "@/lib/loan-hooks";
 import {
@@ -28,6 +30,7 @@ import {
 } from "@/lib/loans";
 import { formatBps, type RulesParams } from "@/lib/rules";
 import { notify } from "@/lib/toast";
+import { useAssetPayment } from "@/lib/use-asset-payment";
 import { cn } from "@/lib/utils";
 
 import { Fact, inputCls } from "./parts";
@@ -62,6 +65,7 @@ export function MyLoanPanel({
   guarantorName: string;
   onChanged: () => void;
 }) {
+  const { asset } = useCircleAsset(circle);
   if (my.loan) {
     return (
       <ActiveLoan
@@ -98,9 +102,9 @@ export function MyLoanPanel({
           You don&apos;t have a loan
         </p>
         <p className="max-w-[60ch] text-[13.5px] leading-relaxed text-muted-foreground">
-          When you need money, ask the circle. The members vote, and if enough say yes the AVAX
-          arrives in your wallet on its own. Interest goes back into the circle and lifts
-          everyone&apos;s share, yours included.
+          When you need money, ask the circle. The members vote, and if enough say yes the{" "}
+          {asset.symbol} arrives in your wallet on its own. Interest goes back into the circle and
+          lifts everyone&apos;s share, yours included.
         </p>
       </div>
       <dl className="grid gap-6 sm:grid-cols-3">
@@ -114,7 +118,7 @@ export function MyLoanPanel({
           value={`${rules.tenorMonths} months`}
           hint="Three terms, then the loan is due"
         />
-        <Fact label="Cash free to lend" value={`${avax(my.lendable)} AVAX`} />
+        <Fact label="Cash free to lend" value={money(my.lendable, asset)} />
       </dl>
     </section>
   );
@@ -139,25 +143,29 @@ function ActiveLoan({
   guarantorName: string;
   onChanged: () => void;
 }) {
-  const pay = useLoanTx(circle);
+  const payment = useAssetPayment(circle);
+  const asset = payment.asset;
   const amounts = useLoanAmounts(circle);
   const [repayOpen, setRepayOpen] = useState(false);
   const owedNow = my.interest + my.fees;
   const rate = rateIn(loan, Math.max(currentPeriod, loan.disbursedPeriod + 1));
   const hasGuarantor = loan.guarantor !== "" && loan.guarantor !== ZERO;
 
-  async function payInterest() {
-    // Re-read right before paying: a late fee may have started since the page loaded.
+  /** Re-read right before paying (and before a second approve): a late fee may have started. */
+  async function interestNow(): Promise<bigint> {
     const fresh = await amounts.refetch();
     const due = fresh.data?.[0];
-    const total = due ? due[0] + due[1] : owedNow;
-    if (total === 0n) {
+    return due ? due[0] + due[1] : owedNow;
+  }
+
+  async function payInterest() {
+    if ((await interestNow()) === 0n) {
       notify.info("There's no interest to pay right now.");
       return;
     }
-    const r = await pay.payInterest(total);
+    const r = await payment.pay({ fn: "payInterest", amount: interestNow });
     if (r) {
-      notify.success(`Interest paid: ${avax(total)} AVAX. Thank you.`);
+      notify.success(`Interest paid: ${money(r.amount, asset)}. Thank you.`);
       onChanged();
     }
   }
@@ -173,13 +181,13 @@ function ActiveLoan({
             className="font-display text-[48px] leading-none tracking-tight tabular"
             data-testid="loan-outstanding"
           >
-            {avax(loan.principal)}
+            {avax(loan.principal, asset)}
             <small className="ml-2 font-sans text-[14px] tracking-normal text-muted-foreground">
-              AVAX still owed
+              {asset.symbol} still owed
             </small>
           </p>
           <p className="text-[13px] text-muted-foreground">
-            You borrowed {avax(loan.amount)} AVAX in {periodLabel(loan.disbursedPeriod)}
+            You borrowed {money(loan.amount, asset)} in {periodLabel(loan.disbursedPeriod)}
             {hasGuarantor ? ` · backed by ${guarantorName || shortAddress(loan.guarantor)}` : ""}.
           </p>
         </div>
@@ -192,13 +200,13 @@ function ActiveLoan({
             {hasGuarantor ? ", and neither can your guarantor" : ""}. If it stays unpaid, the
             members can vote to repay it from your savings
             {hasGuarantor ? ", then your guarantor's" : ""}.{" "}
-            {cureText(loan, owedNow, currentPeriod)}
+            {cureText(loan, owedNow, currentPeriod, asset)}
           </span>
         </InlineAlert>
       ) : my.overdueMonths > 0 ? (
         <InlineAlert tone="warn" title="Your interest is late">
           {my.overdueMonths} {my.overdueMonths === 1 ? "month is" : "months are"} unpaid, with{" "}
-          {avax(loan.interestFee || rules.interestFee)} AVAX added for each late month. After{" "}
+          {money(loan.interestFee || rules.interestFee, asset)} added for each late month. After{" "}
           {loan.defaultAfter || rules.defaultAfter} late{" "}
           {(loan.defaultAfter || rules.defaultAfter) === 1 ? "month" : "months"}, anyone in the
           circle can mark the loan as defaulted, which freezes you
@@ -209,11 +217,11 @@ function ActiveLoan({
       <dl className="grid gap-6 sm:grid-cols-3">
         <Fact
           label="Interest to pay now"
-          value={`${avax(owedNow)} AVAX`}
+          value={money(owedNow, asset)}
           testId="interest-now"
           hint={
             my.fees > 0n
-              ? `Includes ${avax(my.fees)} AVAX in late fees`
+              ? `Includes ${money(my.fees, asset)} in late fees`
               : owedNow > 0n
                 ? `Due by day ${dueDay} (UTC); paying early is fine`
                 : currentPeriod <= loan.disbursedPeriod
@@ -228,10 +236,10 @@ function ActiveLoan({
         />
         <Fact
           label="To close it today"
-          value={`${avax(my.payoff)} AVAX`}
+          value={money(my.payoff, asset)}
           hint={
             my.payoff > loan.principal
-              ? `Includes ${avax(my.payoff - loan.principal)} AVAX: one month's minimum interest`
+              ? `Includes ${money(my.payoff - loan.principal, asset)}: one month's minimum interest`
               : owedNow > 0n
                 ? "Pay the interest first, then this"
                 : "What you still owe; no extra interest"
@@ -243,21 +251,22 @@ function ActiveLoan({
 
       <div className="grid gap-4">
         <div className="flex flex-wrap gap-3">
-          <Button
+          <PayButton
             icon={HandCoins}
-            workingLabel="Paying…"
-            state={pay.working ? "working" : undefined}
+            payment={payment}
+            amount={owedNow}
+            label="Pay interest"
             disabled={owedNow === 0n}
             disabledReason="There's no interest to pay right now"
             onClick={payInterest}
-          >
-            {owedNow > 0n ? `Pay interest ${avax(owedNow)} AVAX` : "Pay interest"}
-          </Button>
+          />
           <Button variant="secondary" icon={Wallet} onClick={() => setRepayOpen(true)}>
             Repay
           </Button>
         </div>
-        <TxFor tx={pay.tx} />
+        {(payment.step !== null || payment.payTx.status !== "idle") && (
+          <PayProgress payment={payment} amount={owedNow} />
+        )}
       </div>
 
       <RepayDialog
@@ -287,36 +296,40 @@ function RepayDialog({
   my: MyLoan;
   onRepaid: () => void;
 }) {
-  const action = useLoanTx(circle);
+  const payment = useAssetPayment(circle);
+  const asset = payment.asset;
   const amounts = useLoanAmounts(circle);
   const [mode, setMode] = useState<"part" | "full">("full");
   const [text, setText] = useState("");
-  const amount = parseAvaxInput(text);
-  const problem = repayProblem(mode, amount, loan.principal, my.interest, my.overdueMonths);
+  const amount = parseAvaxInput(text, asset);
+  const problem = repayProblem(mode, amount, loan.principal, my.interest, my.overdueMonths, asset);
   const sending = mode === "full" ? my.payoff : (amount ?? 0n);
+
+  /** Full: the exact payoff, re-read right before paying. Part: what was typed. */
+  async function repayAmount(): Promise<bigint> {
+    if (mode !== "full") return sending;
+    const fresh = await amounts.refetch();
+    return fresh.data?.[1] ?? my.payoff;
+  }
 
   async function repay() {
     if (problem) return;
-    let value = sending;
-    if (mode === "full") {
-      const fresh = await amounts.refetch();
-      value = fresh.data?.[1] ?? my.payoff;
-    }
-    const r = await action.repay(value);
+    const r = await payment.pay({ fn: "repay", amount: repayAmount });
     if (!r) return;
+    const value = r.amount;
     onOpenChange(false);
-    action.tx.reset();
+    payment.reset();
     setText("");
     notify.success(
       mode === "full"
         ? "Loan repaid in full. It's closed, and you're free to ask again whenever you need."
-        : `Repaid ${avax(value)} AVAX. ${avax(loan.principal - value)} AVAX left to repay.`,
+        : `Repaid ${money(value, asset)}. ${money(loan.principal - value, asset)} left to repay.`,
     );
     onRepaid();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !action.working && onOpenChange(v)}>
+    <Dialog open={open} onOpenChange={(v) => !payment.working && onOpenChange(v)}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>Repay your loan</DialogTitle>
@@ -349,7 +362,7 @@ function RepayDialog({
                   </span>
                   <span className="text-[12px] text-muted-foreground">
                     {m === "full"
-                      ? `${avax(my.payoff)} AVAX closes the loan`
+                      ? `${money(my.payoff, asset)} closes the loan`
                       : "Any amount below what you owe"}
                   </span>
                 </span>
@@ -360,7 +373,7 @@ function RepayDialog({
           {mode === "part" && (
             <div className="grid gap-1.5">
               <label htmlFor="repay-amount" className="text-[13px] font-medium">
-                Amount in AVAX
+                Amount in {asset.symbol}
               </label>
               <input
                 id="repay-amount"
@@ -368,14 +381,14 @@ function RepayDialog({
                 autoComplete="off"
                 className={inputCls}
                 value={text}
-                placeholder={`Less than ${avax(loan.principal)}`}
+                placeholder={`Less than ${avax(loan.principal, asset)}`}
                 onChange={(e) => setText(e.target.value)}
               />
             </div>
           )}
           {mode === "full" && my.payoff > loan.principal && (
             <p className="text-[13px] leading-relaxed text-muted-foreground">
-              This includes {avax(my.payoff - loan.principal)} AVAX: a loan repaid before any
+              This includes {money(my.payoff - loan.principal, asset)}: a loan repaid before any
               interest was charged still pays one month&apos;s interest (rule 17).
             </p>
           )}
@@ -384,17 +397,18 @@ function RepayDialog({
           )}
 
           <div className="grid gap-4">
-            <Button
+            <PayButton
               icon={Wallet}
-              workingLabel="Repaying…"
-              state={action.working ? "working" : undefined}
+              payment={payment}
+              amount={sending}
+              label="Repay"
               disabled={Boolean(problem)}
               disabledReason={problem ?? undefined}
               onClick={repay}
-            >
-              {sending > 0n ? `Repay ${avax(sending)} AVAX` : "Repay"}
-            </Button>
-            <TxFor tx={action.tx} />
+            />
+            {(payment.step !== null || payment.payTx.status !== "idle") && (
+              <PayProgress payment={payment} amount={sending} />
+            )}
           </div>
         </div>
       </DialogContent>
@@ -418,6 +432,7 @@ function PendingRequest({
   onChanged: () => void;
 }) {
   const q = useLoanRequest(circle, id);
+  const { asset } = useCircleAsset(circle);
   const cancel = useLoanTx(circle);
   const settle = useLoanTx(circle);
   const r = q.request;
@@ -458,9 +473,9 @@ function PendingRequest({
             Your loan request{r.medical ? " · medical" : ""}
           </span>
           <p className="font-display text-[48px] leading-none tracking-tight tabular">
-            {avax(r.amount)}
+            {avax(r.amount, asset)}
             <small className="ml-2 font-sans text-[14px] tracking-normal text-muted-foreground">
-              AVAX asked for
+              {asset.symbol} asked for
             </small>
           </p>
         </div>
@@ -478,7 +493,7 @@ function PendingRequest({
             hasGuarantor
               ? r.guarantorAccepted
                 ? "Has agreed to back your loan"
-                : "Hasn't agreed yet. The AVAX goes out only after they do."
+                : "Hasn't agreed yet. The money goes out only after they do."
               : undefined
           }
         />

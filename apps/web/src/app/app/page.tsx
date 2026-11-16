@@ -1,18 +1,20 @@
 "use client";
 
-import { formatAvax, periodLabel } from "@wealthkart/sdk";
+import { periodLabel } from "@wealthkart/sdk";
 import { ArrowRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 
 import { PortfolioSummary } from "@/components/analytics/portfolio-summary";
+import { AssetBadge } from "@/components/app/asset-pay";
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { CircleCover, EmptyArt } from "@/components/art";
 import { Button, ErrorBoundary, StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
+import { fmt } from "@/lib/asset";
 import { CIRCLES_PAGE_SIZE, type CircleSummary, useMyCircles } from "@/lib/circle";
 
 /** Home / Portfolio: every circle this wallet is in, and what needs doing now. */
@@ -115,6 +117,7 @@ function Portfolio() {
 
 function CircleCard({ circle: c }: { circle: CircleSummary }) {
   const owes = c.due?.payable;
+  const asset = c.asset;
   return (
     <Link
       href={`/app/circle/?id=${c.address}`}
@@ -124,16 +127,21 @@ function CircleCard({ circle: c }: { circle: CircleSummary }) {
         <CircleCover address={c.address} name={c.name} />
       </div>
       <div className="grid gap-1.5">
-        <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          {String(c.memberCount)} members
+        <span className="flex items-center justify-between gap-3">
+          <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
+            {String(c.memberCount)} members
+          </span>
+          <AssetBadge asset={asset} />
         </span>
         <span className="font-display text-[28px] leading-tight">{c.name}</span>
       </div>
       <div className="grid gap-1">
         <span className="text-[12.5px] text-muted-foreground">Your stake</span>
         <span className="font-display text-[34px] leading-none tabular">
-          {formatAvax(c.stake)}
-          <small className="ml-1.5 font-sans text-[13px] text-muted-foreground">AVAX</small>
+          {fmt(c.stake, asset)}
+          <small className="ml-1.5 font-sans text-[13px] text-muted-foreground">
+            {asset.symbol}
+          </small>
         </span>
         {c.totalAssets > 0n && c.stake > 0n && (
           <span className="text-[12.5px] text-muted-foreground">
@@ -148,7 +156,7 @@ function CircleCard({ circle: c }: { circle: CircleSummary }) {
           </span>
         ) : owes && c.due ? (
           <span className="rounded-full bg-warn-soft px-2.5 py-1 text-warn">
-            {formatAvax(c.due.amount)} AVAX due · {periodLabel(c.due.period)}
+            {fmt(c.due.amount, asset)} {asset.symbol} due · {periodLabel(c.due.period)}
           </span>
         ) : (
           <span className="rounded-full bg-good-soft px-2.5 py-1 text-good">All paid</span>

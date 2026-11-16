@@ -1,11 +1,11 @@
 "use client";
 
-import { formatAvax } from "@wealthkart/sdk";
 import type { Address } from "viem";
 
 import { ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { memberHistories, monthlySeries, totals } from "@/lib/analytics";
+import { money as withUnit, useCircleAsset } from "@/lib/asset";
 import { useCircleEvents } from "@/lib/events";
 
 import { InflowChart, NavChart, ValueChart } from "./circle-charts";
@@ -47,6 +47,7 @@ export function CircleAnalytics({
   money?: { totalAssets: bigint; loansOutstanding: bigint; reserveBps: number };
 }) {
   const q = useCircleEvents(id);
+  const { asset } = useCircleAsset(id);
 
   if (q.isPending) {
     return (
@@ -84,24 +85,26 @@ export function CircleAnalytics({
       <p className="text-[13.5px] text-muted-foreground" data-testid="analytics-summary">
         {t.payments === 0
           ? "No payments yet. The charts fill in after the first installment."
-          : `${t.payments} ${t.payments === 1 ? "payment" : "payments"} so far · ${t.late} paid late · ${formatAvax(t.fees)} AVAX in late fees shared by everyone`}
+          : `${t.payments} ${t.payments === 1 ? "payment" : "payments"} so far · ${t.late} paid late · ${withUnit(t.fees, asset)} in late fees shared by everyone`}
       </p>
       {t.payments > 0 && (
         <div className="grid gap-5 lg:grid-cols-2">
           <ErrorBoundary preset="widget" name="Circle value">
             <div className="lg:col-span-2">
-              <ValueChart points={points} />
+              <ValueChart points={points} asset={asset} />
             </div>
           </ErrorBoundary>
           <ErrorBoundary preset="widget" name="Money in each month">
-            <InflowChart points={points} />
+            <InflowChart points={points} asset={asset} />
           </ErrorBoundary>
           <ErrorBoundary preset="widget" name="Value of one share">
-            <NavChart points={points} />
+            <NavChart points={points} asset={asset} />
           </ErrorBoundary>
         </div>
       )}
-      {t.payments > 0 && money && <CircleLoanCharts id={id} logs={q.data.logs} money={money} />}
+      {t.payments > 0 && money && (
+        <CircleLoanCharts id={id} logs={q.data.logs} money={money} asset={asset} />
+      )}
       {t.payments > 0 && mine && (
         <ErrorBoundary preset="widget" name="Your returns">
           <ReturnsCard
@@ -113,6 +116,7 @@ export function CircleAnalytics({
             dueDay={dueDay}
             chainNow={chainNow}
             circleName={mine.circleName}
+            asset={asset}
           />
         </ErrorBoundary>
       )}

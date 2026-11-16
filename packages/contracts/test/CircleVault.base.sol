@@ -5,12 +5,13 @@ import {Test} from "forge-std/Test.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
 import {Rules} from "../src/modules/Rules.sol";
+import {Exits} from "../src/modules/Exits.sol";
 import {PeriodMath} from "../src/libraries/PeriodMath.sol";
 import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 
 /// @notice Scenario harness (docs/testing.md): a 12-member circle created on 2026-12-01 00:00 UTC
 ///         with G1-like defaults (0.5 AVAX due on the 10th, fees 0.01 + 0.01, 3 holidays a year,
-///         48 h join votes at 50% quorum, no member cap), plus named actors and helpers for time,
+///         48 h join votes at 50% quorum, member cap 50), plus named actors and helpers for time,
 ///         payments, join requests and votes. members[0] created it; the other 11 accepted.
 /// @dev Actors:
 ///      - `honest`   members[0]: pays on time.
@@ -33,10 +34,11 @@ abstract contract CircleVaultBase is Test {
     uint256 internal constant SLOT_LOANS_OUTSTANDING = SLOT_LEDGER + 2;
     uint256 internal constant SLOT_EXITS_WAITING = SLOT_LEDGER + 5;
     uint256 internal constant SLOT_SWITCHES = SLOT_LEDGER + 6; // pausedUntil|rageQuitUntil|...
-    uint256 internal constant SLOT_RULES = 30;
-    uint256 internal constant SLOT_GOV = 32;
-    uint256 internal constant SLOT_EXITS = 43;
-    uint256 internal constant SLOT_LOANS = 46;
+    uint256 internal constant SLOT_TOKEN = SLOT_LEDGER + 7; // _ledger.token (ADR 0046)
+    uint256 internal constant SLOT_RULES = 31;
+    uint256 internal constant SLOT_GOV = 33;
+    uint256 internal constant SLOT_EXITS = 44;
+    uint256 internal constant SLOT_LOANS = 47;
     string internal constant NAME_RULE =
         "name must be 3..48 letters, digits, spaces or _-'& (no links)";
 
@@ -54,6 +56,7 @@ abstract contract CircleVaultBase is Test {
     function _cfg() internal pure virtual returns (CircleVault.Config memory c) {
         c = CircleVault.Config({
             name: "College Gang",
+            asset: CircleVault.Asset.AVAX,
             installment: uint128(AVAX / 2),
             fee1: uint128(AVAX / 100),
             fee2: uint128(AVAX / 100),
@@ -62,7 +65,7 @@ abstract contract CircleVaultBase is Test {
             holidaysPerYear: 3,
             votingWindow: 48 hours,
             quorumPct: 50,
-            maxMembers: 0,
+            maxMembers: 50,
             dormantAfter: 3,
             minPaidToVote: 2,
             rules: Rules.defaults(uint128(AVAX / 2))
@@ -71,7 +74,7 @@ abstract contract CircleVaultBase is Test {
 
     function setUp() public virtual {
         vm.warp(DEC_1_2026);
-        factory = new CircleFactory(type(CircleVault).creationCode);
+        factory = new CircleFactory(type(CircleVault).creationCode, address(0));
         members = _makeMembers(12);
         vault = _createCircle(_cfg(), members);
         honest = members[0];
@@ -181,5 +184,47 @@ abstract contract CircleVaultBase is Test {
         id = _request(applicant, displayName);
         _votes(id, 0, members.length, true);
         require(vault.isMember(applicant), "not admitted");
+    }
+
+    // ------------------------------------------------------------------ exits
+
+    /// @dev Worst case for an exit's settle cost: a 24-byte display name, so removing the member
+    ///      writes a fresh `nameFreeAt` slot, then the exit request.
+    function _nameAndRequestExit(CircleVault v, address who, uint256 i) internal {
+        vm.prank(who);
+        v.setDisplayName(string.concat("exit_member_name_long_", vm.toString(i % 10), "x"));
+        vm.prank(who);
+        v.requestExit();
+    }
+
+    /// @dev RT-USDT-01 sweep: from the same state, call `processExits(10)` at every gas limit in
+    ///      `lo..hi` (step `step`). Each call either pays at least one exit or reverts with
+    ///      `ExitGasTooLow` (never `PayoutGasTooLow` or out of gas), and more gas never pays
+    ///      fewer. The top of the sweep pays all `queued` exits.
+    function _sweepProcessExits(CircleVault v, uint256 lo, uint256 hi, uint256 step, uint256 queued)
+        internal
+    {
+        uint256 prev = 0;
+        for (uint256 g = lo; g <= hi; g += step) {
+            uint256 snap = vm.snapshotState();
+            (bool ok, bytes memory ret) =
+                address(v).call{gas: g}(abi.encodeCall(CircleVault.processExits, (10)));
+            uint256 paid = 0;
+            if (ok) {
+                paid = abi.decode(ret, (uint256));
+                assertGe(paid, 1, "a run that succeeds pays someone");
+            } else {
+                assertEq(ret.length, 4, string.concat("bare revert at gas ", vm.toString(g)));
+                assertEq(
+                    bytes4(ret),
+                    Exits.ExitGasTooLow.selector,
+                    string.concat("wrong revert at gas ", vm.toString(g))
+                );
+            }
+            assertGe(paid, prev, string.concat("fewer paid at gas ", vm.toString(g)));
+            prev = paid;
+            vm.revertToState(snap);
+        }
+        assertEq(prev, queued, "the top of the sweep pays every exit");
     }
 }

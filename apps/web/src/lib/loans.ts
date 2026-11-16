@@ -4,7 +4,7 @@ import {
   interestFor,
   minimumInterest,
 } from "@wealthkart/rules";
-import { formatAvax } from "@wealthkart/sdk";
+import { AVAX, type CircleAsset, fmtSmall, money, parseAmount } from "@/lib/asset";
 
 import type { DecodedLog } from "@/lib/events";
 import { formatBps, type RulesParams } from "@/lib/rules";
@@ -41,10 +41,9 @@ export function requestKindOf(n: number): RequestKind {
   return n === 1 ? "settle" : "loan";
 }
 
-/** AVAX with enough decimals that small interest amounts don't read as 0.00. */
-export function avax(wei: bigint): string {
-  const abs = wei < 0n ? -wei : wei;
-  return formatAvax(wei, abs !== 0n && abs < 10n ** 16n ? 4 : 2);
+/** An amount with enough decimals that small interest amounts don't read as 0.00. */
+export function avax(units: bigint, asset: CircleAsset = AVAX): string {
+  return fmtSmall(units, asset);
 }
 
 // ------------------------------------------------------------------ limits
@@ -115,13 +114,15 @@ export function loanLimits(i: LimitInputs): {
   return { lines, limit: best.cap, binding: best.key };
 }
 
-/** Parses a typed AVAX amount ("0.5", "1,2" is refused) to wei; null if not a number > 0. */
-export function parseAvaxInput(text: string): bigint | null {
+/**
+ * Parses a typed amount ("0.5", "1,2" is refused) to the asset's smallest unit (wei, or 1e-6
+ * for USDT); null if not a number > 0 or with more decimals than the asset has.
+ */
+export function parseAvaxInput(text: string, asset: CircleAsset = AVAX): bigint | null {
   const t = text.trim();
-  if (!/^\d{1,9}(\.\d{1,18})?$/.test(t)) return null;
-  const [w = "0", f = ""] = t.split(".");
-  const wei = BigInt(w) * 10n ** 18n + BigInt(f.padEnd(18, "0"));
-  return wei > 0n ? wei : null;
+  if (!/^\d{1,9}(\.\d+)?$/.test(t)) return null;
+  const units = parseAmount(t, asset);
+  return units !== null && units > 0n ? units : null;
 }
 
 // ------------------------------------------------------------------ interest and tenors
@@ -312,14 +313,15 @@ export function cureText(
   l: Pick<LoanState, "disbursedPeriod" | "tenorMonths">,
   owedNow: bigint,
   currentPeriod: number,
+  asset: CircleAsset = AVAX,
 ): string {
   const pastTenors = currentPeriod > l.disbursedPeriod + TENORS * Math.max(1, l.tenorMonths);
   if (pastTenors) {
     return owedNow > 0n
-      ? `All three loan terms are over, so the whole loan is due. Pay the ${avax(owedNow)} AVAX of interest and fees, then repay the rest of the loan, and the freeze lifts.`
+      ? `All three loan terms are over, so the whole loan is due. Pay the ${money(owedNow, asset)} of interest and fees, then repay the rest of the loan, and the freeze lifts.`
       : "All three loan terms are over, so the whole loan is due. Repay it in full and the freeze lifts.";
   }
-  return `Pay the ${avax(owedNow)} AVAX of interest and late fees you owe and the freeze lifts straight away.`;
+  return `Pay the ${money(owedNow, asset)} of interest and late fees you owe and the freeze lifts straight away.`;
 }
 
 /**
@@ -333,14 +335,18 @@ export function repayProblem(
   principal: bigint,
   interestNow: bigint,
   overdueMonths: number,
+  asset: CircleAsset = AVAX,
 ): string | null {
   if (overdueMonths > 0) return "Pay the overdue interest first. Then you can repay.";
   if (mode === "full") {
     return interestNow > 0n
-      ? `Pay this month's interest (${avax(interestNow)} AVAX) first, then repay the loan in full.`
+      ? `Pay this month's interest (${money(interestNow, asset)}) first, then repay the loan in full.`
       : null;
   }
-  if (amount === null) return "Type an amount in AVAX, like 0.25.";
+  if (amount === null)
+    return asset.symbol === "USDT"
+      ? "Type an amount in USDT, like 25."
+      : "Type an amount in AVAX, like 0.25.";
   if (amount >= principal) return "That covers the whole loan. Choose Repay in full instead.";
   return null;
 }
@@ -554,8 +560,8 @@ export function loanSettledLine(
   if (outcome === "approved") {
     if (kind === "settle") return "Enough members voted yes. Anyone can settle it now.";
     return waitingForGuarantor
-      ? "Enough members voted yes. The AVAX goes out as soon as the guarantor agrees to back it."
-      : "Enough members voted yes. Anyone can settle it to send the AVAX.";
+      ? "Enough members voted yes. The money goes out as soon as the guarantor agrees to back it."
+      : "Enough members voted yes. Anyone can settle it to send the money.";
   }
   if (outcome === "expired") {
     return "Voting time ran out before enough members voted. Anyone can record the result.";

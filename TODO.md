@@ -2,7 +2,7 @@
 
 What's open right now. Phase-level progress is in [PHASES.md](PHASES.md); the full checklist is in [docs/STATUS.md](docs/STATUS.md).
 
-Last updated: 2026-11-15
+Last updated: 2026-11-16
 
 ## Done in Phase 1
 
@@ -29,14 +29,24 @@ Last updated: 2026-11-15
 - [x] Contract monitoring and alerts (indexer)
 - [x] Security policy, bug bounty terms, audit pack
 - [x] Reputation record (soulbound), wired into payments and loans, and the public repayment record page
+- [x] Member cap 3 to 50 per circle (ADR 0045)
+- [x] Circles in AVAX or USDT, chosen once at creation (ADR 0046, 0048), reviewed and hardened (ADR 0050)
+- [x] Fuji or mainnet chosen by the environment; `main`/`dev`/local mapping (ADR 0051)
+- [x] Indexer stays inside D1's free tier (ADR 0047); monitor reads USDT balances
 
 ## Next: Phase 4 (growth)
 
+- [x] Landing page with the "one month" scroll scene (ADR 0049)
 - [ ] Reminders (Web Push, keyed by wallet)
 - [ ] Circle templates (friends, family, office)
 - [ ] Hindi and Marathi
 - [ ] Onboarding guide (install Core, back up the phrase, get AVAX)
-- [ ] Free space in the vault before any new vault feature (891 B left under 24 KB)
+- [x] Free space in the vault (now 22,109 B, 2,467 B left under 24 KB)
+- [ ] "Get test USDT" faucet button on Fuji builds
+- [ ] E2E for USDT loans (pay interest, repay) and the approve retry
+- [ ] Confirm on Fuji/fork that Avalanche USDt allows re-approving over a non-zero allowance
+- [ ] `pnpm dev:local`: one command for anvil + contracts + app on a PC
+- [ ] Configurable E2E ports so parallel runs can't clash
 
 ## Owner actions (saved for after all phases are coded)
 
@@ -46,6 +56,8 @@ Last updated: 2026-11-15
 - [ ] Fuji deploy: GitHub environment `fuji` with `DEPLOYER_PRIVATE_KEY`, faucet AVAX, run the deploy workflow
 - [ ] Branch protection on `main` and `dev`
 - [ ] Reown project id (WalletConnect for Core mobile)
-- [ ] Commission the illustrator
-- [ ] Cloudflare Pages project and preview deploys
+- [ ] Commission the illustrator (the landing hero is still the placeholder piece)
+- [x] Cloudflare Pages builds only `main` (Production) and `dev` (Preview)
+- [ ] Set `NEXT_PUBLIC_NETWORK=fuji` for both Pages environments (Production switches to `mainnet` after the audit)
+- [ ] GitHub `mainnet` environment with required reviewers
 - [ ] Book the lawyer review (before mainnet)

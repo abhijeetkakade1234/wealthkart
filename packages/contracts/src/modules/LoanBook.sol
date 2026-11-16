@@ -365,8 +365,9 @@ library LoanBook {
     // ------------------------------------------------------------------ paying back
 
     /// @notice Pay all interest and late fees owed up to now, including the current month even if
-    ///         it isn't due yet. `value` must match `interestDue` exactly. Cures a default when
-    ///         nothing else is owed.
+    ///         it isn't due yet. AVAX circles: `value` (msg.value) must match `interestDue`
+    ///         exactly. USDT circles: `value` must be 0 and the exact amount is pulled (ADR 0046).
+    ///         Cures a default when nothing else is owed.
     function payInterest(
         Store storage s,
         Membership.Store storage m,
@@ -379,31 +380,44 @@ library LoanBook {
         uint256 total = interest + fees;
         // slither-disable-next-line incorrect-equality (computed amount owed; 0 = nothing to pay)
         if (total == 0) revert NothingOwed();
-        if (value != total) revert WrongLoanAmount(total, value);
+        bool token = led.token != address(0);
+        if (token ? value != 0 : value != total) {
+            if (token) revert Ledger.AvaxNotAccepted();
+            revert WrongLoanAmount(total, value);
+        }
         uint32 cur = _period();
         ln.carried = 0;
         ln.paidThrough = cur;
         ln.bookedThrough = cur;
         if (interest != 0) ln.charged = true;
         // Interest and fees are income: they raise NAV for every member (ADR 0009).
-        led.totalAssets += value;
+        led.totalAssets += total;
         emit InterestPaid(msg.sender, interest, fees, cur);
         _maybeCure(s, m, c, msg.sender);
+        if (token) Ledger.pull(led, total);
     }
 
     /// @notice Repay principal. Needs no overdue interest. This month's interest stays on the
     ///         balance at the start of the month (S-LOAN-07). Repaying in full needs all interest
     ///         paid, and adds one month's interest if none was ever charged (rule 17).
-    /// @param value AVAX sent: the principal, or for a rule-17 payoff the principal plus that
+    /// @param value Amount repaid: the principal, or for a rule-17 payoff the principal plus that
     ///        month's interest (see `payoffDue`).
+    /// @param sent msg.value: equal to `value` in an AVAX circle, 0 in a USDT circle, which
+    ///        pulls `value` instead (ADR 0046).
     function repay(
         Store storage s,
         Membership.Store storage m,
         Ledger.Store storage led,
         Rules.Params storage r,
         Ctx calldata c,
-        uint256 value
+        uint256 value,
+        uint256 sent
     ) external {
+        bool token = led.token != address(0);
+        if (token ? sent != 0 : sent != value) {
+            if (token) revert Ledger.AvaxNotAccepted();
+            revert WrongLoanAmount(value, sent);
+        }
         if (value == 0) revert ZeroAmount();
         Loan storage ln = _loan(s, msg.sender);
         uint256 overdue = _overdueMonths(ln, c.dueDay, _period());
@@ -438,6 +452,7 @@ library LoanBook {
         } else {
             _maybeCure(s, m, c, msg.sender);
         }
+        if (token) Ledger.pull(led, value);
     }
 
     // ------------------------------------------------------------------ default
@@ -788,8 +803,8 @@ library LoanBook {
         _disburse(s, led, r, id, b, q.guarantor, amount, q.medical);
     }
 
-    /// @dev Records the loan, then pays the borrower last (CEI). A wallet that refuses AVAX gets
-    ///      it as `withdrawable` instead (RT-20).
+    /// @dev Records the loan, then pays the borrower last (CEI). A wallet that refuses the money
+    ///      (or that Tether froze) gets it as `withdrawable` instead (RT-20, ADR 0046).
     function _disburse(
         Store storage s,
         Ledger.Store storage led,

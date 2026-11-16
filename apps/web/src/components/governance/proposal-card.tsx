@@ -27,6 +27,7 @@ import {
   proposalTitle,
   reasonLabel,
 } from "@/lib/governance";
+import { useCircleAsset } from "@/lib/asset";
 import { ruleDiff, type RulesParams } from "@/lib/rules";
 import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
@@ -60,6 +61,7 @@ export function ProposalCard({
   onChanged: () => void;
 }) {
   const voteA = useVaultAction(circle);
+  const { asset } = useCircleAsset(circle);
   const settleA = useVaultAction(circle);
   const cancelA = useVaultAction(circle);
   const tally = { eligible: p.eligible, yes: p.yes, no: p.no, passPct: p.passPct, quorumPct };
@@ -139,7 +141,7 @@ export function ProposalCard({
         {p.kind === "rule-change" && (
           <>
             {rules && p.newRules ? (
-              <RuleDiffList changes={ruleDiff(rules, p.newRules)} />
+              <RuleDiffList changes={ruleDiff(rules, p.newRules, asset)} />
             ) : (
               <p className="text-muted-foreground">Loading the changes…</p>
             )}

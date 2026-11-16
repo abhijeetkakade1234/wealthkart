@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCircleAsset } from "@/lib/asset";
 import { useCircleEvents } from "@/lib/events";
 import {
   type BorrowerState,
@@ -78,6 +79,7 @@ export function LoansList({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { asset } = useCircleAsset(circle);
   const params = useSearchParams();
   const page = usePageParam();
   const q = useCircleEvents(circle);
@@ -278,7 +280,7 @@ export function LoansList({
               <thead>
                 <tr className="border-b border-line-soft text-left text-[12.5px] text-muted-foreground">
                   <th className="px-6 py-3.5 font-medium">Borrower</th>
-                  <th className="px-6 py-3.5 text-right font-medium">Amount (AVAX)</th>
+                  <th className="px-6 py-3.5 text-right font-medium">Amount ({asset.symbol})</th>
                   <th className="px-6 py-3.5 font-medium">Status</th>
                   <th className="px-6 py-3.5 text-right font-medium">Rate now</th>
                   <th className="px-6 py-3.5 font-medium">Asked</th>
@@ -332,11 +334,11 @@ export function LoansList({
                         </span>
                       </td>
                       <td className="px-6 py-[18px] text-right tabular">
-                        {avax(r.amount)}
+                        {avax(r.amount, asset)}
                         {(r.status === "active" || r.status === "default") &&
                           r.outstanding !== r.amount && (
                             <span className="block text-[12px] text-muted-foreground">
-                              {avax(r.outstanding)} left
+                              {avax(r.outstanding, asset)} left
                             </span>
                           )}
                       </td>

@@ -61,7 +61,9 @@ async function deploy(data: string, expected: string, label: string) {
  * The factory goes first (nonce 0), so it always lands at FACTORY_ADDRESS however many
  * libraries are added later; the libraries follow at addresses predicted from the deployer's
  * nonce, and the vault code the factory stores is linked to those addresses (ADR 0031, 0037).
- * Skips if the factory is already there.
+ * Last comes the testnet faucet token `script/MockUSDT.sol` (6 decimals, public `mint`), at the
+ * next predicted address, which the factory takes as its USDT (ADR 0046), so USDT circles work
+ * locally too. Skips if the factory is already there.
  */
 export default async function globalSetup() {
   // Multicall3 first: the app batches reads through it and anvil starts without it.
@@ -79,13 +81,23 @@ export default async function globalSetup() {
     addresses[lib.name] = getContractAddress({ from: ACCOUNTS.deployer, nonce: BigInt(i + 1) });
   });
 
+  const usdt = getContractAddress({
+    from: ACCOUNTS.deployer,
+    nonce: BigInt(libraries.length + 1),
+  });
+
   const vault = link(vaultArtifact, addresses);
   const factory = readArtifact("CircleFactory.sol", "CircleFactory");
-  const args = encodeAbiParameters([{ type: "bytes" }], [vault as `0x${string}`]);
+  const args = encodeAbiParameters(
+    [{ type: "bytes" }, { type: "address" }],
+    [vault as `0x${string}`, usdt],
+  );
   await deploy(`${link(factory, addresses)}${args.slice(2)}`, FACTORY_ADDRESS, "Factory");
 
   for (const lib of libraries) {
     const artifact = readArtifact(lib.file.split("/").pop()!, lib.name);
     await deploy(link(artifact, addresses), addresses[lib.name]!, `${lib.name} library`);
   }
+
+  await deploy(readArtifact("MockUSDT.sol", "MockUSDT").bytecode.object, usdt, "MockUSDT");
 }

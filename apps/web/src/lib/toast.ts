@@ -38,7 +38,8 @@ export const notify = {
   },
 
   // Shortcuts for the common results in the catalogue
-  paid: (month: string, amountAvax: string) => notify.success(messages.paid(month, amountAvax)),
+  paid: (month: string, amount: string, symbol?: string) =>
+    notify.success(messages.paid(month, amount, symbol)),
   voted: (votes: number, members: number) => notify.success(messages.voted(votes, members)),
   copied: (what?: string) => notify.success(messages.copied(what)),
 };

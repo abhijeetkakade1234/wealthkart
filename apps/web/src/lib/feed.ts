@@ -1,4 +1,6 @@
-import { formatAvax, periodLabel, shortAddress } from "@wealthkart/sdk";
+import { periodLabel, shortAddress } from "@wealthkart/sdk";
+
+import { AVAX, type CircleAsset, fmt, money } from "@/lib/asset";
 
 import type { DecodedLog } from "@/lib/events";
 
@@ -36,9 +38,6 @@ const LOAN_STATUS = [
   "failed",
 ] as const;
 
-/** Small loan amounts (interest) keep four decimals so they don't read as 0.00. */
-const loanAvax = (wei: bigint) => formatAvax(wei, wei !== 0n && wei < 10n ** 16n ? 4 : 2);
-
 /** Membership.Status order. */
 const STATUS = ["none", "open", "approved", "rejected", "expired", "cancelled", "full"] as const;
 
@@ -46,7 +45,9 @@ const str = (v: unknown) => String(v ?? "");
 const num = (v: unknown) => Number(v as bigint);
 
 /** Turns decoded vault logs into feed items, newest first. Unknown events are skipped. */
-export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
+export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): FeedItem[] {
+  // Small loan amounts (interest) keep four decimals so they don't read as 0.00.
+  const amt = (units: bigint) => money(units, asset);
   // Request id -> who it is about, so "closed" lines can say who got in or was paused.
   const requests = new Map<number, { kind: "join" | "dormant"; account: string; name: string }>();
   // Loan request id -> borrower and kind, so loan votes and results can say whose loan it is.
@@ -77,8 +78,8 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
         const m = str(a.member);
         push("payment", [m], (n) =>
           fees > 0n
-            ? `${n(m)} paid ${periodLabel(num(a.period))}: ${formatAvax(a.installment as bigint)} AVAX plus ${formatAvax(fees)} AVAX in late fees.`
-            : `${n(m)} paid ${periodLabel(num(a.period))}: ${formatAvax(a.installment as bigint)} AVAX, on time.`,
+            ? `${n(m)} paid ${periodLabel(num(a.period))}: ${fmt(a.installment as bigint, asset)} ${asset.symbol} plus ${fmt(fees, asset)} ${asset.symbol} in late fees.`
+            : `${n(m)} paid ${periodLabel(num(a.period))}: ${fmt(a.installment as bigint, asset)} ${asset.symbol}, on time.`,
         );
         break;
       }
@@ -174,8 +175,8 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
         const what = a.medical ? "a medical loan" : "a loan";
         push("loan", backed ? [b, g] : [b], (n) =>
           backed
-            ? `${n(b)} asked for ${what} of ${loanAvax(amount)} AVAX, with ${n(g)} as guarantor.`
-            : `${n(b)} asked for ${what} of ${loanAvax(amount)} AVAX.`,
+            ? `${n(b)} asked for ${what} of ${amt(amount)}, with ${n(g)} as guarantor.`
+            : `${n(b)} asked for ${what} of ${amt(amount)}.`,
         );
         break;
       }
@@ -237,7 +238,7 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
       case "LoanDisbursed": {
         const b = str(a.borrower);
         const amount = a.amount as bigint;
-        push("loan", [b], (n) => `${n(b)} received a loan of ${loanAvax(amount)} AVAX.`);
+        push("loan", [b], (n) => `${n(b)} received a loan of ${amt(amount)}.`);
         break;
       }
       case "InterestPaid": {
@@ -246,8 +247,8 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
         const interest = a.interest as bigint;
         push("loan", [b], (n) =>
           fees > 0n
-            ? `${n(b)} paid ${loanAvax(interest)} AVAX of loan interest plus ${loanAvax(fees)} AVAX in late fees.`
-            : `${n(b)} paid ${loanAvax(interest)} AVAX of loan interest.`,
+            ? `${n(b)} paid ${amt(interest)} of loan interest plus ${amt(fees)} in late fees.`
+            : `${n(b)} paid ${amt(interest)} of loan interest.`,
         );
         break;
       }
@@ -259,9 +260,9 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
         push("loan", [b], (n) =>
           remaining === 0n
             ? min > 0n
-              ? `${n(b)} repaid their loan in full: ${loanAvax(part)} AVAX plus ${loanAvax(min)} AVAX for the minimum month of interest.`
-              : `${n(b)} repaid their loan in full: ${loanAvax(part)} AVAX.`
-            : `${n(b)} repaid ${loanAvax(part)} AVAX of their loan. ${loanAvax(remaining)} AVAX left.`,
+              ? `${n(b)} repaid their loan in full: ${amt(part)} plus ${amt(min)} for the minimum month of interest.`
+              : `${n(b)} repaid their loan in full: ${amt(part)}.`
+            : `${n(b)} repaid ${amt(part)} of their loan. ${amt(remaining)} left.`,
         );
         break;
       }
@@ -288,11 +289,10 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
         const lost = a.writtenOff as bigint;
         const people = g !== "" && g !== ZERO ? [b, g] : [b];
         push("loan", people, (n) => {
-          let s = `${n(b)}'s defaulted loan was settled: ${loanAvax(a.fromBorrower as bigint)} AVAX from their savings`;
-          if (fromG > 0n) s += ` and ${loanAvax(fromG)} AVAX from ${n(g)}'s`;
+          let s = `${n(b)}'s defaulted loan was settled: ${amt(a.fromBorrower as bigint)} from their savings`;
+          if (fromG > 0n) s += ` and ${amt(fromG)} from ${n(g)}'s`;
           s += ".";
-          if (lost > 0n)
-            s += ` ${loanAvax(lost)} AVAX couldn't be covered and is shared by everyone.`;
+          if (lost > 0n) s += ` ${amt(lost)} couldn't be covered and is shared by everyone.`;
           return s;
         });
         break;

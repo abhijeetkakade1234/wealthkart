@@ -870,7 +870,7 @@ contract CircleVaultLoansTest is LoanBase {
         a.exec(address(v), AVAX / 2, abi.encodeCall(CircleVault.contribute, ()));
         a.exec(address(v), 0, abi.encodeCall(CircleVault.requestLoan, (LOAN, false, address(0))));
         // On receiving the loan it tries to repay it in the same call (and so skip rule 17).
-        a.arm(address(v), abi.encodeCall(CircleVault.repay, ()), LOAN);
+        a.arm(address(v), abi.encodeWithSignature("repay()"), LOAN);
         for (uint256 i = 0; i < 7; ++i) {
             if (f[i] == address(a)) continue;
             vm.prank(f[i]);

@@ -8,5 +8,5 @@
 - `abi/`: generated ABIs (never edit by hand)
 - `deployments/`: factory address per chain id (own README)
 - `chains.ts`: supported chains and explorer links
-- `format.ts`: AVAX, address and period formatting
+- `format.ts`: amount (AVAX 18 or USDT 6 decimals), address and period formatting
 - `index.ts`: public exports

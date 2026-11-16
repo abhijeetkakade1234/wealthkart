@@ -33,7 +33,7 @@ Known gaps:
 - I-1 `trackedCash + loansOutstanding + pendingExitsOwed == totalAssets` (internal accounting, never `address(this).balance`)
 - I-2 `sum(member shares) == totalShares`
 - I-3 No member can withdraw more than `shares × NAV − owed`
-- I-4 NAV never decreases except through a voted loan write-off
+- I-4 NAV never decreases except through a voted loan write-off, or a USDT transfer fee of at most 1% that the circle absorbs (ADR 0050)
 - I-5 Free cash for loans never dips below the reserve %
 - I-6 A frozen member can't exit, borrow, or transfer anything
 - I-7 Each member pays at most one installment per period
@@ -42,6 +42,7 @@ Known gaps:
 - I-10 A display name in use maps back to exactly one member, ignoring case
 - I-11 Open join requests stay ≤ 20, each is Open and indexed by its applicant
 - I-12 Vault balance ≥ total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets); `≥` because AVAX can be forced in (EXIT-10)
+- I-12u (USDT circles, ADR 0046) `token.balanceOf(vault) >= totalAssets - loansOutstanding + totalWithdrawable`, and equal to it plus tokens sent straight to the vault; run with random installments, loans, interest, repayments, exits, withdrawals, donations and Tether-style freezes (`CircleVault.usdtInvariant.t.sol`)
 - I-13 The exit queue is a consistent linked list of live exits; exactly the queued members are flagged `exiting`, and `voterCount` leaves them out (ADR 0043)
 
 ## Scenario catalogue
@@ -70,7 +71,9 @@ Known gaps:
 - S-MEM-06 Name with emoji / RTL / zero-width chars / 200 chars → normalised or rejected
 - S-MEM-07 Wallet lost; 3 months missed → dormant vote → dues stop, shares untouched; dormant member can't vote, take a holiday or rename
 - S-MEM-08 Dormant member comes back with `wake()` → dues restart this month (or next if the due moment passed); votes only on requests opened after waking; bad `dormantAfter` setting refused
-- S-MEM-09 Circle with 500 members → every action still under the gas limit (ADR 0015)
+- S-MEM-09 Circle at the 50-member cap (ADR 0045) → every action still under the gas limit and flat in the member count (ADR 0015)
+- S-MEM-09a 50 founders (creator + 49) fit a cap of 50; a full circle refuses join requests; 51 founders are refused at creation (ADR 0045)
+- S-MEM-09b Founder invites hold their seats (RT-USDT-03, ADR 0050): cap 3, creator + f1 + f2, f1 accepts → a join request is refused `CircleFull` while f2's invite is live; f2 can still accept; after f2 declines or the 14 days pass, a join succeeds. Cap 4: an approval that would take a held seat closes as Full and the late founder still gets in
 - S-MEM-10 Joins (or circle created) after this month's due moment → first installment is next month; nobody starts already late (ADR 0028)
 - S-MEM-11 Smart-contract wallet that refuses plain AVAX is a member → can pay and vote
 - S-MEM-12 Only members who joined before the request can vote; outsiders, the applicant and later joiners can't; one vote each
@@ -128,6 +131,7 @@ Known gaps:
 - S-EXIT-11 Dormant member exits → paid for their shares; dormant count drops
 - S-EXIT-12 Rage-quit window open (ADR 0019, 0043) → exit matures at `min(now + notice, rageQuitUntil)` under the old rules, never instantly, and is paid at the switch even if an earlier exit is still in its notice
 - S-EXIT-13 Member takes a loan tie or is frozen during the notice → exit dropped at processing, `exitsWaiting` stays exact
+- S-EXIT-14b Gas sweep, AVAX circle (RT-USDT-01, ADR 0050): 6 matured exits (creator first, 24-byte names, cold storage via `isolate`), `processExits` at 150k..1.2M gas in 2k steps → each call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; paid count never drops as gas rises
 
 ### Governance (S-GOV)
 
@@ -147,6 +151,7 @@ Known gaps:
 ### Math and time (S-MATH)
 
 - S-MATH-01 First depositor deposits 1 wei then donates to inflate share price → later members not robbed (virtual shares)
+- S-MATH-01a Same attack at 6 decimals (USDT) → attacker never profits; the next member loses at most about donation / 1e6
 - S-MATH-02 10 years of monthly rounding → dust always favours the vault, never a member
 - S-MATH-03 Due day 28 in February (incl. a leap year)
 - S-MATH-04 Timestamp exactly at a period boundary
@@ -192,6 +197,7 @@ Known gaps:
 - S-LIFE-08 Migration vote to a new contract version passes (ADR 0020) → funds, shares, loans and nominees identical in the new circle; dissenters exit under old rules during the delay
 - S-LIFE-09 Guardian pause → new loans and deposits blocked; exits still work; auto-unpauses after 14 days
 - S-LIFE-10 Parameter set outside bounds (e.g. 50% interest, due day 31) → rejected on-chain (ADR 0022)
+- S-LIFE-10a Member cap outside 3..50 (0 = unlimited, 2, 51) → rejected with a plain message; 3 and 50 accepted (ADR 0045)
 - S-LIFE-11 Loan above k × (own + guarantor stake) → rejected (ADR 0018)
 - S-LIFE-05 Member leaves, later rejoins → treated as a new member at the current NAV
 - S-LIFE-06 AVAX 10× in price makes the installment unaffordable → vote to change the installment; applies from the next period
@@ -224,6 +230,22 @@ Known gaps:
 - S-REP-08 A loan repaid in full is recorded
 - S-REP-09 A default is recorded and stays even after a cure
 
+### Circle asset: AVAX or USDT (S-USDT, ADR 0046)
+
+- S-USDT-00 The asset is fixed at creation: `asset()` is the factory's USDT (or 0 for AVAX); an AVAX circle on the same factory never touches the token
+- S-USDT-01 Full USDT lifecycle: approve-then-pay installments, late fee, loan paid out in USDT, interest, `repay(amount)`, exit paid after notice, dissolve and every claim; vault ends empty
+- S-USDT-02 Transfer fee above 1% (1.01%) → payment rejected (`TokenAmountMismatch`), nothing booked (ADR 0050)
+- S-USDT-03 Tether freezes one member → their exit payout goes to `withdrawable`, the member behind them is paid; `withdraw` fails while frozen and works once unfrozen
+- S-USDT-03b Frozen borrower → the loan vote still settles; the loan waits in `withdrawable`
+- S-USDT-04 AVAX sent with `contribute`, `payInterest` or `repay` in a USDT circle → `AvaxNotAccepted`
+- S-USDT-05 Paying without approval → `TokenAllowanceTooLow`; approved but short of funds → `TokenBalanceTooLow`
+- S-USDT-06 USDT sent straight to the vault doesn't move NAV
+- S-USDT-07 Factory without a USDT address → USDT circle creation reverts `UsdtNotAvailable`
+- S-USDT-08 AVAX circle `repay(amount)` needs `msg.value == amount`
+- S-USDT-09 Gas sweep, USDT circle (RT-USDT-01 / M-1, ADR 0050): as S-EXIT-14b → every call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; monotonic in gas
+- S-USDT-10 Tether turns on a 0.01% fee (RT-USDT-02, ADR 0050) → `contribute`, `payInterest` and `repay` succeed and count as paid in full; `TokenFeeAbsorbed` emitted; `totalAssets` short by exactly the fee; for a repayment `loansOutstanding` drops by the full amount; I-12u holds. S-USDT-10b: exactly 1% is absorbed, 2% reverts `TokenAmountMismatch`
+- S-DEPLOY-01 `DeployFactory.s.sol` on chain 43114 (RT-USDT-06, ADR 0050) → reverts without `CONFIRM_MAINNET=yes`, with a USDT other than C-Chain USDt, or with the mock token
+
 ### Analytics and activity (S-ACT)
 
 - S-ACT-01 A circle records the block it was created in, so the app reads its events from there
@@ -240,6 +262,8 @@ Known gaps:
 - S-IDX-04 Pages results; rejects bad addresses and paging values; 404 and 405 for other routes and methods
 - S-IDX-05 RPC down: answers from what is already indexed
 - S-IDX-06 App client: revives bigints, pages through, ignores logs past the first page's cursor, ignores an indexer on another chain
+- S-IDX-07 D1 soft size limit: the indexer stops storing new events and its cursor, `/v1/health` reports `full` and the size; no limit keeps indexing
+- S-NET-01 the network comes from the environment: empty or `fuji` is Fuji, `mainnet` is Avalanche, any other value fails the build (ADR 0051)
 
 ### Frontend / E2E (S-WEB)
 
@@ -293,6 +317,20 @@ Known gaps:
 - S-WEB-59 "Loans outstanding per member" counts running and defaulted loans, biggest first; "Where the money is" splits value into lent out, reserve (rounded up, capped at cash) and free cash that add up
 - S-WEB-60 Every loan event reads as a plain sentence in the activity feed (request, guarantee, vote, payout, interest, repayment, default, cure, settle, not approved) under the "Loans" filter
 - S-WEB-61 One stake, one loan (ADR 0043): borrowers with a live request or loan and guarantors who accepted one are tied, so the guarantor picker leaves them out and a guarantor can't ask; asking is also refused while you've asked to leave; a loan's own `defaultAfter` decides when it can be marked as defaulted
+- S-WEB-62 Circle asset helpers (ADR 0046): `vault.asset()` zero = AVAX/18 decimals, else USDT/6; amounts format, parse (extra decimals refused) and chart in the right unit; loan, rule and CSV text name the circle's asset
+- S-WEB-63 Create form (ADR 0045, 0046): AVAX by default with a cap of 12; USDT parses 6 decimals and sends `asset = 1`; caps 2 and 51 refused, 3 and 50 accepted, a note above 20; more starting members than the cap refused
+
+### Landing page (S-LAND)
+
+ADR 0049. E2E in `apps/web/e2e/landing.e2e.ts`; copy checks in `apps/web/src/lib/__tests__/seo.test.ts`.
+
+- S-LAND-01 `/` loads with one h1, every section, canonical and `SoftwareApplication` JSON-LD, no noindex; motion starts and a full scroll logs no console errors
+- S-LAND-02 The hero "Open the app" goes to `/login/`
+- S-LAND-03 Footer links reach how-it-works, FAQ, rules and security
+- S-LAND-04 No sideways scroll at 360px wide, anywhere down the page
+- S-LAND-05 Reduced motion: GSAP never starts, every section and all four month steps are fully visible, the diagram shows "3 of 4 said yes", the hero has no entrance animation
+- S-LAND-06 Scrolling the month scene highlights step 1 at the start and step 4 at the end
+- S-LAND-07 Landing copy never advertises returns, the description fits search limits, FAQ teaser answers match `/faq`, and llms-full.txt carries the landing copy
 
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
@@ -323,6 +361,8 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-24 A month later the borrower pays the exact interest from the loan panel, then repays in full from the Repay dialog; the panel returns to "no loan" and the activity feed's Loans filter lists the interest and the repayment
 - S-E2E-25 A borrower names a guarantor in the dialog (the limit counts both savings); the card shows "not agreed yet"; after two yes votes it waits for the guarantor, who sees the notice explaining what backing means, clicks "Back this loan", and the AVAX reaches the borrower
 - S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
+- S-E2E-31 Start a USDT circle: USDT is offered (factory has one), the freeze and AVAX-for-gas warning shows, amounts are in USDT; the Pay page says the wallet has too little USDT; after the faucet mint the member pays in two steps (approve up to installment plus both fees, then pay), exactly 50.00 USDT leaves the wallet, 2 USDT of allowance is left, and the overview shows the USDT badge and amounts
+- S-E2E-32 The create form refuses member caps of 2 and 51 before sending and notes slower votes above 20; a cap of 50 creates an AVAX circle with `maxMembers = 50` and the AVAX badge
 
 ## Gates in CI
 

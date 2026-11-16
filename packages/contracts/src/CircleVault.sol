@@ -16,8 +16,9 @@ import {Exits} from "./modules/Exits.sol";
 import {LoanBook} from "./modules/LoanBook.sol";
 
 /// @title CircleVault
-/// @notice One savings circle: members contribute a fixed AVAX installment each month and receive
-///         non-transferable shares at the current NAV. Late fees go into the vault. Founders
+/// @notice One savings circle: members contribute a fixed installment each month, in AVAX or the
+///         factory's USDT (chosen once at creation, ADR 0046), and receive non-transferable
+///         shares at the current NAV. Late fees go into the vault. Founders
 ///         named by the creator must accept; anyone else joins by a request and a member vote.
 ///         A member who stops paying can be voted dormant. Everyone picks a display name.
 /// @dev Immutable (ADR 0020): no proxy, no upgrade path, no owner that can move funds.
@@ -37,13 +38,22 @@ contract CircleVault is ReentrancyGuardTransient {
 
     // ------------------------------------------------------------------ types
 
+    /// @notice The money a circle holds (ADR 0046). Chosen once at creation, never changed.
+    enum Asset {
+        AVAX,
+        USDT
+    }
+
     struct Config {
         /// @dev Circle name shown in the app: 3..48 safe characters, no links (ADR 0033, RT-26).
         ///      Public on-chain; no personal data.
         string name;
-        /// @dev Fixed installment per period, in wei (ADR 0002).
+        /// @dev AVAX, or the factory's USDT (reverts if the factory has none). Every amount below
+        ///      is in the asset's smallest unit: wei, or 1e-6 USDT (ADR 0046).
+        Asset asset;
+        /// @dev Fixed installment per period, in the asset's smallest unit (ADR 0002).
         uint128 installment;
-        /// @dev Late fee 1 (after the due day) and late fee 2 (after `secondFeeDay`), in wei.
+        /// @dev Late fee 1 (after the due day) and late fee 2 (after `secondFeeDay`).
         ///      Each is at most half the installment (ADR 0030).
         uint128 fee1;
         uint128 fee2;
@@ -57,7 +67,7 @@ contract CircleVault is ReentrancyGuardTransient {
         uint32 votingWindow;
         /// @dev Share of eligible members who must vote, in percent: 20..100 (ADR 0022).
         uint8 quorumPct;
-        /// @dev Member cap; 0 = unlimited, otherwise >= 3 and >= creator + invited founders.
+        /// @dev Member cap, 3..50 and at least the creator plus invited founders (ADR 0045).
         uint16 maxMembers;
         /// @dev Missed installments before a dormant vote is allowed, 1..12 (ADR 0032).
         uint8 dormantAfter;
@@ -70,9 +80,6 @@ contract CircleVault is ReentrancyGuardTransient {
     // ------------------------------------------------------------------ constants
 
     uint256 public constant MAX_FOUNDERS = Membership.MAX_FOUNDERS;
-    /// @notice Avalanche C-Chain mainnet. This version has no withdrawal path yet (exits arrive in
-    ///         Phase 2) and contracts are immutable, so deploying it on mainnet would lock funds.
-    uint256 public constant AVALANCHE_MAINNET_CHAIN_ID = 43_114;
     uint8 public constant MAX_HOLIDAYS_PER_YEAR = 12;
     uint256 public constant MAX_NAME_BYTES = CircleName.MAX_BYTES;
     uint32 public constant MIN_VOTING_WINDOW = 1 hours;
@@ -80,6 +87,8 @@ contract CircleVault is ReentrancyGuardTransient {
     uint8 public constant MIN_QUORUM_PCT = 20;
     uint8 public constant MAX_QUORUM_PCT = 100;
     uint16 public constant MIN_MAX_MEMBERS = 3;
+    /// @notice Highest member cap a circle can choose (ADR 0045).
+    uint16 public constant MAX_MAX_MEMBERS = 50;
     uint8 public constant MAX_DORMANT_AFTER = 12;
     uint8 public constant MAX_MIN_PAID_TO_VOTE = 6;
     uint256 public constant MAX_OPEN_PER_MEMBER = Membership.MAX_OPEN_PER_MEMBER;
@@ -111,6 +120,8 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @notice The soulbound record this circle writes payments and loan outcomes to (ADR 0042).
     address public immutable reputation;
     address public immutable creator;
+    /// @notice The circle's token: address(0) = AVAX, otherwise the factory's USDT (ADR 0046).
+    address public immutable asset;
 
     // ------------------------------------------------------------------ state
 
@@ -151,7 +162,8 @@ contract CircleVault is ReentrancyGuardTransient {
     error HolidayLimitReached(uint256 year);
     error PeriodAlreadyPaid(uint256 period);
     error DirectTransferNotAllowed();
-    error MainnetNotSupported();
+    /// @notice This factory has no USDT on this chain, so only AVAX circles can be created.
+    error UsdtNotAvailable();
 
     // ------------------------------------------------------------------ constructor
 
@@ -159,8 +171,6 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @param creator_ The wallet creating the circle; the only member at the start.
     /// @param invitees Other founders; each must call `acceptInvite` within 14 days (RT-02).
     constructor(Config memory cfg, address creator_, address[] memory invitees) {
-        // Funds-stuck guard: no exits in this version (see AVALANCHE_MAINNET_CHAIN_ID).
-        if (block.chainid == AVALANCHE_MAINNET_CHAIN_ID) revert MainnetNotSupported();
         if (creator_ == address(0)) revert Membership.ZeroAddressMember();
         _validate(cfg, invitees.length);
         Rules.validate(cfg.rules, cfg.installment);
@@ -180,6 +190,13 @@ contract CircleVault is ReentrancyGuardTransient {
         name = cfg.name;
         factory = msg.sender;
         reputation = IReputationSource(msg.sender).reputation();
+        address token = address(0);
+        if (cfg.asset == Asset.USDT) {
+            token = IReputationSource(msg.sender).usdt();
+            if (token == address(0)) revert UsdtNotAvailable();
+        }
+        asset = token;
+        _ledger.token = token;
         creator = creator_;
         createdAtBlock = SafeCast.toUint64(block.number);
 
@@ -208,7 +225,8 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice Pay the oldest unpaid installment, plus any late fees owed on it.
     ///         A dormant member who pays is woken first and pays the current period (RT-11).
-    /// @dev `msg.value` must equal exactly `installment + lateFees` (see `amountDue`).
+    /// @dev AVAX: `msg.value` must equal exactly `installment + lateFees` (see `amountDue`).
+    ///      USDT: send no AVAX; approve the vault for that amount first and it is pulled.
     function contribute() external payable nonReentrant {
         if (_ledger.dissolved) revert Governance.CircleDissolved();
         _syncRules();
@@ -222,14 +240,18 @@ contract CircleVault is ReentrancyGuardTransient {
 
         uint256 fees = _lateFees(msg.sender, period, block.timestamp);
         uint256 expected = uint256(installment) + fees;
-        if (msg.value != expected) revert WrongAmount(expected, msg.value);
+        bool token = asset != address(0);
+        if (token ? msg.value != 0 : msg.value != expected) {
+            if (token) revert Ledger.AvaxNotAccepted();
+            revert WrongAmount(expected, msg.value);
+        }
 
         // Effects: shares are priced on the installment at the pre-payment NAV;
         // the fee then raises NAV for everyone (ADR 0009). A late joiner buys in here,
         // at today's NAV, so existing members are not diluted (ADR 0006).
         uint256 minted =
             SharesMath.sharesForDeposit(installment, _ledger.totalAssets, _ledger.totalShares);
-        _ledger.totalAssets += msg.value;
+        _ledger.totalAssets += expected;
         _ledger.totalShares += minted;
         m.shares += SafeCast.toUint128(minted);
         m.nextPeriod = SafeCast.toUint32(period + 1);
@@ -239,6 +261,7 @@ contract CircleVault is ReentrancyGuardTransient {
         // Last: the trusted record from our own factory (ADR 0042). On time = no late fee.
         // slither-disable-next-line incorrect-equality (fees is a computed amount, not a balance)
         IReputation(reputation).recordPayment(msg.sender, fees == 0);
+        if (token) _ledger.pull(expected);
     }
 
     /// @notice Declare a payment holiday for the current period (ADR 0017): no late fees until
@@ -326,7 +349,7 @@ contract CircleVault is ReentrancyGuardTransient {
 
     // ------------------------------------------------------------------ payouts
 
-    /// @notice Claim AVAX your wallet refused when the circle tried to pay you (RT-20).
+    /// @notice Claim a payout your wallet refused (or couldn't receive) earlier (RT-20).
     function withdraw() external nonReentrant {
         _ledger.withdraw(msg.sender);
     }
@@ -374,16 +397,27 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice Pay all interest and late fees owed on your loan (see `interestDue`), exactly.
-    ///         Rates, fees and the default limit are the loan's own, fixed at payout.
+    ///         Rates, fees and the default limit are the loan's own, fixed at payout. USDT
+    ///         circles: send no AVAX; approve the amount first.
     function payInterest() external payable nonReentrant {
         _loans.payInterest(_m, _ledger, _loanCtx(), msg.value);
     }
 
-    /// @notice Repay principal with the AVAX sent. Closing the loan needs interest paid first and
-    ///         may add one month's interest (rule 17): send `payoffDue` to close it.
+    /// @notice Repay principal with the AVAX sent (AVAX circles). Closing the loan needs interest
+    ///         paid first and may add one month's interest (rule 17): send `payoffDue` to close it.
     function repay() external payable nonReentrant {
+        _repay(msg.value);
+    }
+
+    /// @notice Repay `amount` of principal (see `repay()`). AVAX circles: send exactly `amount`.
+    ///         USDT circles: send no AVAX; approve `amount` first and it is pulled (ADR 0046).
+    function repay(uint256 amount) external payable nonReentrant {
+        _repay(amount);
+    }
+
+    function _repay(uint256 amount) internal {
         _syncRules();
-        _loans.repay(_m, _ledger, _rules, _loanCtx(), msg.value);
+        _loans.repay(_m, _ledger, _rules, _loanCtx(), amount, msg.value);
     }
 
     /// @notice Mark a loan in default once it qualifies; freezes borrower and guarantor.
@@ -404,7 +438,8 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice `borrower`'s loan (principal 0 = no loan). Returns `LoanBook.Loan`.
     function loanOf(address borrower) external view {
-        _loanView(abi.encodeWithSelector(LoanBook.loanOf.selector, _loansSlot(), borrower));
+        _view(address(LoanBook), LoanBook.loanOf.selector, _loansSlot(), false);
+        borrower;
     }
 
     /// @notice What `payInterest` needs now: interest, late fees, and overdue months.
@@ -431,7 +466,8 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice Loan or settle request `id`. Returns `LoanBook.Request`.
     function loanRequest(uint256 id) external view {
-        _loanView(abi.encodeWithSelector(LoanBook.loanRequest.selector, _loansSlot(), id));
+        _view(address(LoanBook), LoanBook.loanRequest.selector, _loansSlot(), false);
+        id;
     }
 
     function loanRequestCount() external view returns (uint256) {
@@ -446,7 +482,8 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @notice Paginated open loan and settle requests (order changes as requests close).
     ///         Returns `(uint256[] ids, LoanBook.Request[] page)`.
     function openLoanRequestsPage(uint256 offset, uint256 limit) external view {
-        _loanView(abi.encodeWithSelector(LoanBook.openPage.selector, _loansSlot(), offset, limit));
+        _view(address(LoanBook), LoanBook.openPage.selector, _loansSlot(), false);
+        (offset, limit);
     }
 
     function canVoteLoan(uint256 id, address voter) external view returns (bool) {
@@ -513,6 +550,59 @@ contract CircleVault is ReentrancyGuardTransient {
         assembly {
             if iszero(ok) { revert(add(ret, 32), mload(ret)) }
             return(add(ret, 32), mload(ret))
+        }
+    }
+
+    function _exitsSlot() internal pure returns (uint256 slot) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            slot := _exits.slot
+        }
+    }
+
+    /// @dev `_view` on the Membership library with the members store.
+    function _mView(bytes4 sel, bool dyn) internal view {
+        uint256 slot;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            slot := _m.slot
+        }
+        _view(address(Membership), sel, slot, dyn);
+    }
+
+    /// @dev Runs view `sel` of the linked library `lib` with DELEGATECALL, passing the storage
+    ///      slot `slot` first and then this call's own arguments, and ends the call with the
+    ///      library's output (or revert) unchanged. The vault then never decodes or re-encodes
+    ///      the library's structs, arrays and strings, which keeps it small (ADR 0038). `dyn`:
+    ///      the first argument is a string, so its offset moves by the one word the slot adds.
+    ///      `lib` and `sel` are fixed by the caller; nothing here is user-controlled. The view
+    ///      cast is sound for the same reason as `_loanView`: the targets are view functions.
+    function _view(address lib, bytes4 sel, uint256 slot, bool dyn) internal view {
+        function(address, bytes4, uint256, bool) internal fwd = _forward;
+        function(address, bytes4, uint256, bool) internal view asView;
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            asView := fwd
+        }
+        asView(lib, sel, slot, dyn);
+    }
+
+    /// @dev Never returns to its caller. Only reached through the view cast in `_view`.
+    // slither-disable-next-line dead-code (called through a function pointer in _view)
+    function _forward(address lib, bytes4 sel, uint256 slot, bool dyn) internal {
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            if iszero(extcodesize(lib)) { revert(0, 0) }
+            let ptr := mload(0x40)
+            mstore(ptr, sel)
+            mstore(add(ptr, 0x04), slot)
+            let n := sub(calldatasize(), 4)
+            calldatacopy(add(ptr, 0x24), 4, n)
+            if dyn { mstore(add(ptr, 0x24), add(mload(add(ptr, 0x24)), 0x20)) }
+            let ok := delegatecall(gas(), lib, ptr, add(0x24, n), 0, 0)
+            returndatacopy(ptr, 0, returndatasize())
+            if iszero(ok) { revert(ptr, returndatasize()) }
+            return(ptr, returndatasize())
         }
     }
 
@@ -585,8 +675,9 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice `member`'s pending exit (`requestedAt` 0 = none); `prev`/`next` link the queue.
-    function exitOf(address member) external view returns (Exits.Entry memory) {
-        return _exits.entries[member];
+    function exitOf(address member) external view returns (Exits.Entry memory e) {
+        _view(address(Exits), Exits.entryOf.selector, _exitsSlot(), false);
+        (member, e);
     }
 
     /// @notice Exits in the queue right now.
@@ -595,8 +686,13 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice Paginated exit queue in payout order.
-    function exitQueuePage(uint256 offset, uint256 limit) external view returns (address[] memory) {
-        return Exits.queuePage(_exits, offset, limit);
+    function exitQueuePage(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory page)
+    {
+        _view(address(Exits), Exits.queuePage.selector, _exitsSlot(), false);
+        (offset, limit, page);
     }
 
     /// @notice What `member` would be paid right now, after the exit fee (none once dissolved).
@@ -797,7 +893,7 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice What `member` must send to `contribute()` right now.
     /// @return period The period that would be paid.
-    /// @return amount Installment plus late fees, in wei.
+    /// @return amount Installment plus late fees, in the asset's smallest unit.
     /// @return fees Late fees included in `amount`.
     /// @return payable_ False if the next period is in the future (nothing due yet).
     function amountDue(address member)
@@ -814,8 +910,9 @@ contract CircleVault is ReentrancyGuardTransient {
         amount = uint256(installment) + fees;
     }
 
-    function memberOf(address account) external view returns (Membership.Member memory) {
-        return _m.members[account];
+    function memberOf(address account) external view returns (Membership.Member memory m) {
+        _mView(Membership.memberOf.selector, false);
+        (account, m);
     }
 
     /// @notice Members right now, dormant ones included.
@@ -859,14 +956,8 @@ contract CircleVault is ReentrancyGuardTransient {
         view
         returns (address[] memory page)
     {
-        address[] storage list = _m.memberList;
-        uint256 len = list.length;
-        if (offset >= len) return new address[](0);
-        uint256 end = offset + limit > len ? len : offset + limit;
-        page = new address[](end - offset);
-        for (uint256 i = offset; i < end; ++i) {
-            page[i - offset] = list[i];
-        }
+        _mView(Membership.membersPage.selector, false);
+        (offset, limit, page);
     }
 
     function isMember(address account) external view returns (bool) {
@@ -901,30 +992,34 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice A member's display name here ("" if not set yet).
-    function nameOf(address member) external view returns (string memory) {
-        return _m.names[member];
+    function nameOf(address member) external view returns (string memory n) {
+        _mView(Membership.nameOf.selector, false);
+        (member, n);
     }
 
     /// @notice The member currently using `displayName` (any letter case), or address(0).
-    function memberByName(string calldata displayName) external view returns (address) {
-        return _m.memberByName(displayName);
+    function memberByName(string calldata displayName) external view returns (address a) {
+        _mView(Membership.memberByName.selector, true);
+        (displayName, a);
     }
 
     /// @notice True if `account` could take `displayName` right now.
     function isNameAvailable(string calldata displayName, address account)
         external
         view
-        returns (bool)
+        returns (bool ok)
     {
-        return _m.isNameAvailable(displayName, account);
+        _mView(Membership.isNameAvailable.selector, true);
+        (displayName, account, ok);
     }
 
     function requestCount() external view returns (uint256) {
         return _m.requests.length;
     }
 
-    function getRequest(uint256 id) external view returns (Membership.Request memory) {
-        return _m.requests[id - 1];
+    function getRequest(uint256 id) external view returns (Membership.Request memory r) {
+        _mView(Membership.getRequest.selector, false);
+        (id, r);
     }
 
     function openRequestCount() external view returns (uint256) {
@@ -937,15 +1032,17 @@ contract CircleVault is ReentrancyGuardTransient {
         view
         returns (uint256[] memory ids, Membership.Request[] memory page)
     {
-        (ids, page) = _m.openRequestsPage(offset, limit);
+        _mView(Membership.openRequestsPage.selector, false);
+        (offset, limit, ids, page);
     }
 
     /// @notice True if `voter` can vote on request `id` right now.
-    function canVote(uint256 id, address voter) external view returns (bool) {
-        return _m.canVote(id, voter);
+    function canVote(uint256 id, address voter) external view returns (bool ok) {
+        _mView(Membership.canVote.selector, false);
+        (id, voter, ok);
     }
 
-    /// @notice Current value of `member`'s stake in wei.
+    /// @notice Current value of `member`'s stake (asset's smallest unit).
     function stakeOf(address member) external view returns (uint256) {
         return SharesMath.assetsForShares(
             _m.members[member].shares, _ledger.totalAssets, _ledger.totalShares
@@ -961,7 +1058,7 @@ contract CircleVault is ReentrancyGuardTransient {
         return PeriodMath.periodOf(block.timestamp);
     }
 
-    /// @notice Cash plus loans outstanding, in wei.
+    /// @notice Cash plus loans outstanding (asset's smallest unit).
     function totalAssets() external view returns (uint256) {
         return _ledger.totalAssets;
     }
@@ -970,12 +1067,12 @@ contract CircleVault is ReentrancyGuardTransient {
         return _ledger.totalShares;
     }
 
-    /// @notice Principal lent out to members right now, in wei.
+    /// @notice Principal lent out to members right now.
     function loansOutstanding() external view returns (uint256) {
         return _ledger.loansOutstanding;
     }
 
-    /// @notice AVAX the circle holds and may use (total assets minus loans out).
+    /// @notice Money the circle holds and may use (total assets minus loans out).
     function cash() external view returns (uint256) {
         return _ledger.cash();
     }
@@ -987,8 +1084,9 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice The circle's loan, exit and governance settings in force right now (a passed
     ///         change counts from its `effectiveAt`, ADR 0043).
-    function rules() external view returns (Rules.Params memory) {
-        return _effRules();
+    function rules() external view returns (Rules.Params memory r) {
+        _view(address(Rules), Rules.read.selector, _rulesSlot(), false);
+        r;
     }
 
     // ------------------------------------------------------------------ internals
@@ -1020,11 +1118,11 @@ contract CircleVault is ReentrancyGuardTransient {
         if (cfg.minPaidToVote > MAX_MIN_PAID_TO_VOTE) {
             revert InvalidConfig("minPaidToVote must be 0..6");
         }
-        if (
-            cfg.maxMembers != 0
-                && (cfg.maxMembers < MIN_MAX_MEMBERS || cfg.maxMembers < invited + 1)
-        ) {
-            revert InvalidConfig("maxMembers must be 0 or >= 3 and >= founders");
+        if (cfg.maxMembers < MIN_MAX_MEMBERS || cfg.maxMembers > MAX_MAX_MEMBERS) {
+            revert InvalidConfig("maxMembers must be 3..50");
+        }
+        if (cfg.maxMembers < invited + 1) {
+            revert InvalidConfig("maxMembers must be at least the creator plus invited founders");
         }
     }
 
