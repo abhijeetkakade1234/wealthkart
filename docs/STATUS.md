@@ -149,6 +149,8 @@ How to use this file:
 - [ ] Circle templates (friends / family / office)
 - [ ] Hindi + Marathi
 - [ ] Onboarding guide (install Core, back up phrase, get AVAX)
+- [x] "Get test USDT" faucet button on test network builds (ADR 0053)
+- [x] Dev tools: `pnpm dev:local` (anvil + contracts + app on a PC) and configurable / free E2E ports (`pnpm e2e:isolated`) (ADR 0053)
 
 ## Phase 5: USDC vaults + WealthKart L1
 

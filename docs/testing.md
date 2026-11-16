@@ -244,6 +244,7 @@ Known gaps:
 - S-USDT-08 AVAX circle `repay(amount)` needs `msg.value == amount`
 - S-USDT-09 Gas sweep, USDT circle (RT-USDT-01 / M-1, ADR 0050): as S-EXIT-14b → every call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; monotonic in gas
 - S-USDT-10 Tether turns on a 0.01% fee (RT-USDT-02, ADR 0050) → `contribute`, `payInterest` and `repay` succeed and count as paid in full; `TokenFeeAbsorbed` emitted; `totalAssets` short by exactly the fee; for a repayment `loansOutstanding` drops by the full amount; I-12u holds. S-USDT-10b: exactly 1% is absorbed, 2% reverts `TokenAmountMismatch`
+- S-USDT-11 "Get test USDT" shows only when the build isn't mainnet, it targets chain 43113, the factory has a USDT and that token answers `MINT_CAP()` > 0; one tap asks for 1,000 USDT or the cap if lower (ADR 0053)
 - S-DEPLOY-01 `DeployFactory.s.sol` on chain 43114 (RT-USDT-06, ADR 0050) → reverts without `CONFIRM_MAINNET=yes`, with a USDT other than C-Chain USDt, or with the mock token
 
 ### Analytics and activity (S-ACT)
@@ -363,6 +364,7 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
 - S-E2E-31 Start a USDT circle: USDT is offered (factory has one), the freeze and AVAX-for-gas warning shows, amounts are in USDT; the Pay page says the wallet has too little USDT; after the faucet mint the member pays in two steps (approve up to installment plus both fees, then pay), exactly 50.00 USDT leaves the wallet, 2 USDT of allowance is left, and the overview shows the USDT badge and amounts
 - S-E2E-32 The create form refuses member caps of 2 and 51 before sending and notes slower votes above 20; a cap of 50 creates an AVAX circle with `maxMembers = 50` and the AVAX badge
+- S-E2E-40 A wallet with no circles sees "Get test USDT" on the empty dashboard with the plain note that test USDT has no value; one tap adds exactly 1,000 USDT; on a USDT circle's Pay page the button shows again, adds another 1,000 and Pay is enabled (ADR 0053)
 
 ## Gates in CI
 
