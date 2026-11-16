@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import manifest from "@/app/manifest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
+import { LANDING_DESCRIPTION, LANDING_FAQ, landingToMarkdown } from "@/content/landing";
 import { PUBLIC_PAGES } from "@/content/pages";
 import { SITE_URL } from "@/content/site";
 import { pageLd, serializeLd } from "@/lib/seo/json-ld";
@@ -115,5 +116,39 @@ describe("S-WEB-21 PWA manifest and service worker", () => {
     expect(strategyFor(`${O}/app/circle/?id=0xabc`, "GET", O)).toBe("network-first");
     expect(strategyFor(`${O}/_next/static/chunks/main-abc.js`, "GET", O)).toBe("cache-first");
     expect(strategyFor(`${O}/icon-192.png`, "GET", O)).toBe("cache-first");
+  });
+});
+
+describe("S-LAND-07 landing copy (ADR 0049)", () => {
+  const md = landingToMarkdown();
+
+  it("never advertises returns and keeps the description within search limits", () => {
+    const text = md.toLowerCase();
+    for (const phrase of [
+      "earn ",
+      "returns",
+      "profit",
+      "guaranteed",
+      "invest with us",
+      "apy",
+      "yield",
+    ]) {
+      expect(text, phrase).not.toContain(phrase);
+    }
+    expect(LANDING_DESCRIPTION.length).toBeLessThanOrEqual(155);
+  });
+
+  it("takes the FAQ teaser answers straight from the FAQ page", () => {
+    const faq = PUBLIC_PAGES.find((p) => p.slug === "faq")!;
+    for (const q of LANDING_FAQ.items) {
+      const s = faq.sections.find((x) => x.id === q.id)!;
+      expect(q.answer).toBe(s.answer);
+      expect(q.question).toBe(s.heading);
+    }
+  });
+
+  it("puts the landing copy in llms-full.txt", () => {
+    expect(llmsFullTxt()).toContain(md.trim().split("\n")[0]);
+    expect(llmsFullTxt()).toContain("## Watch the pot at work");
   });
 });

@@ -6,7 +6,7 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 
 | Route           | Indexed | Notes                                                                   |
 | --------------- | ------- | ----------------------------------------------------------------------- |
-| `/`             | yes     | Landing (placeholder now, designed later)                               |
+| `/`             | yes     | Landing (ADR 0049); copy in `content/landing.ts`, also in llms-full.txt |
 | `/how-it-works` | yes     | Create circle → contribute AVAX → borrow by vote → exit; `HowTo` schema |
 | `/faq`          | yes     | Real questions people ask; `FAQPage` schema                             |
 | `/rules`        | yes     | Every circle setting with defaults and bounds (from ADR 0022)           |

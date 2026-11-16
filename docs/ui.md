@@ -1,21 +1,21 @@
 # UI spec
 
-Decisions: [ADR 0023](decisions/0023-ui-system.md) (system), [ADR 0025](decisions/0025-visual-identity-gallery.md) (look: "Gallery"). Reference implementation: [`design/gallery.html`](design/gallery.html). Landing page: later.
+Decisions: [ADR 0023](decisions/0023-ui-system.md) (system), [ADR 0025](decisions/0025-visual-identity-gallery.md) (look: "Gallery"). Reference implementation: [`design/gallery.html`](design/gallery.html). Landing page: [ADR 0049](decisions/0049-landing-page-design-and-motion.md), motion rules in §13.
 
 ## 1. Stack
 
-| Concern         | Choice                                                                                              |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| Base components | shadcn/ui (Radix + Tailwind), copied into `apps/web/components/ui`, themed with the ADR 0025 tokens |
-| Fonts           | `next/font/google`: Instrument Serif, Hanken Grotesk, Geist Mono                                    |
-| Illustration    | Cut-paper SVG piece set in `apps/web/components/art` (placeholders until the illustrator delivers)  |
-| Charts          | shadcn charts (Recharts), thin lines, accent colour, faint grid                                     |
-| Icons           | lucide-react, 1.5px stroke                                                                          |
-| Animation       | Framer Motion, subtle only (count-up, fade/slide); no glow, shimmer or gradient effects             |
-| URL state       | `nuqs` (type-safe query params; works with static export)                                           |
-| Data fetching   | TanStack Query (cache, retries, `keepPreviousData` for pagination)                                  |
-| Wallet          | wagmi + viem, Core via EIP-6963 + WalletConnect                                                     |
-| Toasts          | sonner                                                                                              |
+| Concern         | Choice                                                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Base components | shadcn/ui (Radix + Tailwind), copied into `apps/web/components/ui`, themed with the ADR 0025 tokens                                    |
+| Fonts           | `next/font/google`: Instrument Serif, Hanken Grotesk, Geist Mono                                                                       |
+| Illustration    | Cut-paper SVG piece set in `apps/web/components/art` (placeholders until the illustrator delivers)                                     |
+| Charts          | shadcn charts (Recharts), thin lines, accent colour, faint grid                                                                        |
+| Icons           | lucide-react, 1.5px stroke                                                                                                             |
+| Animation       | Framer Motion, subtle only (count-up, fade/slide); no glow, shimmer or gradient effects. Landing page only: GSAP + ScrollTrigger (§13) |
+| URL state       | `nuqs` (type-safe query params; works with static export)                                                                              |
+| Data fetching   | TanStack Query (cache, retries, `keepPreviousData` for pagination)                                                                     |
+| Wallet          | wagmi + viem, Core via EIP-6963 + WalletConnect                                                                                        |
+| Toasts          | sonner                                                                                                                                 |
 
 ## 2. Look and feel ("Gallery", ADR 0025)
 
@@ -165,3 +165,14 @@ Every data-driven component renders through `StateView`, so no screen can forget
 | Success: paid               | "Paid. Your December installment of 0.50 AVAX is in."                                                                     |
 | Success: voted              | "Vote counted. 8 of 12 have voted."                                                                                       |
 | Copied                      | "Address copied."                                                                                                         |
+
+## 13. Landing page motion (ADR 0049)
+
+- **Static first.** The server HTML is the finished page. Motion only rewinds and replays it; with no script or with reduced motion, everything is visible and the "one month" diagram shows its end state.
+- **Hero entrance in CSS** (`land-rise`, `land-paper`), so the headline paints without waiting for a script.
+- **GSAP + ScrollTrigger only on `/`**, dynamically imported after idle, never imported by `/app`. Never loaded when `prefers-reduced-motion: reduce` is set; switching it on later reverts the motion.
+- Scroll reveals hide only what is below the first screen, rise 28px over ~0.9 s with `power3.out`, once. Hairlines draw, line drawings trace their strokes.
+- One signature moment: a sticky stage (CSS sticky, not a GSAP pin) with one scrubbed timeline. No other pinned sections.
+- No Lenis, no WebGL, no looping motion, no bounce except the small vote pops.
+- Micro-interactions as in §8–9: press 0.97, arrow nudge, card lift 3px, icon tilt, chevron rotate.
+- Landing buttons copy the `components/ui/button` classes instead of importing it: that file pulls `radix-ui` client code into the page.

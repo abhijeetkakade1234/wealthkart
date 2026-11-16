@@ -1,4 +1,5 @@
 import { PUBLIC_PAGES, type Block, type PublicPage } from "@/content/pages";
+import { landingToMarkdown } from "@/content/landing";
 import { SITE_NAME, SITE_SUMMARY, absoluteUrl } from "@/content/site";
 
 function blockToMarkdown(block: Block): string {
@@ -61,9 +62,11 @@ export function llmsTxt(): string {
     .concat("\n");
 }
 
-/** `/llms-full.txt`: every public page as Markdown, concatenated. */
+/** `/llms-full.txt`: the landing page, then every public page, as Markdown. */
 export function llmsFullTxt(): string {
-  return [`# ${SITE_NAME}\n\n> ${SITE_SUMMARY}\n`, ...PUBLIC_PAGES.map(pageToMarkdown)].join(
-    "\n---\n\n",
-  );
+  return [
+    `# ${SITE_NAME}\n\n> ${SITE_SUMMARY}\n`,
+    `Source: ${absoluteUrl("/")}\n\n${landingToMarkdown()}`,
+    ...PUBLIC_PAGES.map(pageToMarkdown),
+  ].join("\n---\n\n");
 }

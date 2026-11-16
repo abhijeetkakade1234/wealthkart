@@ -1,0 +1,134 @@
+/*
+ * Landing page styles (ADR 0049). Loaded only on `/`.
+ *
+ * Without JavaScript, or with reduced motion, the page is a normal still document: every
+ * section visible, the "one month" diagram in its end state, all four steps listed.
+ * `[data-motion="on"]` is set by the GSAP layer once it starts; only then does the month
+ * section become a tall sticky track that scroll can scrub through.
+ */
+
+/* ---------- hero entrance: plain CSS so the headline paints before any script ---------- */
+@keyframes land-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes land-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) rotate(-5deg) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.land-rise {
+  animation: land-rise 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.land-paper {
+  animation: land-settle 800ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ---------- buttons and cards: small, calm feedback (docs/ui.md §8) ---------- */
+.land-press {
+  transition:
+    transform 140ms ease-out,
+    background-color 150ms ease-out,
+    border-color 150ms ease-out;
+}
+.land-press:active {
+  transform: scale(0.97);
+}
+.land-nudge {
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.group:hover .land-nudge,
+.group:focus-visible .land-nudge {
+  transform: translateX(3px);
+}
+.land-lift {
+  transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.group:hover .land-lift {
+  transform: translateY(-2px) rotate(-6deg);
+}
+.land-card {
+  transition:
+    border-color 200ms ease-out,
+    transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.land-card:hover {
+  border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
+  transform: translateY(-3px);
+}
+.land-faq[open] .land-chevron {
+  transform: rotate(180deg);
+}
+.land-chevron {
+  transition: transform 220ms ease-out;
+}
+.land-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* ---------- the "one month" scene ---------- */
+.land-month-progress {
+  display: none;
+}
+[data-motion="on"] .land-month-track {
+  height: 340vh;
+}
+[data-motion="on"] .land-month-stage {
+  position: sticky;
+  top: 0;
+  display: flex;
+  min-height: 100svh;
+  align-items: center;
+}
+[data-motion="on"] .land-month-progress {
+  display: block;
+}
+[data-motion="on"] .land-month-steps > li {
+  opacity: 0.32;
+  transition: opacity 360ms ease-out;
+}
+[data-motion="on"] .land-month-steps > li[data-active] {
+  opacity: 1;
+}
+/* Phones: one step at a time, stacked in the same spot under the diagram. */
+@media (max-width: 767px) {
+  [data-motion="on"] .land-month-steps {
+    display: grid;
+  }
+  [data-motion="on"] .land-month-steps > li {
+    grid-area: 1 / 1;
+    opacity: 0;
+  }
+  [data-motion="on"] .land-month-steps > li[data-active] {
+    opacity: 1;
+  }
+  [data-motion="on"] .land-month-art svg {
+    max-height: 42svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .land-rise,
+  .land-paper {
+    animation: none;
+  }
+  .land-press:active,
+  .land-card:hover,
+  .group:hover .land-nudge,
+  .group:hover .land-lift {
+    transform: none;
+  }
+}
