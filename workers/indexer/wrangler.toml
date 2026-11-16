@@ -62,6 +62,7 @@ FACTORY = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 FROM_BLOCK = "0"
 LOG_CHUNK = "2048"
 CONFIRMATIONS = "0"
+D1_SOFT_LIMIT_MB = "450"
 [[env.e2e.d1_databases]]
 binding = "DB"
 database_name = "wealthkart-indexer-e2e"
