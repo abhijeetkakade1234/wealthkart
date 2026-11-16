@@ -12,7 +12,8 @@ How it works: `playwright.config.ts` starts a local **anvil** chain that uses Fu
 | `support/fake-core.ts`    | `installFakeCore(page, account)`                                                                                                 |
 | `support/chain.ts`        | `rpc`, `increaseTime`, `warpToNextMonth`, `balanceOf`, snapshots                                                                 |
 | `support/vault.ts`        | `asWallet`, `createCircle`, `paidCircleOfThree`, `payAllDue`, `vaultWrite`, `vaultUint`, `vaultSend`, `loanFor`, `pendingLoanOf` |
-| `support/global-setup.ts` | Multicall3 + factory deploy                                                                                                      |
+| `support/global-setup.ts` | Multicall3 + factory, libraries and faucet MockUSDT deploy                                                                       |
+| `support/usdt.ts`         | Factory USDT, faucet `mintUsdt`, token balance and allowance, `vaultView`                                                        |
 | `support/multicall3.ts`   | Multicall3 runtime bytecode (public)                                                                                             |
 | `serve.mjs`               | Dependency-free static server that mirrors Cloudflare Pages routing                                                              |
 

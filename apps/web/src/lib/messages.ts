@@ -87,9 +87,25 @@ export const messages = {
   noOtherVoters: () => "There's nobody else in the circle who could vote on this yet.",
   nothingToWithdraw: () => "There's nothing waiting for you to withdraw.",
   withdrawFailed: () =>
-    "Your wallet didn't accept the AVAX. Try again from a wallet that can receive AVAX.",
+    "Your wallet didn't accept the payout. Try again from a wallet that can receive it.",
   insufficientCash: () =>
     "The circle doesn't have enough cash for this right now. Some of its money is lent out.",
+  // USDT circles (ADR 0046).
+  avaxNotAccepted: () => "This circle is paid in USDT. Send the payment without any AVAX attached.",
+  tokenAllowanceTooLow: () =>
+    "Approve the USDT payment in your wallet first, then pay. If the amount changed, approve again.",
+  tokenBalanceTooLow: () => "Your wallet doesn't have enough USDT for this payment.",
+  needGasAvax: (fee: string) =>
+    `Network fees are paid in AVAX, even in a USDT circle. Add about ${fee} AVAX to your wallet, then pay.`,
+  /** Checked before anything is sent, so the member never approves a payment they can't make. */
+  notEnoughToken: (p: { needed: string; have: string; symbol: string }) =>
+    `Your wallet has ${p.have} ${p.symbol}, but this payment needs ${p.needed} ${p.symbol}. Add ${p.symbol} to your wallet, then try again.`,
+  tokenAmountMismatch: () =>
+    "The USDT token took a bigger fee than the circle accepts (1%), so the payment was refused. Nothing was taken.",
+  tokenTransferFailed: () =>
+    "The USDT transfer didn't go through. Check your USDT balance and approval, then try again.",
+  usdtNotAvailable: () =>
+    "USDT circles aren't available on this network yet. Choose AVAX for this circle.",
   notAllowedToPropose: () => "Only members who can vote right now can start a proposal.",
   tooManyOpenProposals: () =>
     "There are already 10 open proposals. Wait for some to be decided first.",
@@ -179,8 +195,8 @@ export const messages = {
     "That member already has 3 open invites or proposals. Ask them to wait until one is decided, or ask another member to invite you.",
 
   // Success
-  paid: (month: string, amountAvax: string) =>
-    `Paid. Your ${month} installment of ${amountAvax} AVAX is in.`,
+  paid: (month: string, amount: string, symbol = "AVAX") =>
+    `Paid. Your ${month} installment of ${amount} ${symbol} is in.`,
   voted: (votes: number, members: number) => `Vote counted. ${votes} of ${members} have voted.`,
   copied: (what = "Address") => `${what} copied.`,
 
@@ -327,6 +343,12 @@ export type FriendlyErrorCode =
   | "nothing-to-withdraw"
   | "withdraw-failed"
   | "insufficient-cash"
+  | "avax-not-accepted"
+  | "token-allowance-too-low"
+  | "token-balance-too-low"
+  | "token-amount-mismatch"
+  | "usdt-not-available"
+  | "token-transfer-failed"
   | "unknown";
 
 /** The only error shape that ever reaches the UI. `details` is for the "Details" toggle. */
@@ -464,6 +486,7 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
   if (hasName("PeriodAlreadyPaid")) {
     return friendlyError("month-already-paid", messages.monthAlreadyPaid(), details);
   }
+  // Vaults before ADR 0050 refused mainnet; current ones don't. Kept for those old builds.
   if (hasName("MainnetNotSupported")) {
     return friendlyError("not-available", messages.notAvailableYet(), details);
   }
@@ -572,6 +595,13 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NothingToWithdraw", "nothing-to-withdraw", messages.nothingToWithdraw],
     ["WithdrawFailed", "withdraw-failed", messages.withdrawFailed],
     ["InsufficientCash", "insufficient-cash", messages.insufficientCash],
+    // USDT circles (ADR 0046).
+    ["AvaxNotAccepted", "avax-not-accepted", messages.avaxNotAccepted],
+    ["TokenAllowanceTooLow", "token-allowance-too-low", messages.tokenAllowanceTooLow],
+    ["TokenBalanceTooLow", "token-balance-too-low", messages.tokenBalanceTooLow],
+    ["TokenAmountMismatch", "token-amount-mismatch", messages.tokenAmountMismatch],
+    ["UsdtNotAvailable", "usdt-not-available", messages.usdtNotAvailable],
+    ["SafeERC20FailedOperation", "token-transfer-failed", messages.tokenTransferFailed],
   ];
   for (const [name, code, message] of membership) {
     if (hasName(name)) return friendlyError(code, message(), details);

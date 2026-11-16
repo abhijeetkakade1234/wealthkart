@@ -8,6 +8,11 @@ export const circleFactoryAbi = [
         type: "bytes",
         internalType: "bytes",
       },
+      {
+        name: "usdt_",
+        type: "address",
+        internalType: "address",
+      },
     ],
     stateMutability: "nonpayable",
   },
@@ -109,6 +114,11 @@ export const circleFactoryAbi = [
             name: "name",
             type: "string",
             internalType: "string",
+          },
+          {
+            name: "asset",
+            type: "uint8",
+            internalType: "enum CircleVault.Asset",
           },
           {
             name: "installment",
@@ -325,6 +335,19 @@ export const circleFactoryAbi = [
         name: "",
         type: "address",
         internalType: "contract Reputation",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "usdt",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
       },
     ],
     stateMutability: "view",

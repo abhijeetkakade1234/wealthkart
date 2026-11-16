@@ -5,6 +5,7 @@ import { type Address, isAddress } from "viem";
 import { useBlock, useReadContract, useReadContracts } from "wagmi";
 
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { type CircleAsset, ZERO_ADDRESS, circleAsset } from "@/lib/asset";
 import { type RequestKind, requestKind } from "@/lib/membership";
 
 export const CIRCLES_PAGE_SIZE = 12;
@@ -21,6 +22,22 @@ export function useFactory(): Address | null {
   return DEPLOYMENTS[chainId]?.circleFactory ?? null;
 }
 
+/** The factory's USDT on this network, or null when USDT circles aren't available here. */
+export function useFactoryUsdt() {
+  const factory = useFactory();
+  const q = useReadContract({
+    abi: circleFactoryAbi,
+    address: factory ?? undefined,
+    functionName: "usdt",
+    query: { enabled: Boolean(factory), staleTime: Infinity },
+  });
+  const token = q.data as Address | undefined;
+  return {
+    usdt: token && token.toLowerCase() !== ZERO_ADDRESS ? token : null,
+    isPending: Boolean(factory) && q.isPending,
+  };
+}
+
 /** Parses `?id=` safely; anything that isn't an address becomes null ("circle not found"). */
 export function parseCircleId(raw: string | null): Address | null {
   return raw && isAddress(raw) ? (raw as Address) : null;
@@ -34,6 +51,8 @@ export interface CircleSummary {
   stake: bigint;
   due: { period: bigint; amount: bigint; fees: bigint; payable: boolean } | null;
   isMember: boolean;
+  /** AVAX or USDT, fixed at creation (ADR 0046). */
+  asset: CircleAsset;
 }
 
 /** One page of the connected wallet's circles, with the numbers each card needs. */
@@ -69,12 +88,13 @@ export function useMyCircles(page: number) {
       { abi: circleVaultAbi, address: c, functionName: "memberCount" } as const,
       { abi: circleVaultAbi, address: c, functionName: "stakeOf", args: [address!] } as const,
       { abi: circleVaultAbi, address: c, functionName: "amountDue", args: [address!] } as const,
+      { abi: circleVaultAbi, address: c, functionName: "asset" } as const,
     ]),
     query: { enabled: enabled && circles.length > 0, placeholderData: (prev) => prev },
   });
 
   const summaries: CircleSummary[] = circles.map((c, i) => {
-    const r = details.data?.slice(i * 5, i * 5 + 5) ?? [];
+    const r = details.data?.slice(i * 6, i * 6 + 6) ?? [];
     const due =
       r[4]?.status === "success"
         ? (r[4].result as readonly [bigint, bigint, bigint, boolean])
@@ -88,6 +108,7 @@ export function useMyCircles(page: number) {
       // amountDue reverts with NotAMember for circles this wallet isn't in.
       due: due ? { period: due[0], amount: due[1], fees: due[2], payable: due[3] } : null,
       isMember: r[4]?.status === "success",
+      asset: circleAsset(r[5]?.status === "success" ? (r[5].result as string) : undefined),
     };
   });
 
@@ -140,6 +161,7 @@ export function useCircle(id: Address | null) {
       { ...vault, functionName: "dormantAfter" },
       { ...vault, functionName: "dormantCount" },
       { ...vault, functionName: "minPaidToVote" },
+      { ...vault, functionName: "asset" },
     ] as const,
     query: { enabled },
   });
@@ -196,6 +218,8 @@ export function useCircle(id: Address | null) {
           dormantAfter: ok<number>(22) ?? 3,
           dormantCount: Number(ok<bigint>(23) ?? 0n),
           minPaidToVote: ok<number>(24) ?? 2,
+          /** The circle's money (ADR 0046): drives every amount's decimals and symbol. */
+          asset: circleAsset(ok<string>(25)),
           /** The circle voted this wallet dormant (ADR 0032); paying or waking ends it. */
           iAmDormant: me?.dormant ?? false,
         }
@@ -466,6 +490,15 @@ export interface PortfolioRow {
   paidIn: bigint;
   /** This wallet's share of the circle, in basis points (0..10000). */
   shareBps: number;
+  asset: CircleAsset;
+}
+
+/** Portfolio totals for one asset: AVAX and USDT are never added together. */
+export interface PortfolioTotals {
+  asset: CircleAsset;
+  value: bigint;
+  paidIn: bigint;
+  gain: bigint;
 }
 
 /**
@@ -500,12 +533,13 @@ export function usePortfolio() {
       { abi: circleVaultAbi, address: c, functionName: "memberOf", args: [address!] } as const,
       { abi: circleVaultAbi, address: c, functionName: "installment" } as const,
       { abi: circleVaultAbi, address: c, functionName: "totalAssets" } as const,
+      { abi: circleVaultAbi, address: c, functionName: "asset" } as const,
     ]),
     query: { enabled: enabled && circles.length > 0 },
   });
 
   const rows: PortfolioRow[] = circles.map((c, i) => {
-    const r = details.data?.slice(i * 5, i * 5 + 5) ?? [];
+    const r = details.data?.slice(i * 6, i * 6 + 6) ?? [];
     const ok = <T>(j: number): T | undefined =>
       r[j]?.status === "success" ? (r[j]!.result as T) : undefined;
     const stake = ok<bigint>(1) ?? 0n;
@@ -518,17 +552,16 @@ export function usePortfolio() {
       stake,
       paidIn: BigInt(paid) * installment,
       shareBps: assets > 0n ? Number((stake * 10_000n) / assets) : 0,
+      asset: circleAsset(ok<string>(5)),
     };
   });
-  const value = rows.reduce((s, r) => s + r.stake, 0n);
-  const paidIn = rows.reduce((s, r) => s + r.paidIn, 0n);
+  const totalsByAsset = portfolioTotals(rows);
   const total = count.data === undefined ? undefined : Number(count.data);
 
   return {
     rows,
-    value,
-    paidIn,
-    gain: value - paidIn,
+    /** One entry per asset held (AVAX first), so different money is never summed. */
+    totals: totalsByAsset,
     total,
     truncated: total !== undefined && total > PORTFOLIO_MAX,
     isPending: enabled && (list.isPending || (circles.length > 0 && details.isPending)),
@@ -538,4 +571,17 @@ export function usePortfolio() {
       void details.refetch();
     },
   };
+}
+
+/** Sums portfolio rows per asset (AVAX first, then USDT); assets with no circles are left out. */
+export function portfolioTotals(rows: readonly PortfolioRow[]): PortfolioTotals[] {
+  const out: PortfolioTotals[] = [];
+  for (const symbol of ["AVAX", "USDT"] as const) {
+    const mine = rows.filter((r) => r.asset.symbol === symbol);
+    if (mine.length === 0) continue;
+    const value = mine.reduce((s, r) => s + r.stake, 0n);
+    const paidIn = mine.reduce((s, r) => s + r.paidIn, 0n);
+    out.push({ asset: mine[0]!.asset, value, paidIn, gain: value - paidIn });
+  }
+  return out;
 }

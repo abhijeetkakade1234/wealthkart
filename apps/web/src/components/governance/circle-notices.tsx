@@ -1,12 +1,12 @@
 "use client";
 
-import { formatAvax } from "@wealthkart/sdk";
 import { CalendarClock, HandCoins, Landmark } from "lucide-react";
 import type { Address } from "viem";
 
 import { Deadline } from "@/components/app/deadline";
 import { TxFor } from "@/components/app/tx-for";
 import { Button, InlineAlert } from "@/components/kit";
+import { fmt, useCircleAsset } from "@/lib/asset";
 import type { CircleGov } from "@/lib/gov-hooks";
 import { messages } from "@/lib/messages";
 import { ruleDiff } from "@/lib/rules";
@@ -38,9 +38,10 @@ export function RuleChangeBanner({
   onChanged: () => void;
 }) {
   const apply = useVaultAction(circle);
+  const { asset } = useCircleAsset(circle);
   if (!gov.pendingRules || gov.pendingAt === 0 || !gov.rules) return null;
   const due = chainNow >= gov.pendingAt;
-  const changes = ruleDiff(gov.rules, gov.pendingRules);
+  const changes = ruleDiff(gov.rules, gov.pendingRules, asset);
 
   async function applyNow() {
     const receipt = await apply.send("applyRuleChange");
@@ -119,6 +120,7 @@ export function DissolvedNotice({
   onChanged: () => void;
 }) {
   const claim = useVaultAction(circle);
+  const { asset } = useCircleAsset(circle);
   if (!gov.dissolved) return null;
   // Claims pay your share of the cash now; while loans are out, claim again as they're repaid
   // (ADR 0043). Members tied to a loan or frozen wait until it's repaid or settled.
@@ -130,7 +132,7 @@ export function DissolvedNotice({
     const receipt = await claim.send("claimDissolution");
     if (receipt) {
       notify.success(
-        `Done. About ${formatAvax(value)} AVAX was sent to your wallet. Thank you for saving together.`,
+        `Done. About ${fmt(value, asset)} ${asset.symbol} was sent to your wallet. Thank you for saving together.`,
       );
       onChanged();
     }
@@ -162,8 +164,8 @@ export function DissolvedNotice({
           ? blocked
             ? `${blocked} Your share stays safe in the circle until then.`
             : partial
-              ? `You can claim your share of the cash now. Some money is still lent out, so claim again as loans are repaid. Your whole share is worth about ${formatAvax(share)} AVAX.`
-              : `Each member takes their share at today's value. Yours is about ${formatAvax(share)} AVAX.`
+              ? `You can claim your share of the cash now. Some money is still lent out, so claim again as loans are repaid. Your whole share is worth about ${fmt(share, asset)} ${asset.symbol}.`
+              : `Each member takes their share at today's value. Yours is about ${fmt(share, asset)} ${asset.symbol}.`
           : "Every member who was still in has a share to claim."}
       </InlineAlert>
       <TxFor tx={claim.tx} />

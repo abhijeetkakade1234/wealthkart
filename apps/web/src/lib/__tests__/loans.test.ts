@@ -266,7 +266,7 @@ describe("chain values", () => {
 
   it("S-WEB-57 settled lines say what happens next", () => {
     expect(loanSettledLine("approved", "loan", true)).toMatch(/guarantor agrees/);
-    expect(loanSettledLine("approved", "loan", false)).toMatch(/send the AVAX/);
+    expect(loanSettledLine("approved", "loan", false)).toMatch(/send the money/);
     expect(loanSettledLine("approved", "settle", false)).toMatch(/settle it now/);
     expect(loanSettledLine("expired", "loan", false)).toMatch(/ran out/);
     expect(loanSettledLine("rejected", "loan", false)).toMatch(/aren't enough yes/);

@@ -1,5 +1,4 @@
-import { formatAvax } from "@wealthkart/sdk";
-import { formatEther, parseEther } from "viem";
+import { AVAX, type CircleAsset, fmt, parseAmount, toInputText } from "@/lib/asset";
 
 /**
  * Mirror of `Rules.defaults`, `Rules.Params` and `Rules.validate`
@@ -79,7 +78,10 @@ export const RULE_KEYS: readonly RuleKey[] = [
   "exitFeeBps",
 ];
 
-/** How a setting is shown and typed: basis points as %, whole %, days, months, AVAX, yes/no. */
+/**
+ * How a setting is shown and typed: basis points as %, whole %, days, months, an amount in the
+ * circle's asset (`avax` = AVAX or USDT units, ADR 0046), yes/no.
+ */
 export type RuleUnit = "bps" | "pct" | "days" | "months" | "times" | "members" | "avax" | "bool";
 
 export interface RuleMeta {
@@ -143,7 +145,7 @@ export const RULE_META: Record<RuleKey, RuleMeta> = {
     label: "Medical loan limit",
     unit: "avax",
     group: "loans",
-    hint: "In AVAX. 0 means no medical loans.",
+    hint: "0 means no medical loans.",
   },
   medicalFreeMonths: {
     label: "Interest-free months on medical loans",
@@ -161,7 +163,7 @@ export const RULE_META: Record<RuleKey, RuleMeta> = {
     label: "Late fee on loan interest",
     unit: "avax",
     group: "loans",
-    hint: "In AVAX, per month the interest is late. At most half the monthly amount.",
+    hint: "Per month the interest is late. At most half the monthly amount.",
   },
   defaultAfter: {
     label: "Missed interest months before a default",
@@ -232,14 +234,18 @@ export function bpsToPercentText(bps: number): string {
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** One setting in plain words, e.g. "1.5% a month", "30 days", "No medical loans". */
-export function formatRule(key: RuleKey, value: RulesParams[RuleKey]): string {
+export function formatRule(
+  key: RuleKey,
+  value: RulesParams[RuleKey],
+  asset: CircleAsset = AVAX,
+): string {
   const meta = RULE_META[key];
   switch (meta.unit) {
     case "bool":
       return value ? "Yes" : "No";
     case "avax":
       if (key === "medicalCap" && value === 0n) return "No medical loans";
-      return `${formatAvax(value as bigint, 4)} AVAX`;
+      return `${fmt(value as bigint, asset, asset.decimals === 6 ? 2 : 4)} ${asset.symbol}`;
     case "bps":
       return key === "interestBps" || key === "tenor2Bps" || key === "tenor3Bps"
         ? `${formatBps(value as number)} a month`
@@ -265,12 +271,16 @@ export interface RuleChange {
 }
 
 /** The settings that differ, in struct order, each in plain words. */
-export function ruleDiff(before: RulesParams, after: RulesParams): RuleChange[] {
+export function ruleDiff(
+  before: RulesParams,
+  after: RulesParams,
+  asset: CircleAsset = AVAX,
+): RuleChange[] {
   return RULE_KEYS.filter((k) => before[k] !== after[k]).map((k) => ({
     key: k,
     label: RULE_META[k].label,
-    before: formatRule(k, before[k]),
-    after: formatRule(k, after[k]),
+    before: formatRule(k, before[k], asset),
+    after: formatRule(k, after[k], asset),
   }));
 }
 
@@ -365,10 +375,10 @@ export function rulesFromChain(raw: object): RulesParams {
   };
 }
 
-/** Form text for each setting (percent, days, AVAX, "true"/"false"). */
+/** Form text for each setting (percent, days, an amount, "true"/"false"). */
 export type RulesForm = Record<RuleKey, string>;
 
-export function rulesToForm(p: RulesParams): RulesForm {
+export function rulesToForm(p: RulesParams, asset: CircleAsset = AVAX): RulesForm {
   const out = {} as RulesForm;
   for (const k of RULE_KEYS) {
     const unit = RULE_META[k].unit;
@@ -377,7 +387,7 @@ export function rulesToForm(p: RulesParams): RulesForm {
       unit === "bps"
         ? bpsToPercentText(v as number)
         : unit === "avax"
-          ? formatEther(v as bigint)
+          ? toInputText(v as bigint, asset)
           : String(v);
   }
   return out;
@@ -390,6 +400,7 @@ export function rulesToForm(p: RulesParams): RulesForm {
 export function rulesFromForm(
   f: RulesForm,
   installment: bigint,
+  asset: CircleAsset = AVAX,
 ): { params: RulesParams | null; errors: Partial<Record<RuleKey, string>> } {
   const errors: Partial<Record<RuleKey, string>> = {};
   const out: Record<string, unknown> = {};
@@ -403,8 +414,13 @@ export function rulesFromForm(
       if (v === null) errors[k] = "Enter a percentage like 1 or 1.5.";
       else out[k] = v;
     } else if (unit === "avax") {
-      if (!/^\d+(\.\d{1,18})?$/.test(t)) errors[k] = "Enter an amount like 0.01, or 0.";
-      else out[k] = parseEther(t);
+      const v = parseAmount(t, asset);
+      if (v === null)
+        errors[k] =
+          asset.symbol === "USDT"
+            ? "Enter an amount like 1, or 0."
+            : "Enter an amount like 0.01, or 0.";
+      else out[k] = v;
     } else if (!/^\d{1,5}$/.test(t)) {
       errors[k] = "Enter a whole number.";
     } else {

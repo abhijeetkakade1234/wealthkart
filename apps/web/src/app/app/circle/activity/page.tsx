@@ -16,6 +16,7 @@ import { ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useCircleAsset } from "@/lib/asset";
 import { parseCircleId, useCircle } from "@/lib/circle";
 import { useCircleEvents } from "@/lib/events";
 import { FEED_FILTERS, type FeedKind, filterFeed, toFeed } from "@/lib/feed";
@@ -102,7 +103,8 @@ function Feed({ id }: { id: Address }) {
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   }
 
-  const feed = useMemo(() => (q.data ? toFeed(q.data.logs) : []), [q.data]);
+  const { asset } = useCircleAsset(id);
+  const feed = useMemo(() => (q.data ? toFeed(q.data.logs, asset) : []), [q.data, asset]);
   const people = useMemo(
     () => [...new Set(feed.flatMap((f) => f.people.map((p) => p.toLowerCase())))],
     [feed],

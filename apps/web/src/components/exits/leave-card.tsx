@@ -1,6 +1,6 @@
 "use client";
 
-import { circleVaultAbi, formatAvax } from "@wealthkart/sdk";
+import { circleVaultAbi } from "@wealthkart/sdk";
 import { DoorOpen, HandCoins, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { type Address, parseEventLogs } from "viem";
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { fmt, useCircleAsset } from "@/lib/asset";
 import type { CircleGov } from "@/lib/gov-hooks";
 import { effectiveNoticeDays, exitPhase, isAhead, noticeText } from "@/lib/governance";
 import { messages } from "@/lib/messages";
@@ -52,6 +53,7 @@ export function LeaveCard({
   onChanged: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const { asset } = useCircleAsset(circle);
   const request = useVaultAction(circle);
   const cancel = useVaultAction(circle);
   const claim = useVaultAction(circle);
@@ -97,7 +99,7 @@ export function LeaveCard({
     const paid = logs.find((l) => l.eventName === "ExitPaid");
     if (paid && "payout" in paid.args) {
       notify.success(
-        `Done. ${formatAvax(paid.args.payout as bigint)} AVAX was sent to your wallet. You've left the circle.`,
+        `Done. ${fmt(paid.args.payout as bigint, asset)} ${asset.symbol} was sent to your wallet. You've left the circle.`,
       );
     } else {
       notify.info(
@@ -117,8 +119,8 @@ export function LeaveCard({
           Leaving the circle
         </h3>
         <p className="max-w-[60ch] text-[13.5px] leading-relaxed text-muted-foreground">
-          You can leave at any time. Your share is paid in AVAX at its value on the day you collect
-          it
+          You can leave at any time. Your share is paid in {asset.symbol} at its value on the day
+          you collect it
           {(rules?.exitFeeBps ?? 0) > 0
             ? `, minus a ${formatBps(rules!.exitFeeBps)} leaving fee that stays with the circle`
             : ", with no leaving fee"}
@@ -137,7 +139,7 @@ export function LeaveCard({
           <dl className="grid gap-4 sm:grid-cols-3">
             <Fact label="Notice" value={noticeText(noticeDays)} />
             <Fact label="Leaving fee" value={formatBps(feeBps)} />
-            <Fact label="Your share today" value={`${formatAvax(gov.exitValue)} AVAX`} />
+            <Fact label="Your share today" value={`${fmt(gov.exitValue, asset)} ${asset.symbol}`} />
           </dl>
           <div>
             <Button
@@ -168,7 +170,9 @@ export function LeaveCard({
                   : "Waiting for cash"}
             </span>
             <p className="font-display text-[30px] leading-tight tracking-tight">
-              {phase === "notice" ? "You asked to leave" : `${formatAvax(gov.exitValue)} AVAX`}
+              {phase === "notice"
+                ? "You asked to leave"
+                : `${fmt(gov.exitValue, asset)} ${asset.symbol}`}
             </p>
             <Deadline
               deadline={gov.exit.maturesAt}
@@ -231,7 +235,7 @@ export function LeaveCard({
           <dl className="grid gap-4 rounded-[12px] bg-secondary/60 p-5">
             <Fact
               label="If you left today you'd get"
-              value={`${formatAvax(gov.exitValue)} AVAX`}
+              value={`${fmt(gov.exitValue, asset)} ${asset.symbol}`}
               big
             />
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">

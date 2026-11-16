@@ -29,7 +29,7 @@
 | `components.json`              | shadcn config (components go to `src/components/ui`)                                           |
 | `next.config.ts`               | `output: "export"`, trailing slashes, unoptimised images                                       |
 
-**Rules:** follow `docs/ui.md` (one layout, pagination in URL, 300 ms search, eight UI states, plain-language messages, no emojis, generous whitespace). Money is `bigint` wei; previews use `@wealthkart/rules`.
+**Rules:** follow `docs/ui.md` (one layout, pagination in URL, 300 ms search, eight UI states, plain-language messages, no emojis, generous whitespace). Money is `bigint` in the circle asset's smallest unit (AVAX wei or USDT 1e-6, ADR 0046): format and parse only through `src/lib/asset.ts`, pay only through `useAssetPayment`; previews use `@wealthkart/rules`.
 
 **Depends on / used by:** `@wealthkart/rules` (later `@wealthkart/sdk`) / end users.
 
