@@ -19,9 +19,10 @@ How it works: `playwright.config.ts` starts a local **anvil** chain that uses Fu
 | `support/global-setup.ts` | Runs the `local-chain.cjs` deploy against the E2E anvil                                                                          |
 | `support/usdt.ts`         | Factory USDT, faucet `mintUsdt`, token balance and allowance, `vaultView`                                                        |
 | `support/multicall3.cjs`  | Multicall3 runtime bytecode (public)                                                                                             |
+| `support/push.ts`         | Reminders: mocked notification permission and `PushManager`, real P-256 device keys, a fake push service on 127.0.0.1            |
 | `serve.mjs`               | Dependency-free static server that mirrors Cloudflare Pages routing                                                              |
 
-Run: `FOUNDRY_DIR=/d/tools/foundry pnpm --filter @wealthkart/web e2e` (after `forge build` in `packages/contracts`). Browsers live in `PLAYWRIGHT_BROWSERS_PATH` (D:\tools\ms-playwright on the dev machine). Tests share one chain and run in order: each one creates its own circle, and chain time only moves forward.
+Run: `FOUNDRY_DIR=/d/tools/foundry pnpm --filter @wealthkart/web e2e` (after `forge build` in `packages/contracts`). Browsers live in `PLAYWRIGHT_BROWSERS_PATH` (D:\tools\ms-playwright on the dev machine). Tests share one chain and run in order: each one creates its own circle, and chain time only moves forward. Reminders (ADR 0052): `playwright.config.ts` makes a VAPID key pair per run and passes it to the web build and the local indexer, with the configured web port as the only site allowed to sign.
 
 **Ports (ADR 0053).** Defaults: anvil `8546`, web `4310`, indexer `8787`. Override any of them with `E2E_ANVIL_PORT`, `E2E_WEB_PORT`, `E2E_INDEXER_PORT`. Everything follows: the anvil command, the build's `NEXT_PUBLIC_RPC_URL`/`NEXT_PUBLIC_INDEXER_URL`, the fake Core wallet, the setup helpers and the indexer (`wrangler dev --port ... --var RPC_URL:...`). Outside CI Playwright reuses a server already listening on a port, so two runs on the default ports would share one chain. To run next to another E2E run (another worktree, another agent), use free ports:
 

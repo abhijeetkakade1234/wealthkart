@@ -22,10 +22,10 @@ Checked in the code, not assumed. `S-LEGAL-04` keeps this honest: it fails if a 
 - **Browser, local storage:** `wagmi.store` (connected address, chain, connector), `wagmi.recentConnectorId`, `wagmi.injected.connected`, `wagmi.app.core.extension.disconnected`. These are written by the wagmi library because `apps/web/src/lib/wagmi.ts` uses its default storage.
 - **Browser, session storage:** `wk:join:<circle>:<wallet>` holds a join request id (`apps/web/src/app/app/join/page.tsx`).
 - **Browser, first-run checklist (ADR 0054):** `wk:first-run:<wallet>` holds which checklist items were ticked or hidden (`apps/web/src/lib/first-run.ts`).
-- **Browser, reminders (ADR 0052, being built):** `wk:reminders` holds the push endpoint, a device token, wallet address and chain id (`apps/web/src/lib/push.ts`).
+- **Browser, reminders (ADR 0052):** `wk:reminders` holds the push endpoint, a device token, wallet address and chain id (`apps/web/src/lib/push.ts`).
 - **Browser, Cache Storage:** the service worker (`apps/web/public/sw.js`) caches pages and static assets. No RPC, cross-origin or non-GET requests.
 - **Cookies:** none set by the app.
-- **Indexer (Cloudflare Worker + D1):** `circles`, `logs` (public chain events), `meta` (cursor), `alerts` (solvency alerts, ADR 0041). With reminders: `push_subs` (endpoint, two public keys, token hash, wallet address), `push_watch` (wallet, circle, reminder kinds), `push_sent` (dedupe log, pruned after 120 days), `push_nonces`, `push_rate`.
+- **Indexer (Cloudflare Worker + D1):** `circles`, `logs` (public chain events), `meta` (cursor), `alerts` (solvency alerts, ADR 0041). With reminders: `push_subs` (endpoint, two public keys, token hash, wallet address), `push_watch` (wallet, circle, reminder kinds), `push_sent` (dedupe log, pruned after 120 days; with `push_watch`, deleted when the wallet's last device goes), `push_nonces` (until the signed message expires), `push_rate` (counters per wallet, device and hashed IP, pruned within 2 days). At most 5 devices per wallet.
 - **Third parties the browser talks to:** Cloudflare (hosting, indexer), the public Avalanche RPC (`api.avax-test.network` / `api.avax.network`, Ava Labs), Core Wallet (Ava Labs), Snowtrace (only when a link is opened), browser push services (only with reminders). Fonts are self-hosted by `next/font`; no Google Fonts requests at runtime.
 - **Not used today:** WalletConnect/Reown (the packages are in the lockfile as wagmi dependencies but no connector is configured), analytics, ads, error trackers.
 

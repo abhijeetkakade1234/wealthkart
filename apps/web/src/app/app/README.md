@@ -11,8 +11,9 @@
 | `/app/circle/loans/?id=`    | `circle/loans/page.tsx`    | Loans: your loan (pay interest, repay, default notice), ask dialog, guarantor notice, all loans with URL filters   |
 | `/app/circle/votes/?id=`    | `circle/votes/page.tsx`    | Circle proposals (`?ppage=`), loan and settle votes (`?lpage=`), then join and dormant votes (`?page=`)            |
 | `/app/circle/activity/?id=` | `circle/activity/page.tsx` | Activity feed: every event as a sentence, filters, search, Snowtrace links (ADR 0034)                              |
+| `/app/settings/`            | `settings/page.tsx`        | Settings: reminders on this device (permission flow, test, turn off) and an on/off list per circle (ADR 0052)      |
 | `/app/join/?id=&by=`        | `join/page.tsx`            | Invite link: circle facts, accept a founder invite, or pick a name and ask to join; then request status and result |
 
-Every circle page checks `factory.isCircle(id)` first (RT-01) and shows a "don't pay this" warning for look-alike contracts. Overview also has "Your name in this circle" and "Invite a friend" (`src/components/membership/`), "Circle rules", "Leaving the circle" and the guardian's Pause (`src/components/exits/`, `src/components/governance/`), plus banners for a guardian pause (also on Pay and Activity), a rule change waiting to apply, a closing circle and AVAX waiting to be withdrawn.
+Every circle page checks `factory.isCircle(id)` first (RT-01) and shows a "don't pay this" warning for look-alike contracts. Overview also has "Your name in this circle" and "Invite a friend" (`src/components/membership/`), "Circle rules", "Leaving the circle" and the guardian's Pause (`src/components/exits/`, `src/components/governance/`), a Reminders card (`#reminders`, ADR 0052), plus banners for a guardian pause (also on Pay and Activity), a rule change waiting to apply, a closing circle and AVAX waiting to be withdrawn.
 
 **Open this when:** adding or changing an app screen. Data hooks live in `src/lib/circle.ts` (loans: `src/lib/loan-hooks.ts`); transactions go through `src/lib/use-tx.ts`.

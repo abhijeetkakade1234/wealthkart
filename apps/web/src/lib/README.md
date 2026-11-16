@@ -23,6 +23,8 @@
 - `templates.ts`: circle templates (Friends, Family, Office, Custom) as data; apply, asset switch, change count, plain summary (ADR 0054)
 - `first-run.ts`: first-run checklist items and per-wallet localStorage state, try/catch wrapped (ADR 0054)
 - `messages.ts`: plain-language message catalogue, `toFriendlyError`
+- `push.ts`: reminders (ADR 0052): browser support (iPhone needs the Home Screen), the SIWE message, kind bitmask, push API client, this device's record
+- `use-reminders.ts`: reminder state for this device (`loading` ... `on`), turn on/off, per-circle settings, test push
 - `use-tx.ts`: confirm, sending, confirmed or failed for one transaction (keeps the failure code for retries)
 - `safe-call.ts`, `toast.ts`, `utils.ts`: safe async wrapper, toasts, `cn()`
 - `wagmi.ts`: Core-only wallet config; `TARGET_CHAIN` from `NEXT_PUBLIC_NETWORK` (`fuji` default, or `mainnet`, ADR 0051); `NEXT_PUBLIC_RPC_URL` override for local chains

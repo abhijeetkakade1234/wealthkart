@@ -13,7 +13,8 @@
 | `src/app/robots.ts` etc.       | Build-time `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, llms, OG, icons                |
 | `src/content/`                 | Public page copy as typed data (ADR 0027); feeds pages, llms.txt, JSON-LD                      |
 | `src/lib/seo/`                 | Metadata, JSON-LD, Markdown/llms output, OG and icon renderers                                 |
-| `public/sw.js`                 | Service worker: app-shell cache, never caches RPC (registered in production)                   |
+| `public/sw.js`                 | Service worker: app-shell cache, never caches RPC; shows reminders and opens their app page    |
+| `src/lib/push.ts`              | Reminders (ADR 0052): browser support, SIWE message, push API client; hook `use-reminders.ts`  |
 | `src/app/kit/`                 | `/kit` dev showcase: every interaction-kit component in every state (noindex)                  |
 | `src/components/landing/`      | Landing sections, hero art, line diagrams, GSAP scroll motion (loaded only on `/`)             |
 | `src/components/art/`          | Cut-paper placeholder art + address-seeded Avatar, CircleCover, EmptyArt (ADR 0025)            |

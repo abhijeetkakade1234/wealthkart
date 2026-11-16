@@ -39,7 +39,7 @@ Last updated: 2026-11-16
 - [x] Landing page with the "one month" scroll scene (ADR 0049)
 - [x] Legal pages (draft): privacy, terms and risks (ADR 0055)
 - [ ] Lawyer review of privacy/terms/risks (checklist in `docs/legal/README.md`)
-- [ ] Reminders (Web Push, keyed by wallet)
+- [x] Reminders (Web Push, keyed by wallet, ADR 0052)
 - [x] Circle templates: Friends, Family, Office, Custom pre-fill the create form (ADR 0054)
 - [ ] Hindi and Marathi
 - [x] Onboarding guide at `/start` and a first-run checklist on the home screen (ADR 0054)
@@ -55,6 +55,7 @@ Last updated: 2026-11-16
 
 - [ ] Phase 1 milestone: G1 plus 2–3 test circles on Fuji, demo video, Team1 application
 - [ ] Deploy the indexer: create the D1 database, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, run **Deploy indexer**, set `NEXT_PUBLIC_INDEXER_URL`
+- [ ] Reminders: `pnpm --filter @wealthkart/indexer vapid:keys`, public key in `workers/indexer/wrangler.toml` and the Pages variable `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `wrangler secret put VAPID_PRIVATE_KEY` (own pair for `--env mainnet`), check `APP_DOMAINS` is the real domain
 - [ ] Merge `abhijeet` → `dev` → `main` (ongoing): https://github.com/abhijeetkakade1234/wealthkart/compare/dev...abhijeet
 - [ ] Fuji deploy: GitHub environment `fuji` with `DEPLOYER_PRIVATE_KEY`, faucet AVAX, run the deploy workflow
 - [ ] Branch protection on `main` and `dev`

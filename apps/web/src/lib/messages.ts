@@ -205,6 +205,31 @@ export const messages = {
   voted: (votes: number, members: number) => `Vote counted. ${votes} of ${members} have voted.`,
   copied: (what = "Address") => `${what} copied.`,
 
+  // Reminders (ADR 0052)
+  remindersNotSetUp: () =>
+    "Reminders aren't set up on this site yet. Your dues and votes still show when you open the app.",
+  remindersUnsupported: () =>
+    "This browser can't show reminders. Chrome, Edge, Firefox and Safari can.",
+  remindersIosInstall: () =>
+    "On iPhone and iPad, reminders work once WealthKart is on your Home Screen. In Safari, tap Share, then Add to Home Screen, and open it from there.",
+  remindersDenied: () =>
+    "Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.",
+  remindersOtherWallet: (who: string) =>
+    `This device gets reminders for ${who}. You can switch them to this wallet.`,
+  remindersOn: () => "Reminders are on for this device.",
+  remindersOff: () => "Reminders are off for this device.",
+  remindersSaved: () => "Saved.",
+  remindersTestSent: () => "Test sent. It should show up on this device in a few seconds.",
+  remindersTestFailed: () =>
+    "The test didn't reach this device. Check that notifications are allowed, then try again.",
+  remindersDeviceGone: () =>
+    "This device stopped accepting reminders, so we turned them off. Turn them on again to fix it.",
+  remindersBusy: () => "That was a lot of changes at once. Wait a minute and try again.",
+  remindersFailed: () =>
+    "We couldn't reach the reminder service. Nothing changed. Try again in a minute.",
+  remindersCircleUnknown: () =>
+    "This circle is very new, so reminders can't be set yet. Try again in a minute.",
+
   // UI states (docs/ui.md §10)
   offline: () => "You're offline. You can look around, but paying and voting need a connection.",
   staleNote: (minutesAgo: number) => {

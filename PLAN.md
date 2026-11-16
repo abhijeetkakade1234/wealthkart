@@ -299,8 +299,8 @@ wealthkart/
 │   └── rules/           Pure TS mirror of contract math (NAV, interest, tenors,
 │                        fees, XIRR) for UI previews and cross-checking tests
 ├── workers/
-│   ├── push/            Web Push reminders keyed by wallet address (no PII, no fund movement)
-│   └── indexer/         Public chain events → cache (optional if AvaCloud / The Graph is used)
+│   └── indexer/         Public chain events → D1 cache (ADR 0036), plus Web Push reminders
+│                        keyed by wallet address in src/push/ (ADR 0052; no PII, no fund movement)
 └── docs/
 ```
 

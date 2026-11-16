@@ -16,6 +16,7 @@
 - `login/`: sign-in screen and return-path guard
 - `public/`: public-site header, footer, content blocks
 - `pwa/`: service-worker registration
+- `reminders/`: Reminders card per circle, device card on Settings, permission flow (ADR 0052, own README)
 - `ui/`: shadcn primitives restyled to Gallery
 - `wallet/`: Core Wallet hooks, connect button, wallet gate
 - `providers.tsx`: wagmi + TanStack Query providers

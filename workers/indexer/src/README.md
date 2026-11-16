@@ -5,4 +5,5 @@
 
 **Key files**
 
-- `index.ts`, `indexer.ts`, `chain.ts`, `store.ts`, `api.ts`, `codec.ts`
+- `index.ts`, `indexer.ts`, `chain.ts`, `store.ts`, `api.ts`, `codec.ts`, `monitor.ts`
+- `push/`: payment reminders by Web Push (ADR 0052), own README

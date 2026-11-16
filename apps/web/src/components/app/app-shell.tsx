@@ -7,6 +7,7 @@ import {
   Landmark,
   type LucideIcon,
   MoreHorizontal,
+  Settings,
   Users,
   Vote,
 } from "lucide-react";
@@ -34,19 +35,20 @@ const NAV: NavItem[] = [
   { label: "Loans", href: "/app/circle/loans/", icon: Landmark, needsCircle: true },
   { label: "Votes", href: "/app/circle/votes/", icon: Vote, needsCircle: true },
   { label: "Activity", href: "/app/circle/activity/", icon: Activity, needsCircle: true },
+  { label: "Settings", href: "/app/settings/", icon: Settings },
 ];
 
 /** Mobile bottom bar: four destinations plus More (docs/ui.md §3). */
 const MOBILE_NAV: NavItem[] = [
   ...NAV.filter((n) => ["Home", "Pay", "Loans", "Votes"].includes(n.label)),
-  { label: "More", href: "/app/", icon: MoreHorizontal },
+  { label: "More", href: "/app/settings/", icon: MoreHorizontal },
 ];
 
 const NEEDS_CIRCLE_HINT = "Open a circle first";
 const SOON_HINT = "Coming in the next update";
 
 function isActive(pathname: string, item: NavItem) {
-  if (item.label === "More") return false;
+  if (item.label === "More") return pathname.startsWith("/app/settings");
   const p = pathname.endsWith("/") ? pathname : `${pathname}/`;
   if (item.href === "/app/" || item.href === "/app/circle/") return p === item.href;
   return p.startsWith(item.href);

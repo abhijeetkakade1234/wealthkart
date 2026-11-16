@@ -25,6 +25,7 @@ import { RulesCard } from "@/components/governance/rules-card";
 import { DormantNotice, ProposeDormantButton } from "@/components/membership/dormant";
 import { InviteCard } from "@/components/membership/invite-card";
 import { NameCard } from "@/components/membership/name-card";
+import { CircleRemindersCard } from "@/components/reminders/circle-reminders-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
@@ -213,6 +214,11 @@ function CircleOverview() {
           <ErrorBoundary preset="widget" name="Invite">
             <InviteCard circle={id} me={address} />
           </ErrorBoundary>
+          <div id="reminders" className="scroll-mt-24">
+            <ErrorBoundary preset="widget" name="Reminders">
+              <CircleRemindersCard circle={id} />
+            </ErrorBoundary>
+          </div>
         </section>
       )}
 
