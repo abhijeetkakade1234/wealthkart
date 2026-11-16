@@ -26,6 +26,8 @@ FROM_BLOCK = "0"
 LOG_CHUNK = "2048"
 # Blocks to stay behind the tip. Avalanche finalises in about a second, so 1 is plenty.
 CONFIRMATIONS = "1"
+# D1 free tier: 500 MB per database. Stop storing new events at this many MB (ADR 0047).
+D1_SOFT_LIMIT_MB = "450"
 
 # Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs.
 [env.e2e]

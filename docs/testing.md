@@ -240,6 +240,7 @@ Known gaps:
 - S-IDX-04 Pages results; rejects bad addresses and paging values; 404 and 405 for other routes and methods
 - S-IDX-05 RPC down: answers from what is already indexed
 - S-IDX-06 App client: revives bigints, pages through, ignores logs past the first page's cursor, ignores an indexer on another chain
+- S-IDX-07 D1 soft size limit: the indexer stops storing new events and its cursor, `/v1/health` reports `full` and the size; no limit keeps indexing
 
 ### Frontend / E2E (S-WEB)
 

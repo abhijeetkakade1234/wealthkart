@@ -1,4 +1,12 @@
-import { circleAddresses, type Db, indexedTo, type StoredLog, saveRange } from "./store";
+import {
+  circleAddresses,
+  type Db,
+  indexedTo,
+  isFull,
+  markFull,
+  type StoredLog,
+  saveRange,
+} from "./store";
 
 /**
  * The catch-up loop (ADR 0036). Reads block ranges after the cursor: first the factory's
@@ -12,6 +20,12 @@ export interface Config {
   fromBlock: bigint;
   chunk: bigint;
   confirmations: bigint;
+  /**
+   * Soft size limit in bytes (ADR 0047). D1's free tier allows 500 MB per database; once a
+   * write reports a size at or above this, the indexer stops storing new events and the app
+   * reads the rest from the RPC, as it does when the indexer is behind. 0 = no limit.
+   */
+  sizeLimitBytes?: number;
 }
 
 /** What the indexer needs from the chain; `chain.ts` implements it with viem. */
@@ -43,6 +57,7 @@ export async function indexStep(
   const tip = latest - cfg.confirmations;
   let last = start;
   let chunks = 0;
+  if (await isFull(db)) return { indexedTo: last, caughtUp: false, chunks: 0 };
   while (last < tip && chunks < maxChunks) {
     const from = last + 1n;
     const to = from + cfg.chunk - 1n < tip ? from + cfg.chunk - 1n : tip;
@@ -54,9 +69,13 @@ export async function indexStep(
     for (let i = 0; i < addresses.length; i += ADDRESS_BATCH) {
       logs.push(...(await chain.circleLogs(addresses.slice(i, i + ADDRESS_BATCH), from, to)));
     }
-    await saveRange(db, created, logs, to);
+    const size = await saveRange(db, created, logs, to);
     last = to;
     chunks += 1;
+    if (cfg.sizeLimitBytes && size !== undefined && size >= cfg.sizeLimitBytes) {
+      await markFull(db);
+      break;
+    }
   }
   return { indexedTo: last, caughtUp: last >= tip, chunks };
 }
