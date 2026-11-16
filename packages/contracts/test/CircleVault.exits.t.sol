@@ -205,6 +205,20 @@ contract CircleVaultExitsTest is CircleVaultBase {
         _assertBooks(vault);
     }
 
+    /// RT-USDT-01 / M-1, AVAX side of S-USDT-09: the same gas sweep stays green.
+    /// forge-config: default.isolate = true
+    /// forge-config: ci.isolate = true
+    function test_S_EXIT_14b_batchGasSweepNeverHitsPayoutFloor() public {
+        address[6] memory leavers =
+            [members[0], members[4], members[5], members[6], members[7], members[8]];
+        for (uint256 i = 0; i < leavers.length; ++i) {
+            _nameAndRequestExit(vault, leavers[i], i);
+        }
+        vm.warp(block.timestamp + NOTICE);
+        _sweepProcessExits(vault, 150_000, 1_200_000, 2000, leavers.length);
+        _assertBooks(vault);
+    }
+
     function test_S_EXIT_01_onlyMembersOncePerMember() public {
         vm.prank(outsider);
         vm.expectRevert(abi.encodeWithSelector(Membership.NotAMember.selector, outsider));

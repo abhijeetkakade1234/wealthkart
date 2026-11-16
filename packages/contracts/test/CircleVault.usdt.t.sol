@@ -209,13 +209,16 @@ contract CircleVaultUsdtTest is CircleVaultUsdtBase {
 
     // ---------------------------------------------------------------- bad tokens and calls
 
-    function test_S_USDT_02_feeOnTransferIsRejected() public {
-        usdt.setFeeBps(100); // 1% taken on every transfer
+    /// A fee above the 1% the circle tolerates is refused (ADR 0050).
+    function test_S_USDT_02_feeAboveOnePercentIsRejected() public {
+        usdt.setFeeBps(101); // 1.01% taken on every transfer
         vm.startPrank(honest);
         usdt.approve(address(vault), INSTALLMENT);
         vm.expectRevert(
             abi.encodeWithSelector(
-                Ledger.TokenAmountMismatch.selector, INSTALLMENT, INSTALLMENT * 99 / 100
+                Ledger.TokenAmountMismatch.selector,
+                INSTALLMENT,
+                INSTALLMENT - INSTALLMENT * 101 / 10_000
             )
         );
         vault.contribute();
@@ -309,6 +312,98 @@ contract CircleVaultUsdtTest is CircleVaultUsdtBase {
         usdt.approve(address(vault), INSTALLMENT);
         vm.expectRevert(
             abi.encodeWithSelector(Ledger.TokenBalanceTooLow.selector, INSTALLMENT, 10 * USD)
+        );
+        vault.contribute();
+        vm.stopPrank();
+    }
+
+    // ---------------------------------------------------------------- RT-USDT-01, RT-USDT-02
+
+    /// RT-USDT-01: every gas limit either pays someone or reverts with ExitGasTooLow; never
+    /// PayoutGasTooLow half way, and more gas never pays fewer exits.
+    /// forge-config: default.isolate = true
+    /// forge-config: ci.isolate = true
+    function test_S_USDT_09_exitBatchGasSweepNeverHitsPayoutFloor() public {
+        _payAllT();
+        address[6] memory leavers =
+            [members[0], members[4], members[5], members[6], members[7], members[8]];
+        for (uint256 i = 0; i < leavers.length; ++i) {
+            _nameAndRequestExit(vault, leavers[i], i);
+        }
+        vm.warp(block.timestamp + 31 days);
+        _sweepProcessExits(vault, 150_000, 1_200_000, 2000, leavers.length);
+    }
+
+    /// RT-USDT-02: if Tether ever turns a fee on (up to 1%), payments still go through. The payer
+    /// is credited in full and the circle absorbs the fee; the books match the real balance.
+    function test_S_USDT_10_smallTransferFeeIsAbsorbed() public {
+        usdt.setFeeBps(1); // 0.01%
+        uint256 fee = INSTALLMENT / 10_000;
+        vm.startPrank(honest);
+        usdt.approve(address(vault), INSTALLMENT);
+        vm.expectEmit(address(vault));
+        emit Ledger.TokenFeeAbsorbed(honest, INSTALLMENT, INSTALLMENT - fee);
+        vault.contribute();
+        vm.stopPrank();
+        assertEq(vault.totalAssets(), INSTALLMENT - fee, "NAV short by exactly the fee");
+        (,,, bool due) = vault.amountDue(honest);
+        assertFalse(due, "installment counts as paid in full");
+        _assertSolvent();
+
+        // Everyone else pays; then a loan, interest and a part repayment under the fee.
+        usdt.setFeeBps(0);
+        for (uint256 i = 1; i < members.length; ++i) {
+            _payT(vault, members[i]);
+        }
+        address b = members[2];
+        _borrowT(b, 80 * USD);
+        _warpTo(2027, 1, 5, 12, 0, 0);
+        _payAllT();
+        _assertSolvent();
+
+        usdt.setFeeBps(1);
+        (uint256 interest,,) = vault.interestDue(b);
+        uint256 assets = vault.totalAssets();
+        vm.startPrank(b);
+        usdt.approve(address(vault), interest);
+        vault.payInterest();
+        vm.stopPrank();
+        assertEq(vault.totalAssets(), assets + interest - interest / 10_000);
+        (uint256 owed,,) = vault.interestDue(b);
+        assertEq(owed, 0, "interest counts as paid");
+        _assertSolvent();
+
+        uint256 part = 30 * USD;
+        assets = vault.totalAssets();
+        uint256 out = vault.loansOutstanding();
+        uint256 held = usdt.balanceOf(address(vault));
+        vm.startPrank(b);
+        usdt.approve(address(vault), part);
+        vm.expectEmit(address(vault));
+        emit Ledger.TokenFeeAbsorbed(b, part, part - part / 10_000);
+        vault.repay(part);
+        vm.stopPrank();
+        assertEq(vault.loansOutstanding(), out - part, "principal drops by the full amount");
+        assertEq(vault.totalAssets(), assets - part / 10_000, "the circle absorbs the fee");
+        assertEq(usdt.balanceOf(address(vault)), held + part - part / 10_000);
+        _assertSolvent();
+    }
+
+    /// The tolerance ends at 1%: exactly 1% is absorbed, 2% is refused.
+    function test_S_USDT_10b_feeToleranceStopsAtOnePercent() public {
+        usdt.setFeeBps(100);
+        _payT(vault, honest);
+        assertEq(vault.totalAssets(), INSTALLMENT * 99 / 100);
+        _assertSolvent();
+
+        usdt.setFeeBps(200);
+        address payer = members[3];
+        vm.startPrank(payer);
+        usdt.approve(address(vault), INSTALLMENT);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ledger.TokenAmountMismatch.selector, INSTALLMENT, INSTALLMENT * 98 / 100
+            )
         );
         vault.contribute();
         vm.stopPrank();

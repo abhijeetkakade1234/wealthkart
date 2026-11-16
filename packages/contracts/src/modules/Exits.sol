@@ -77,9 +77,14 @@ library Exits {
     uint64 internal constant PAUSE_COOLDOWN = 90 days;
     /// @dev Exits one Chainlink upkeep looks at.
     uint256 internal constant UPKEEP_BATCH = 20;
-    /// @dev A batch stops before an exit when less gas than this is left, so the last payout
-    ///      never runs out of gas half way.
-    uint256 internal constant MIN_GAS_PER_EXIT = 150_000;
+    /// @dev Gas `_settle` may spend before the payout's own floor check: reading the entry and
+    ///      member, unlinking, burning shares, removing the member (a fresh `nameFreeAt` write)
+    ///      and, for the creator, retiring the guardian. Measured (forge --isolate, all slots
+    ///      cold, 24-byte name, creator first): about 121k, 62k for later exits in the batch;
+    ///      the S-USDT-09 sweep fails below 125k. 140k leaves room for a waiting flag. A batch
+    ///      stops before an exit when less than `Ledger.payoutGasFloor` plus this is left, so a
+    ///      payout never hits `PayoutGasTooLow` half way (RT-USDT-01, ADR 0050).
+    uint256 internal constant SETTLE_GAS = 140_000;
     uint256 private constant BPS = 10_000;
 
     // ------------------------------------------------------------------ events
@@ -371,8 +376,10 @@ library Exits {
     ) private returns (uint256 paid, bool targetPaid) {
         bool blocked = false;
         address who = s.first;
+        // AVAX 230k, USDT 280k: the payout floor for this circle's money plus settle overhead.
+        uint256 minGas = ledger.payoutGasFloor() + SETTLE_GAS;
         for (uint256 n = 0; n < maxCount && who != address(0); ++n) {
-            if (gasleft() < MIN_GAS_PER_EXIT) {
+            if (gasleft() < minGas) {
                 // A claim must reach the claimant, and a batch must make progress; otherwise
                 // revert so a wallet's gas estimate finds a limit that works instead of a run
                 // that succeeds while paying nobody. A batch that already settled some stops.

@@ -269,6 +269,101 @@ contract CircleVaultMembershipTest is CircleVaultBase {
         vault.requestToJoin("LateArrival", honest);
     }
 
+    // ---------------------------------------------------------------- founder seats (RT-USDT-03)
+
+    function _capped(uint16 cap, uint256 founders)
+        internal
+        returns (CircleVault v, address[] memory f)
+    {
+        f = new address[](founders);
+        f[0] = honest;
+        for (uint256 i = 1; i < founders; ++i) {
+            f[i] = makeAddr(string.concat("founder", vm.toString(i)));
+        }
+        CircleVault.Config memory c = _cfg();
+        c.maxMembers = cap;
+        v = _createCircleNoAccept(c, f);
+    }
+
+    function _voteAll(CircleVault v, uint256 id, address[] memory f) internal {
+        for (uint256 i = 0; i < f.length; ++i) {
+            if (!v.canVote(id, f[i])) continue;
+            vm.prank(f[i]);
+            v.vote(id, true);
+        }
+    }
+
+    /// RT-USDT-03 PoC: cap 3, creator + f1 + f2, f1 accepts. A join request can't take the seat
+    /// held for f2 while f2's invite is live; once f2 declines, a join can succeed.
+    function test_S_MEM_09b_pendingFounderInviteHoldsItsSeat() public {
+        (CircleVault v, address[] memory f) = _capped(3, 3);
+        vm.prank(f[1]);
+        v.acceptInvite();
+
+        vm.prank(outsider);
+        vm.expectRevert(abi.encodeWithSelector(Membership.CircleFull.selector, 3));
+        v.requestToJoin("Comet_K", honest);
+
+        // f2 can still take the seat held for them.
+        uint256 snap = vm.snapshotState();
+        vm.prank(f[2]);
+        v.acceptInvite();
+        assertEq(v.memberCount(), 3);
+        vm.revertToState(snap);
+
+        // f2 declines: the seat is free for a join vote.
+        vm.prank(f[2]);
+        v.declineInvite();
+        vm.prank(outsider);
+        uint256 id = v.requestToJoin("Comet_K", honest);
+        _voteAll(v, id, f);
+        assertTrue(v.isMember(outsider));
+        assertEq(v.memberCount(), 3);
+    }
+
+    /// Same, but f2 lets the invite run out: after 14 days the held seat is released.
+    function test_S_MEM_09b_expiredFounderInviteReleasesItsSeat() public {
+        (CircleVault v, address[] memory f) = _capped(3, 3);
+        vm.prank(f[1]);
+        v.acceptInvite();
+        uint256 expiry = v.founderInviteExpiry(f[2]);
+
+        vm.warp(expiry);
+        vm.prank(outsider);
+        vm.expectRevert(abi.encodeWithSelector(Membership.CircleFull.selector, 3));
+        v.requestToJoin("Comet_K", honest);
+
+        vm.warp(expiry + 1);
+        vm.prank(outsider);
+        uint256 id = v.requestToJoin("Comet_K", honest);
+        _voteAll(v, id, f);
+        assertTrue(v.isMember(outsider));
+        vm.prank(f[2]);
+        vm.expectRevert(abi.encodeWithSelector(Membership.FounderInviteExpired.selector, expiry));
+        v.acceptInvite();
+    }
+
+    /// A join vote that would take a held seat closes as Full, and the late founder still gets in.
+    function test_S_MEM_09b_approvalIntoAHeldSeatClosesAsFull() public {
+        (CircleVault v, address[] memory f) = _capped(4, 3);
+        vm.prank(outsider);
+        uint256 a = v.requestToJoin("Comet_K", honest);
+        vm.prank(attacker);
+        uint256 b = v.requestToJoin("Mango.eth", honest);
+        vm.prank(f[1]);
+        v.acceptInvite();
+
+        _voteAll(v, a, f);
+        assertTrue(v.isMember(outsider));
+        _voteAll(v, b, f);
+        assertEq(uint8(v.getRequest(b).status), uint8(Membership.Status.Full));
+        assertFalse(v.isMember(attacker));
+
+        vm.prank(f[2]);
+        v.acceptInvite();
+        assertEq(v.memberCount(), 4);
+    }
+
     // ---------------------------------------------------------------- first period (RT-09)
 
     function test_S_RT_15_admittedAfterDueDayOwesFromNextMonthWithoutFees() public {

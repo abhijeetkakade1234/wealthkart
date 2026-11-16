@@ -55,9 +55,17 @@ library Ledger {
     uint256 internal constant TOKEN_PAYOUT_GAS = 100_000;
     /// @dev `PAYOUT_GAS_FLOOR` for token payouts: `TOKEN_PAYOUT_GAS` after 63/64 plus room.
     uint256 internal constant TOKEN_PAYOUT_GAS_FLOOR = 140_000;
+    /// @dev Highest transfer fee the circle absorbs on a payment in, in basis points (1%). USDt
+    ///      is an upgradeable proxy whose owner could switch a fee on; above this the payment is
+    ///      refused, below it the circle books what arrived (ADR 0050, RT-USDT-02).
+    uint256 internal constant MAX_TOKEN_FEE_BPS = 100;
+    uint256 private constant BPS = 10_000;
 
     event PayoutQueued(address indexed to, uint256 amount);
     event Withdrawn(address indexed to, uint256 amount);
+    /// @notice The token took a fee on a payment in: `payer` is credited in full and the
+    ///         circle absorbs `expected - received` as a loss (ADR 0050).
+    event TokenFeeAbsorbed(address indexed payer, uint256 expected, uint256 received);
 
     error NothingToWithdraw();
     error WithdrawFailed();
@@ -70,7 +78,8 @@ library Ledger {
     error TokenAllowanceTooLow(uint256 needed, uint256 allowance);
     /// @notice The wallet holds less USDT than the payment needs.
     error TokenBalanceTooLow(uint256 needed, uint256 balance);
-    /// @notice The circle received a different amount than was sent (fee-on-transfer token).
+    /// @notice The circle received a different amount than was sent, beyond the 1% fee it
+    ///         tolerates (fee-on-transfer token, ADR 0050).
     error TokenAmountMismatch(uint256 expected, uint256 received);
 
     /// @notice Money the circle holds right now and may use (assets minus loans out).
@@ -86,9 +95,7 @@ library Ledger {
         if (amount == 0) return;
         address token = self.token;
         bool avax = token == address(0);
-        if (gasleft() < (avax ? PAYOUT_GAS_FLOOR : TOKEN_PAYOUT_GAS_FLOOR)) {
-            revert PayoutGasTooLow();
-        }
+        if (gasleft() < payoutGasFloor(self)) revert PayoutGasTooLow();
         // `to` is a member or borrower chosen by the rules.
         if (!_send(token, to, amount, avax ? PAYOUT_GAS : TOKEN_PAYOUT_GAS)) {
             self.withdrawable[to] += amount;
@@ -109,10 +116,12 @@ library Ledger {
         if (!_send(self.token, to, amount, gasleft())) revert WithdrawFailed();
     }
 
-    /// @dev Takes exactly `amount` of the circle's token from the caller (USDT circles only; the
-    ///      caller has already refused any AVAX sent). Checks allowance and balance first so the
-    ///      wallet gets a plain error, then checks the vault received exactly `amount`, which
-    ///      rejects fee-on-transfer behaviour (ADR 0046). The token is the factory's, fixed.
+    /// @dev Takes `amount` of the circle's token from the caller (USDT circles only; the caller
+    ///      has already refused any AVAX sent and booked `amount` in full). Checks allowance and
+    ///      balance first so the wallet gets a plain error. If the token kept a fee of at most
+    ///      `MAX_TOKEN_FEE_BPS`, the payer still counts as paid in full and the shortfall comes
+    ///      off `totalAssets`, so the books match the real balance; a bigger fee, or more
+    ///      arriving than was sent, reverts (ADR 0046, 0050). The token is the factory's, fixed.
     function pull(Store storage self, uint256 amount) internal {
         IERC20 t = IERC20(self.token);
         uint256 allowed = t.allowance(msg.sender, address(this));
@@ -122,7 +131,19 @@ library Ledger {
         uint256 before = t.balanceOf(address(this));
         SafeERC20.safeTransferFrom(t, msg.sender, address(this), amount);
         uint256 received = t.balanceOf(address(this)) - before;
-        if (received != amount) revert TokenAmountMismatch(amount, received);
+        if (received > amount || amount - received > amount * MAX_TOKEN_FEE_BPS / BPS) {
+            revert TokenAmountMismatch(amount, received);
+        }
+        if (received < amount) {
+            // Every caller added at least `amount` to cash, so this can't underflow.
+            self.totalAssets -= amount - received;
+            emit TokenFeeAbsorbed(msg.sender, amount, received);
+        }
+    }
+
+    /// @notice Gas that must be left before a payout of this circle's money is sent.
+    function payoutGasFloor(Store storage self) internal view returns (uint256) {
+        return self.token == address(0) ? PAYOUT_GAS_FLOOR : TOKEN_PAYOUT_GAS_FLOOR;
     }
 
     /// @dev Sends `amount` AVAX (`token` 0) or tokens to `to` with at most `gasCap` gas. Never
