@@ -310,6 +310,8 @@ Known gaps:
 - S-WEB-59 "Loans outstanding per member" counts running and defaulted loans, biggest first; "Where the money is" splits value into lent out, reserve (rounded up, capped at cash) and free cash that add up
 - S-WEB-60 Every loan event reads as a plain sentence in the activity feed (request, guarantee, vote, payout, interest, repayment, default, cure, settle, not approved) under the "Loans" filter
 - S-WEB-61 One stake, one loan (ADR 0043): borrowers with a live request or loan and guarantors who accepted one are tied, so the guarantor picker leaves them out and a guarantor can't ask; asking is also refused while you've asked to leave; a loan's own `defaultAfter` decides when it can be marked as defaulted
+- S-WEB-62 Circle asset helpers (ADR 0046): `vault.asset()` zero = AVAX/18 decimals, else USDT/6; amounts format, parse (extra decimals refused) and chart in the right unit; loan, rule and CSV text name the circle's asset
+- S-WEB-63 Create form (ADR 0045, 0046): AVAX by default with a cap of 12; USDT parses 6 decimals and sends `asset = 1`; caps 2 and 51 refused, 3 and 50 accepted, a note above 20; more starting members than the cap refused
 
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
@@ -340,6 +342,8 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-24 A month later the borrower pays the exact interest from the loan panel, then repays in full from the Repay dialog; the panel returns to "no loan" and the activity feed's Loans filter lists the interest and the repayment
 - S-E2E-25 A borrower names a guarantor in the dialog (the limit counts both savings); the card shows "not agreed yet"; after two yes votes it waits for the guarantor, who sees the notice explaining what backing means, clicks "Back this loan", and the AVAX reaches the borrower
 - S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
+- S-E2E-31 Start a USDT circle: USDT is offered (factory has one), the freeze and AVAX-for-gas warning shows, amounts are in USDT; the Pay page says the wallet has too little USDT; after the faucet mint the member pays in two steps (approve up to installment plus both fees, then pay), exactly 50.00 USDT leaves the wallet, 2 USDT of allowance is left, and the overview shows the USDT badge and amounts
+- S-E2E-32 The create form refuses member caps of 2 and 51 before sending and notes slower votes above 20; a cap of 50 creates an AVAX circle with `maxMembers = 50` and the AVAX badge
 
 ## Gates in CI
 
