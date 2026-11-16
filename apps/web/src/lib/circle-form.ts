@@ -1,5 +1,6 @@
 import { type Address, isAddress } from "viem";
 
+import { t } from "@/i18n/runtime";
 import { AVAX, ASSET_ENUM, type AssetSymbol, type CircleAsset, parseAmount } from "@/lib/asset";
 import {
   defaultRules,
@@ -86,9 +87,9 @@ export function formAsset(symbol: AssetSymbol): CircleAsset {
 export function maxMembersProblem(text: string): string | null {
   const n = Number(text.trim());
   if (text.trim() === "" || !Number.isInteger(n))
-    return `Pick a whole number from ${MIN_MAX_MEMBERS} to ${MAX_MAX_MEMBERS}.`;
-  if (n < MIN_MAX_MEMBERS) return `A circle needs room for at least ${MIN_MAX_MEMBERS} members.`;
-  if (n > MAX_MAX_MEMBERS) return `A circle can have at most ${MAX_MAX_MEMBERS} members.`;
+    return t("create.error.capWhole", { min: MIN_MAX_MEMBERS, max: MAX_MAX_MEMBERS });
+  if (n < MIN_MAX_MEMBERS) return t("create.error.capMin", { min: MIN_MAX_MEMBERS });
+  if (n > MAX_MAX_MEMBERS) return t("create.error.capMax", { max: MAX_MAX_MEMBERS });
   return null;
 }
 
@@ -100,16 +101,16 @@ const CIRCLE_NAME_CHARS = /^[A-Za-z0-9 _'&-]+$/;
  * slashes, so a name can never carry a link or a web address.
  */
 export function circleNameProblem(name: string): string | null {
-  if (name.length === 0) return "Give the circle a name.";
+  if (name.length === 0) return t("create.error.nameEmpty");
   if (/[.:/]/.test(name)) {
-    return "Circle names can't contain web addresses or dots, so nobody can use one as a fake link.";
+    return t("create.error.nameLink");
   }
   if (!CIRCLE_NAME_CHARS.test(name)) {
-    return "Use only letters, numbers, spaces and _ - ' &.";
+    return t("create.error.nameChars");
   }
-  if (name.length < 3) return "Use at least 3 characters.";
-  if (name.length > 48) return "Keep the name to 48 characters or fewer.";
-  if (name.includes("  ")) return "Use single spaces between words.";
+  if (name.length < 3) return t("create.error.nameShort");
+  if (name.length > 48) return t("create.error.nameLong");
+  if (name.includes("  ")) return t("create.error.nameSpaces");
   return null;
 }
 
@@ -124,39 +125,37 @@ export function validate(f: FormState, self: Address | undefined) {
   if (installment === null || installment === 0n)
     errors.installment =
       asset.symbol === "USDT"
-        ? "Enter an amount above 0, like 50. USDT has at most 6 decimals."
-        : "Enter an amount above 0, like 0.5.";
+        ? t("create.error.installmentUsdt")
+        : t("create.error.installmentAvax");
   const fee1 = parseAmount(f.fee1, asset);
-  if (fee1 === null) errors.fee1 = "Enter a fee, or 0 for none.";
+  if (fee1 === null) errors.fee1 = t("create.error.fee");
   const fee2 = parseAmount(f.fee2, asset);
-  if (fee2 === null) errors.fee2 = "Enter a fee, or 0 for none.";
+  if (fee2 === null) errors.fee2 = t("create.error.fee");
   // ADR 0030: each late fee is at most half the installment.
   if (installment !== null && installment > 0n) {
-    if (fee1 !== null && fee1 * 2n > installment)
-      errors.fee1 = "Keep each late fee at or below half the monthly amount.";
-    if (fee2 !== null && fee2 * 2n > installment)
-      errors.fee2 = "Keep each late fee at or below half the monthly amount.";
+    if (fee1 !== null && fee1 * 2n > installment) errors.fee1 = t("create.error.feeHalf");
+    if (fee2 !== null && fee2 * 2n > installment) errors.fee2 = t("create.error.feeHalf");
   }
 
   const dueDay = Number(f.dueDay);
   if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 28)
-    errors.dueDay = "Pick a day from 1 to 28.";
+    errors.dueDay = t("create.error.dueDay");
   const secondFeeDay = Number(f.secondFeeDay);
   if (!Number.isInteger(secondFeeDay) || secondFeeDay <= dueDay || secondFeeDay > 28)
-    errors.secondFeeDay = "Must be after the due day and no later than the 28th.";
+    errors.secondFeeDay = t("create.error.secondFeeDay");
   const holidays = Number(f.holidays);
   if (!Number.isInteger(holidays) || holidays < 0 || holidays > 12)
-    errors.holidays = "Pick 0 to 12.";
+    errors.holidays = t("create.error.range", { min: 0, max: 12 });
   const dormantAfter = Number(f.dormantAfter);
   if (!Number.isInteger(dormantAfter) || dormantAfter < 1 || dormantAfter > 12)
-    errors.dormantAfter = "Pick 1 to 12.";
+    errors.dormantAfter = t("create.error.range", { min: 1, max: 12 });
   const minPaidToVote = Number(f.minPaidToVote);
   if (!Number.isInteger(minPaidToVote) || minPaidToVote < 0 || minPaidToVote > 6)
-    errors.minPaidToVote = "Pick 0 to 6.";
+    errors.minPaidToVote = t("create.error.range", { min: 0, max: 6 });
 
   const quorumPct = Number(f.quorumPct);
   if (!Number.isInteger(quorumPct) || quorumPct < MIN_QUORUM_PCT || quorumPct > MAX_QUORUM_PCT)
-    errors.quorumPct = `Pick ${MIN_QUORUM_PCT} to ${MAX_QUORUM_PCT}.`;
+    errors.quorumPct = t("create.error.range", { min: MIN_QUORUM_PCT, max: MAX_QUORUM_PCT });
   const rules = formRules(f, installment);
   Object.assign(errors, rules.errors);
 
@@ -172,11 +171,11 @@ export function validate(f: FormState, self: Address | undefined) {
   const set = new Map<string, Address>();
   if (self) set.set(self.toLowerCase(), self);
   for (const l of lines) if (isAddress(l)) set.set(l.toLowerCase(), l as Address);
-  if (bad) errors.founders = `"${bad.slice(0, 16)}…" isn't a wallet address.`;
+  if (bad) errors.founders = t("create.error.notAddress", { start: bad.slice(0, 16) });
   else if (set.size > MAX_FOUNDERS)
-    errors.founders = `A circle can start with at most ${MAX_FOUNDERS} members.`;
+    errors.founders = t("create.error.tooManyFounders", { max: MAX_FOUNDERS });
   else if (!capProblem && set.size > maxMembers)
-    errors.founders = `That's ${set.size} members with you, more than the limit of ${maxMembers}. Raise the limit or invite fewer friends.`;
+    errors.founders = t("create.error.overCap", { count: set.size, max: maxMembers });
 
   return {
     errors,
@@ -231,14 +230,14 @@ export function formRules(
 ): { params: RulesParams | null; errors: Partial<Record<keyof FormState, string>> } {
   const errors: Partial<Record<keyof FormState, string>> = {};
   const interestBps = percentToBps(f.interestPct);
-  if (interestBps === null) errors.interestPct = "Enter a percentage like 1 or 1.5.";
+  if (interestBps === null) errors.interestPct = t("rules.form.percent");
   const whole = (k: keyof FormState) => {
-    const t = f[k].trim();
-    if (!/^\d{1,3}$/.test(t)) {
-      errors[k] = "Enter a whole number.";
+    const text = f[k].trim();
+    if (!/^\d{1,3}$/.test(text)) {
+      errors[k] = t("rules.form.whole");
       return 0;
     }
-    return Number(t);
+    return Number(text);
   };
   const kMultiplier = whole("kMultiplier");
   const passPct = whole("passPct");

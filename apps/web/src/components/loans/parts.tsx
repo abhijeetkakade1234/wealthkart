@@ -1,7 +1,32 @@
+import { periodLabel } from "@wealthkart/sdk";
+
+import { useT } from "@/i18n/react";
 import { cn } from "@/lib/utils";
 import { type LoanRowStatus, STATUS_LABEL } from "@/lib/loans";
 
 /** Shared pieces of the Loans screens. */
+
+/**
+ * Month names for a period in the active language: `long` ("December 2026") and `short`
+ * ("Dec 2026"). English keeps the SDK's own labels so its text never changes.
+ */
+export function usePeriodText() {
+  const { locale, formatDate } = useT();
+  const date = (p: number) => Date.UTC(Math.floor(p / 12), p % 12, 1);
+  return {
+    long: (p: number) =>
+      locale === "en"
+        ? periodLabel(p)
+        : formatDate(date(p), { month: "long", year: "numeric", timeZone: "UTC" }),
+    short: (p: number) => {
+      if (locale !== "en") {
+        return formatDate(date(p), { month: "short", year: "numeric", timeZone: "UTC" });
+      }
+      const l = periodLabel(p);
+      return `${l.slice(0, 3)} ${l.slice(-4)}`;
+    },
+  };
+}
 
 export const inputCls =
   "h-11 w-full rounded-[10px] border border-border bg-background px-3.5 text-[14px] tabular outline-none transition focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20 aria-[invalid=true]:border-bad";
@@ -48,6 +73,7 @@ const PILL: Record<LoanRowStatus, string> = {
 
 /** Status of a loan as a dot and a word; colour never stands alone. */
 export function StatusPill({ status }: { status: LoanRowStatus }) {
+  const { t } = useT();
   return (
     <span
       className={cn(
@@ -56,7 +82,7 @@ export function StatusPill({ status }: { status: LoanRowStatus }) {
       )}
     >
       <span className="size-1.5 rounded-full bg-current" aria-hidden />
-      {STATUS_LABEL[status]}
+      {t(STATUS_LABEL[status])}
     </span>
   );
 }

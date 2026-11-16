@@ -1,13 +1,9 @@
-import { periodLabel } from "@wealthkart/sdk";
-
+import { useT } from "@/i18n/react";
 import { type LoanState, tenorTimeline } from "@/lib/loans";
 import { formatBps } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
-const short = (p: number) => {
-  const l = periodLabel(p);
-  return `${l.slice(0, 3)} ${l.slice(-4)}`;
-};
+import { usePeriodText } from "./parts";
 
 /**
  * The loan's three terms as a quiet stepped rule (rule 15): each term's months and rate, the
@@ -15,8 +11,10 @@ const short = (p: number) => {
  */
 export function TenorTimeline({ loan, currentPeriod }: { loan: LoanState; currentPeriod: number }) {
   const { steps, lastMonth, overdue } = tenorTimeline(loan, currentPeriod);
+  const { t } = useT();
+  const period = usePeriodText();
   return (
-    <div className="grid gap-4" aria-label="Loan terms">
+    <div className="grid gap-4" aria-label={t("loans.tenor.aria")}>
       <ol className="grid grid-cols-3 gap-2">
         {steps.map((s) => (
           <li
@@ -46,11 +44,11 @@ export function TenorTimeline({ loan, currentPeriod }: { loan: LoanState; curren
               )}
             >
               {formatBps(s.rateBps)}
-              <span className="font-sans text-[11.5px]"> a month</span>
+              <span className="font-sans text-[11.5px]">{` ${t("loans.aMonth")}`}</span>
             </span>
             <span className="text-[12px] text-muted-foreground">
-              {short(s.from)} to {short(s.to)}
-              {s.state === "now" && <span className="sr-only"> (now)</span>}
+              {t("loans.range", { from: period.short(s.from), to: period.short(s.to) })}
+              {s.state === "now" && <span className="sr-only">{t("loans.tenor.now")}</span>}
             </span>
           </li>
         ))}
@@ -59,8 +57,8 @@ export function TenorTimeline({ loan, currentPeriod }: { loan: LoanState; curren
         className={cn("text-[12.5px]", overdue ? "font-medium text-bad" : "text-muted-foreground")}
       >
         {overdue
-          ? `All three terms ended in ${periodLabel(lastMonth)}. The whole loan is due now.`
-          : `The whole loan is due by the end of ${periodLabel(lastMonth)}. The rate steps up with each term.`}
+          ? t("loans.tenor.overdue", { month: period.long(lastMonth) })
+          : t("loans.tenor.dueBy", { month: period.long(lastMonth) })}
       </p>
     </div>
   );

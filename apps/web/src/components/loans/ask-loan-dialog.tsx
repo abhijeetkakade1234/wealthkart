@@ -1,8 +1,8 @@
 "use client";
 
-import { periodLabel, shortAddress } from "@wealthkart/sdk";
+import { shortAddress } from "@wealthkart/sdk";
 import { Check, HandCoins, Landmark, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { Address } from "viem";
 
 import { TxFor } from "@/components/app/tx-for";
@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/i18n/react";
 import { money, useCircleAsset } from "@/lib/asset";
 import { type MyLoan, useLoanMembers, useLoanTx } from "@/lib/loan-hooks";
 import { avax, loanLimits, loanPreview, parseAvaxInput } from "@/lib/loans";
@@ -22,7 +23,7 @@ import { notify } from "@/lib/toast";
 import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
 
-import { inputCls } from "./parts";
+import { inputCls, usePeriodText } from "./parts";
 
 /**
  * "Ask for a loan" (ADR 0038, PLAN.md D4b): amount with live checks against every limit, the
@@ -53,6 +54,7 @@ export function AskLoanButton({
 }) {
   const [open, setOpen] = useState(false);
   const action = useLoanTx(circle);
+  const { t } = useT();
   return (
     <>
       <Button
@@ -64,16 +66,13 @@ export function AskLoanButton({
           setOpen(true);
         }}
       >
-        Ask for a loan
+        {t("loans.ask.button")}
       </Button>
       <Dialog open={open} onOpenChange={(v) => !action.working && setOpen(v)}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[640px]">
           <DialogHeader>
-            <DialogTitle>Ask for a loan</DialogTitle>
-            <DialogDescription>
-              The other members vote. If enough say yes, the money is sent to your wallet straight
-              away. Nobody approves it by hand.
-            </DialogDescription>
+            <DialogTitle>{t("loans.ask.button")}</DialogTitle>
+            <DialogDescription>{t("loans.ask.description")}</DialogDescription>
           </DialogHeader>
           {open && (
             <AskForm
@@ -88,7 +87,7 @@ export function AskLoanButton({
               onDone={() => {
                 setOpen(false);
                 action.tx.reset();
-                notify.success("Loan request sent. The other members can vote on it in Votes.");
+                notify.success(t("loans.ask.sent"));
                 onAsked();
               }}
             />
@@ -124,6 +123,8 @@ function AskForm({
   const [medical, setMedical] = useState(false);
   const [guarantor, setGuarantor] = useState<string>("");
   const typed = useDebounced(text, 300);
+  const { t, tn } = useT();
+  const period = usePeriodText();
   const { asset } = useCircleAsset(circle);
   const amount = parseAvaxInput(typed, asset);
   const { members, isPending } = useLoanMembers(circle);
@@ -138,28 +139,25 @@ function AskForm({
   const chosen = options.find((m) => m.address === guarantor) ?? null;
   const medicalOn = rules.medicalCap > 0n;
 
-  const limits = useMemo(
-    () =>
-      loanLimits({
-        totalAssets: my.totalAssets,
-        myStake: my.stake,
-        guarantorStake: chosen?.stake ?? 0n,
-        lendable: my.lendable,
-        rules,
-        medical,
-      }),
-    [my.totalAssets, my.stake, my.lendable, chosen, rules, medical],
-  );
+  // Not memoised: cheap, and the limit labels must follow a language switch.
+  const limits = loanLimits({
+    totalAssets: my.totalAssets,
+    myStake: my.stake,
+    guarantorStake: chosen?.stake ?? 0n,
+    lendable: my.lendable,
+    rules,
+    medical,
+  });
   const preview = loanPreview(amount ?? limits.limit, rules, medical, currentPeriod);
   const needsGuarantor = rules.guarantorRequired && !chosen;
   const tooBig = amount !== null && amount > limits.limit;
   const problem =
     typed.trim() !== "" && amount === null
       ? asset.symbol === "USDT"
-        ? "Type an amount in USDT, like 25."
-        : "Type an amount in AVAX, like 0.25."
+        ? t("loans.typeAmountUsdt")
+        : t("loans.typeAmountAvax")
       : tooBig
-        ? `That's more than you can ask for right now. The most is ${money(limits.limit, asset)}.`
+        ? t("loans.ask.tooBig", { amount: money(limits.limit, asset) })
         : null;
   const canSend = amount !== null && !tooBig && !needsGuarantor && text === typed;
 
@@ -178,23 +176,26 @@ function AskForm({
       }}
     >
       <fieldset className="grid gap-3">
-        <legend className="mb-3 text-[13px] font-medium">Type of loan</legend>
+        <legend className="mb-3 text-[13px] font-medium">{t("loans.ask.typeLegend")}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <TypeOption
             checked={!medical}
             onChange={() => setMedical(false)}
-            title="Regular"
-            text={`${formatBps(rules.interestBps)} a month to start.`}
+            title={t("loans.regular")}
+            text={t("loans.ask.regularText", { rate: formatBps(rules.interestBps) })}
           />
           <TypeOption
             checked={medical}
             onChange={() => setMedical(true)}
             disabled={!medicalOn}
-            title="Medical"
+            title={t("loans.medical")}
             text={
               medicalOn
-                ? `Up to ${money(rules.medicalCap, asset)}, ${rules.medicalFreeMonths} months interest-free, once a year. Faster vote.`
-                : "This circle doesn't offer medical loans."
+                ? t("loans.ask.medicalText", {
+                    amount: money(rules.medicalCap, asset),
+                    months: rules.medicalFreeMonths,
+                  })
+                : t("loans.ask.medicalOff")
             }
           />
         </div>
@@ -202,13 +203,13 @@ function AskForm({
 
       <div className="grid gap-1.5">
         <label htmlFor="loan-amount" className="text-[13px] font-medium">
-          Amount in {asset.symbol}
+          {t("loans.amountIn", { symbol: asset.symbol })}
         </label>
         <input
           id="loan-amount"
           inputMode="decimal"
           autoComplete="off"
-          placeholder={`Up to ${avax(limits.limit, asset)}`}
+          placeholder={t("loans.ask.placeholder", { amount: avax(limits.limit, asset) })}
           className={inputCls}
           value={text}
           aria-invalid={Boolean(problem)}
@@ -219,13 +220,13 @@ function AskForm({
           id="loan-amount-hint"
           className={cn("text-[12px]", problem ? "text-bad" : "text-muted-foreground")}
         >
-          {problem ?? `You can ask for up to ${money(limits.limit, asset)} right now.`}
+          {problem ?? t("loans.ask.canAsk", { amount: money(limits.limit, asset) })}
         </span>
       </div>
 
       <div className="grid gap-1.5">
         <label htmlFor="loan-guarantor" className="text-[13px] font-medium">
-          {rules.guarantorRequired ? "Guarantor" : "Guarantor (optional)"}
+          {rules.guarantorRequired ? t("loans.guarantor") : t("loans.ask.guarantorOptional")}
         </label>
         <select
           id="loan-guarantor"
@@ -234,23 +235,26 @@ function AskForm({
           onChange={(e) => setGuarantor(e.target.value)}
           disabled={isPending}
         >
-          <option value="">{rules.guarantorRequired ? "Pick a member" : "No guarantor"}</option>
+          <option value="">
+            {rules.guarantorRequired ? t("loans.ask.pickMember") : t("loans.ask.noGuarantor")}
+          </option>
           {options.map((m) => (
             <option key={m.address} value={m.address}>
-              {m.name || shortAddress(m.address)} · {money(m.stake, asset)} saved
+              {t("loans.ask.memberOption", {
+                name: m.name || shortAddress(m.address),
+                amount: money(m.stake, asset),
+              })}
             </option>
           ))}
         </select>
         <span className="text-[12px] leading-relaxed text-muted-foreground">
-          A guarantor is a member who backs your loan. Their savings raise your limit, and if the
-          loan goes unpaid their share can be frozen and used. They must agree before the money is
-          sent.
+          {t("loans.ask.guarantorHelp")}
         </span>
       </div>
 
-      <section aria-label="Limits" className="grid gap-3">
+      <section aria-label={t("loans.ask.limitsAria")} className="grid gap-3">
         <h4 className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          Your limits
+          {t("loans.ask.yourLimits")}
         </h4>
         <ul className="grid divide-y divide-line-soft rounded-[12px] border border-border">
           {limits.lines.map((l) => {
@@ -267,7 +271,11 @@ function AskForm({
                         : "bg-secondary text-faint",
                   )}
                   aria-label={
-                    fits === false ? "Over this limit" : fits ? "Within this limit" : undefined
+                    fits === false
+                      ? t("loans.ask.overLimit")
+                      : fits
+                        ? t("loans.ask.withinLimit")
+                        : undefined
                   }
                 >
                   {fits === false ? (
@@ -287,54 +295,58 @@ function AskForm({
         </ul>
       </section>
 
-      <section aria-label="What it costs" className="grid gap-4 rounded-[12px] bg-secondary/60 p-6">
+      <section
+        aria-label={t("loans.ask.costAria")}
+        className="grid gap-4 rounded-[12px] bg-secondary/60 p-6"
+      >
         <h4 className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          What it costs{amount === null ? ` (at ${money(limits.limit, asset)})` : ""}
+          {amount === null
+            ? t("loans.ask.costAt", { amount: money(limits.limit, asset) })
+            : t("loans.ask.cost")}
         </h4>
         <ol className="grid gap-3 sm:grid-cols-3">
-          {preview.tenors.map((t) => (
-            <li key={t.tenor} className="grid gap-1 rounded-[10px] bg-card px-4 py-3.5">
+          {preview.tenors.map((step) => (
+            <li key={step.tenor} className="grid gap-1 rounded-[10px] bg-card px-4 py-3.5">
               <span className="text-[12px] text-muted-foreground">
-                {periodLabel(t.from).slice(0, 3)} {periodLabel(t.from).slice(-4)} to{" "}
-                {periodLabel(t.to).slice(0, 3)} {periodLabel(t.to).slice(-4)}
+                {t("loans.range", { from: period.short(step.from), to: period.short(step.to) })}
               </span>
               <span className="font-mono text-[14px] tabular">
-                {money(t.monthly, asset)} a month
+                {t("loans.amountMonth", { amount: money(step.monthly, asset) })}
               </span>
               <span className="text-[12px] text-muted-foreground">
-                {formatBps(t.rateBps)} a month
+                {t("loans.rateMonth", { rate: formatBps(step.rateBps) })}
               </span>
             </li>
           ))}
         </ol>
         <ul className="grid gap-1.5 text-[13px] leading-relaxed text-muted-foreground">
           <li>
-            Interest starts in {periodLabel(preview.firstCharged)}
-            {preview.freeMonths > 1 ? ` (the first ${preview.freeMonths} months are free)` : ""}.
-            Pay it by day {dueDay} of each month (UTC); it&apos;s worked out on what you still owe
-            at the start of the month.
+            {preview.freeMonths > 1
+              ? t("loans.ask.interestStartsFree", {
+                  month: period.long(preview.firstCharged),
+                  free: preview.freeMonths,
+                  day: dueDay,
+                })
+              : t("loans.ask.interestStarts", {
+                  month: period.long(preview.firstCharged),
+                  day: dueDay,
+                })}
           </li>
-          <li>
-            Repay any part whenever you like. The whole loan is due by the end of{" "}
-            {periodLabel(preview.repayBy)}.
-          </li>
+          <li>{t("loans.ask.repayAny", { month: period.long(preview.repayBy) })}</li>
           {preview.minimum > 0n && (
-            <li>
-              Repaying in the month you borrow still costs one month&apos;s interest (
-              {money(preview.minimum, asset)}).
-            </li>
+            <li>{t("loans.ask.minimum", { amount: money(preview.minimum, asset) })}</li>
           )}
           <li>
-            Late interest costs {money(rules.interestFee, asset)} a month extra. After{" "}
-            {rules.defaultAfter} late {rules.defaultAfter === 1 ? "month" : "months"}, anyone can
-            mark the loan as defaulted, which freezes you{chosen ? " and your guarantor" : ""}.
+            {tn(chosen ? "loans.ask.lateGuarantor" : "loans.ask.late", rules.defaultAfter, {
+              fee: money(rules.interestFee, asset),
+            })}
           </li>
         </ul>
       </section>
 
       {my.lendable === 0n && (
-        <InlineAlert tone="warn" title="No cash free to lend">
-          Everything above the reserve is lent out right now. Try again after someone repays.
+        <InlineAlert tone="warn" title={t("loans.ask.noCashTitle")}>
+          {t("loans.ask.noCashBody")}
         </InlineAlert>
       )}
 
@@ -342,14 +354,12 @@ function AskForm({
         <Button
           type="submit"
           icon={Landmark}
-          workingLabel="Sending…"
+          workingLabel={t("loans.sending")}
           state={action.working ? "working" : undefined}
           disabled={!canSend}
-          disabledReason={
-            needsGuarantor ? "This circle needs a guarantor for every loan" : "Type an amount first"
-          }
+          disabledReason={needsGuarantor ? t("loans.ask.needsGuarantor") : t("loans.ask.typeFirst")}
         >
-          Ask the circle
+          {t("loans.ask.submit")}
         </Button>
         <TxFor tx={action.tx} />
       </div>

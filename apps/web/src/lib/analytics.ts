@@ -1,4 +1,8 @@
 import { VIRTUAL_SHARES } from "@wealthkart/rules";
+import { periodLabel } from "@wealthkart/sdk";
+
+import { formatDate, getLocale, t } from "@/i18n/runtime";
+import type { PlainKey } from "@/i18n/types";
 
 /**
  * Pure analytics over a circle's on-chain events (PLAN.md D7). Everything here is derived
@@ -179,17 +183,52 @@ export function cellState(
   return period <= currentPeriod ? "due" : "upcoming";
 }
 
-/** Plain words for each cell state: the heatmap legend and each cell's label. */
-export const CELL_LABEL: Record<CellState, string> = {
-  before: "Not a member yet",
-  "on-time": "Paid on time",
-  late: "Paid late",
-  holiday: "Paid after a holiday",
-  missed: "Missed",
-  due: "Due this month",
-  upcoming: "Not due yet",
-  dormant: "Paused (dormant)",
+/** Plain words for each cell state (translation keys): the heatmap legend and each cell's label. */
+export const CELL_LABEL_KEY: Record<CellState, PlainKey> = {
+  before: "analytics.cellBefore",
+  "on-time": "analytics.cellOnTime",
+  late: "analytics.cellLate",
+  holiday: "analytics.cellHoliday",
+  missed: "analytics.cellMissed",
+  due: "analytics.cellDue",
+  upcoming: "analytics.cellUpcoming",
+  dormant: "analytics.cellDormant",
 };
+
+/** A cell state in the active language. */
+export const cellLabel = (state: CellState): string => t(CELL_LABEL_KEY[state]);
+
+/** UTC first day of a circle month (period = year * 12 + month index). */
+const periodDate = (period: number | bigint) => {
+  const p = Number(period);
+  return Date.UTC(Math.floor(p / 12), p % 12, 1);
+};
+
+/**
+ * A circle month in the active language: "December 2026" in English (exactly `periodLabel`),
+ * "दिसंबर 2026" in Hindi.
+ */
+export function periodName(period: number | bigint): string {
+  if (getLocale() === "en") return periodLabel(period);
+  return formatDate(periodDate(period), { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+/** Chart axis label: "Dec '26" in English. */
+export function periodShort(period: number | bigint): string {
+  const year = String(Math.floor(Number(period) / 12)).slice(-2);
+  const month =
+    getLocale() === "en"
+      ? periodLabel(period).slice(0, 3)
+      : formatDate(periodDate(period), { month: "short", timeZone: "UTC" });
+  return t("analytics.monthShort", { month, year });
+}
+
+/** Short month name for a 1-based month (heatmap columns): "Jan" in English. */
+export function monthShortName(month: number): string {
+  // English keeps its fixed names ("Sep", not en-GB's "Sept").
+  if (getLocale() === "en") return periodLabel(month - 1).slice(0, 3);
+  return formatDate(Date.UTC(2000, month - 1, 1), { month: "short", timeZone: "UTC" });
+}
 
 /** Totals for the analytics summary line. */
 export function totals(events: readonly CircleEvent[]) {

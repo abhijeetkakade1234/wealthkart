@@ -51,8 +51,9 @@
   --color-art-olive: var(--art-olive);
   --color-art-forest: var(--art-forest);
 
-  --font-sans: var(--font-hanken), system-ui, sans-serif;
-  --font-display: var(--font-instrument-serif), Georgia, serif;
+  /* --deva-* are set only for Hindi and Marathi (below), so English never loads them. */
+  --font-sans: var(--font-hanken), var(--deva-sans, system-ui), system-ui, sans-serif;
+  --font-display: var(--font-instrument-serif), var(--deva-serif, Georgia), Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --radius-sm: 6px;
@@ -167,6 +168,21 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/*
+ * Hindi and Marathi (ADR 0057): Devanagari fonts join the stacks, and lines get more room
+ * because matras sit above and below the letters. Unlayered, so it beats leading-* utilities.
+ */
+html:is(:lang(hi), :lang(mr)) {
+  --deva-sans: var(--font-noto-sans-deva);
+  --deva-serif: var(--font-noto-serif-deva);
+}
+html:is(:lang(hi), :lang(mr)) body {
+  line-height: 1.7;
+}
+html:is(:lang(hi), :lang(mr)) :is(h1, h2, h3, .font-display) {
+  line-height: 1.35;
 }
 
 @media (prefers-reduced-motion: reduce) {

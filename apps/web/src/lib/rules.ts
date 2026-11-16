@@ -1,3 +1,4 @@
+import { t, tn } from "@/i18n/runtime";
 import { AVAX, type CircleAsset, fmt, parseAmount, toInputText } from "@/lib/asset";
 
 /**
@@ -92,121 +93,40 @@ export interface RuleMeta {
   hint: string;
 }
 
+/** Label and hint are read in the active language each time (ADR 0057). */
+function meta(key: RuleKey, unit: RuleUnit, group: RuleMeta["group"]): RuleMeta {
+  return {
+    unit,
+    group,
+    get label() {
+      return t(`rules.label.${key}`);
+    },
+    get hint() {
+      return t(`rules.hint.${key}`);
+    },
+  };
+}
+
 export const RULE_META: Record<RuleKey, RuleMeta> = {
-  interestBps: {
-    label: "Loan interest",
-    unit: "bps",
-    group: "loans",
-    hint: "Per month, 0 to 5%.",
-  },
-  tenorMonths: {
-    label: "Loan term",
-    unit: "months",
-    group: "loans",
-    hint: "Months in each loan term, 1 to 24.",
-  },
-  tenor2Bps: {
-    label: "Interest in the second term",
-    unit: "bps",
-    group: "loans",
-    hint: "Per month. At least the first rate, at most 10%.",
-  },
-  tenor3Bps: {
-    label: "Interest in the third term",
-    unit: "bps",
-    group: "loans",
-    hint: "Per month. At least the second rate, at most 10%.",
-  },
-  reserveBps: {
-    label: "Cash kept back",
-    unit: "bps",
-    group: "loans",
-    hint: "Share of the circle that is never lent out, 0 to 80%.",
-  },
-  maxLoanBps: {
-    label: "Biggest loan",
-    unit: "bps",
-    group: "loans",
-    hint: "Share of the circle one member can borrow, 1 to 100%.",
-  },
-  kMultiplier: {
-    label: "Loan limit vs savings",
-    unit: "times",
-    group: "loans",
-    hint: "A loan can be this many times your savings plus your guarantor's, 1 to 10.",
-  },
-  minInterestMonth: {
-    label: "Charge at least one month's interest",
-    unit: "bool",
-    group: "loans",
-    hint: "Even if the loan is repaid early.",
-  },
-  medicalCap: {
-    label: "Medical loan limit",
-    unit: "avax",
-    group: "loans",
-    hint: "0 means no medical loans.",
-  },
-  medicalFreeMonths: {
-    label: "Interest-free months on medical loans",
-    unit: "months",
-    group: "loans",
-    hint: "0 to 12.",
-  },
-  guarantorRequired: {
-    label: "Loans need a guarantor",
-    unit: "bool",
-    group: "loans",
-    hint: "Another member backs each loan.",
-  },
-  interestFee: {
-    label: "Late fee on loan interest",
-    unit: "avax",
-    group: "loans",
-    hint: "Per month the interest is late. At most half the monthly amount.",
-  },
-  defaultAfter: {
-    label: "Missed interest months before a default",
-    unit: "months",
-    group: "loans",
-    hint: "1 to 6.",
-  },
-  minMembersForLoans: {
-    label: "Members needed before loans",
-    unit: "members",
-    group: "loans",
-    hint: "At least 3.",
-  },
-  passPct: {
-    label: "Yes votes needed",
-    unit: "pct",
-    group: "voting",
-    hint: "Percent, for loans, rule changes and fee waivers. 50 means more than half.",
-  },
-  dissolvePassPct: {
-    label: "Yes votes needed to close the circle",
-    unit: "pct",
-    group: "voting",
-    hint: "Percent, 50 to 100.",
-  },
-  ruleChangeDelayDays: {
-    label: "Wait before new rules apply",
-    unit: "days",
-    group: "voting",
-    hint: "3 to 30 days, then the change starts on the 1st of the next month.",
-  },
-  exitNoticeDays: {
-    label: "Notice to leave",
-    unit: "days",
-    group: "leaving",
-    hint: "0 to 90 days.",
-  },
-  exitFeeBps: {
-    label: "Leaving fee",
-    unit: "bps",
-    group: "leaving",
-    hint: "Percent kept by the circle, 0 to 10.",
-  },
+  interestBps: meta("interestBps", "bps", "loans"),
+  tenorMonths: meta("tenorMonths", "months", "loans"),
+  tenor2Bps: meta("tenor2Bps", "bps", "loans"),
+  tenor3Bps: meta("tenor3Bps", "bps", "loans"),
+  reserveBps: meta("reserveBps", "bps", "loans"),
+  maxLoanBps: meta("maxLoanBps", "bps", "loans"),
+  kMultiplier: meta("kMultiplier", "times", "loans"),
+  minInterestMonth: meta("minInterestMonth", "bool", "loans"),
+  medicalCap: meta("medicalCap", "avax", "loans"),
+  medicalFreeMonths: meta("medicalFreeMonths", "months", "loans"),
+  guarantorRequired: meta("guarantorRequired", "bool", "loans"),
+  interestFee: meta("interestFee", "avax", "loans"),
+  defaultAfter: meta("defaultAfter", "months", "loans"),
+  minMembersForLoans: meta("minMembersForLoans", "members", "loans"),
+  passPct: meta("passPct", "pct", "voting"),
+  dissolvePassPct: meta("dissolvePassPct", "pct", "voting"),
+  ruleChangeDelayDays: meta("ruleChangeDelayDays", "days", "voting"),
+  exitNoticeDays: meta("exitNoticeDays", "days", "leaving"),
+  exitFeeBps: meta("exitFeeBps", "bps", "leaving"),
 };
 
 /** 100 -> "1%", 150 -> "1.5%", 125 -> "1.25%". Basis points are never negative on-chain. */
@@ -220,9 +140,9 @@ export function formatBps(bps: number): string {
 
 /** "1.5" -> 150. Up to two decimals; anything else is null. */
 export function percentToBps(text: string): number | null {
-  const t = text.trim().replace(/%$/, "").trim();
-  if (!/^\d{1,5}(\.\d{1,2})?$/.test(t)) return null;
-  const [w = "0", f = ""] = t.split(".");
+  const v = text.trim().replace(/%$/, "").trim();
+  if (!/^\d{1,5}(\.\d{1,2})?$/.test(v)) return null;
+  const [w = "0", f = ""] = v.split(".");
   return Number(w) * 100 + Number(f.padEnd(2, "0"));
 }
 
@@ -230,8 +150,6 @@ export function percentToBps(text: string): number | null {
 export function bpsToPercentText(bps: number): string {
   return formatBps(bps).replace(/%$/, "");
 }
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** One setting in plain words, e.g. "1.5% a month", "30 days", "No medical loans". */
 export function formatRule(
@@ -242,24 +160,24 @@ export function formatRule(
   const meta = RULE_META[key];
   switch (meta.unit) {
     case "bool":
-      return value ? "Yes" : "No";
+      return value ? t("rules.value.yes") : t("rules.value.no");
     case "avax":
-      if (key === "medicalCap" && value === 0n) return "No medical loans";
+      if (key === "medicalCap" && value === 0n) return t("rules.value.noMedicalLoans");
       return `${fmt(value as bigint, asset, asset.decimals === 6 ? 2 : 4)} ${asset.symbol}`;
     case "bps":
       return key === "interestBps" || key === "tenor2Bps" || key === "tenor3Bps"
-        ? `${formatBps(value as number)} a month`
+        ? t("rules.value.perMonth", { rate: formatBps(value as number) })
         : formatBps(value as number);
     case "pct":
-      return value === 50 ? "More than half" : `${String(value)}%`;
+      return value === 50 ? t("rules.value.moreThanHalf") : `${String(value)}%`;
     case "days":
-      return plural(value as number, "day", "days");
+      return tn("rules.value.days", value as number);
     case "months":
-      return plural(value as number, "month", "months");
+      return tn("rules.value.months", value as number);
     case "times":
       return `${String(value)}x`;
     case "members":
-      return plural(value as number, "member", "members");
+      return tn("rules.value.members", value as number);
   }
 }
 
@@ -296,53 +214,53 @@ export interface RuleProblem {
 export function rulesProblem(p: RulesParams, installment: bigint): RuleProblem | null {
   const bad = (key: RuleKey, message: string): RuleProblem => ({ key, message });
   if (p.interestBps < 0 || p.interestBps > 500) {
-    return bad("interestBps", "Loan interest must be 0 to 5% a month.");
+    return bad("interestBps", t("rules.problem.interestBps"));
   }
   if (p.tenorMonths < 1 || p.tenorMonths > 24) {
-    return bad("tenorMonths", "A loan term must be 1 to 24 months.");
+    return bad("tenorMonths", t("rules.problem.tenorMonths"));
   }
   if (p.tenor2Bps < p.interestBps) {
-    return bad("tenor2Bps", "The second-term rate can't be lower than the first.");
+    return bad("tenor2Bps", t("rules.problem.tenor2Below"));
   }
   if (p.tenor3Bps < p.tenor2Bps) {
-    return bad("tenor3Bps", "The third-term rate can't be lower than the second.");
+    return bad("tenor3Bps", t("rules.problem.tenor3Below"));
   }
-  if (p.tenor3Bps > 1000) return bad("tenor3Bps", "Term rates must stay at or below 10% a month.");
+  if (p.tenor3Bps > 1000) return bad("tenor3Bps", t("rules.problem.tenor3Max"));
   if (p.reserveBps < 0 || p.reserveBps > 8000) {
-    return bad("reserveBps", "Cash kept back must be 0 to 80%.");
+    return bad("reserveBps", t("rules.problem.reserveBps"));
   }
   if (p.maxLoanBps < 100 || p.maxLoanBps > 10_000) {
-    return bad("maxLoanBps", "The biggest loan must be 1 to 100% of the circle.");
+    return bad("maxLoanBps", t("rules.problem.maxLoanBps"));
   }
   if (p.kMultiplier < 1 || p.kMultiplier > 10) {
-    return bad("kMultiplier", "The loan limit must be 1 to 10 times savings.");
+    return bad("kMultiplier", t("rules.problem.kMultiplier"));
   }
   if (p.medicalFreeMonths < 0 || p.medicalFreeMonths > 12) {
-    return bad("medicalFreeMonths", "Interest-free months must be 0 to 12.");
+    return bad("medicalFreeMonths", t("rules.problem.medicalFreeMonths"));
   }
   if (p.interestFee * 2n > installment) {
-    return bad("interestFee", "The late fee on interest can be at most half the monthly amount.");
+    return bad("interestFee", t("rules.problem.interestFee"));
   }
   if (p.defaultAfter < 1 || p.defaultAfter > 6) {
-    return bad("defaultAfter", "A default can come after 1 to 6 missed months.");
+    return bad("defaultAfter", t("rules.problem.defaultAfter"));
   }
   if (p.minMembersForLoans < 3) {
-    return bad("minMembersForLoans", "Loans need at least 3 members.");
+    return bad("minMembersForLoans", t("rules.problem.minMembersForLoans"));
   }
   if (p.passPct < 50 || p.passPct > 100) {
-    return bad("passPct", "Yes votes needed must be 50 to 100%.");
+    return bad("passPct", t("rules.problem.passPct"));
   }
   if (p.dissolvePassPct < 50 || p.dissolvePassPct > 100) {
-    return bad("dissolvePassPct", "Yes votes needed to close must be 50 to 100%.");
+    return bad("dissolvePassPct", t("rules.problem.dissolvePassPct"));
   }
   if (p.ruleChangeDelayDays < 3 || p.ruleChangeDelayDays > 30) {
-    return bad("ruleChangeDelayDays", "The wait before new rules apply must be 3 to 30 days.");
+    return bad("ruleChangeDelayDays", t("rules.problem.ruleChangeDelayDays"));
   }
   if (p.exitNoticeDays < 0 || p.exitNoticeDays > 90) {
-    return bad("exitNoticeDays", "Notice to leave must be 0 to 90 days.");
+    return bad("exitNoticeDays", t("rules.problem.exitNoticeDays"));
   }
   if (p.exitFeeBps < 0 || p.exitFeeBps > 1000) {
-    return bad("exitFeeBps", "The leaving fee must be 0 to 10%.");
+    return bad("exitFeeBps", t("rules.problem.exitFeeBps"));
   }
   return null;
 }
@@ -406,25 +324,23 @@ export function rulesFromForm(
   const out: Record<string, unknown> = {};
   for (const k of RULE_KEYS) {
     const unit = RULE_META[k].unit;
-    const t = (f[k] ?? "").trim();
+    const text = (f[k] ?? "").trim();
     if (unit === "bool") {
-      out[k] = t === "true";
+      out[k] = text === "true";
     } else if (unit === "bps") {
-      const v = percentToBps(t);
-      if (v === null) errors[k] = "Enter a percentage like 1 or 1.5.";
+      const v = percentToBps(text);
+      if (v === null) errors[k] = t("rules.form.percent");
       else out[k] = v;
     } else if (unit === "avax") {
-      const v = parseAmount(t, asset);
+      const v = parseAmount(text, asset);
       if (v === null)
         errors[k] =
-          asset.symbol === "USDT"
-            ? "Enter an amount like 1, or 0."
-            : "Enter an amount like 0.01, or 0.";
+          asset.symbol === "USDT" ? t("rules.form.amountUsdt") : t("rules.form.amountAvax");
       else out[k] = v;
-    } else if (!/^\d{1,5}$/.test(t)) {
-      errors[k] = "Enter a whole number.";
+    } else if (!/^\d{1,5}$/.test(text)) {
+      errors[k] = t("rules.form.whole");
     } else {
-      out[k] = Number(t);
+      out[k] = Number(text);
     }
   }
   if (Object.keys(errors).length > 0) return { params: null, errors };

@@ -15,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/i18n/react";
+import { intlLocale } from "@/i18n/runtime";
 import { fmt, useCircleAsset } from "@/lib/asset";
 import type { CircleGov } from "@/lib/gov-hooks";
 import { effectiveNoticeDays, exitPhase, isAhead, noticeText } from "@/lib/governance";
@@ -31,12 +33,6 @@ import { useVaultAction } from "@/lib/use-vault-action";
  */
 const CLAIM_EXIT_GAS = 1_500_000n;
 
-const dateFmt = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-
 /**
  * "Leaving the circle" (ADR 0039): ask to leave with the notice and fee spelled out, then
  * follow the exit until the share is collected. Shown on the circle overview to members.
@@ -52,8 +48,15 @@ export function LeaveCard({
   chainNow: number;
   onChanged: () => void;
 }) {
+  const { t, locale } = useT();
   const [open, setOpen] = useState(false);
   const { asset } = useCircleAsset(circle);
+  // Device language in English (as before); the chosen language otherwise.
+  const dateFmt = new Intl.DateTimeFormat(locale === "en" ? undefined : intlLocale(locale), {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
   const request = useVaultAction(circle);
   const cancel = useVaultAction(circle);
   const claim = useVaultAction(circle);
@@ -77,8 +80,8 @@ export function LeaveCard({
       request.tx.reset();
       notify.success(
         noticeDays === 0
-          ? "You asked to leave. Your share is ready to collect now."
-          : `You asked to leave. Your share is ready to collect after ${noticeText(noticeDays)}.`,
+          ? t("exits.askedNow")
+          : t("exits.askedAfter", { notice: noticeText(noticeDays) }),
       );
       onChanged();
     }
@@ -87,7 +90,7 @@ export function LeaveCard({
   async function stay() {
     const receipt = await cancel.send("cancelExit");
     if (receipt) {
-      notify.success("You're staying. Your request to leave is withdrawn.");
+      notify.success(t("exits.stayingToast"));
       onChanged();
     }
   }
@@ -99,12 +102,13 @@ export function LeaveCard({
     const paid = logs.find((l) => l.eventName === "ExitPaid");
     if (paid && "payout" in paid.args) {
       notify.success(
-        `Done. ${fmt(paid.args.payout as bigint, asset)} ${asset.symbol} was sent to your wallet. You've left the circle.`,
+        t("exits.paidToast", {
+          amount: fmt(paid.args.payout as bigint, asset),
+          symbol: asset.symbol,
+        }),
       );
     } else {
-      notify.info(
-        "The circle can't pay you yet. You keep your place and are paid first when cash comes in.",
-      );
+      notify.info(t("exits.cantPayYet"));
     }
     onChanged();
   }
@@ -116,30 +120,32 @@ export function LeaveCard({
     >
       <div className="grid gap-1.5">
         <h3 id="leave-heading" className="text-[15px] font-semibold">
-          Leaving the circle
+          {t("exits.title")}
         </h3>
         <p className="max-w-[60ch] text-[13.5px] leading-relaxed text-muted-foreground">
-          You can leave at any time. Your share is paid in {asset.symbol} at its value on the day
-          you collect it
           {(rules?.exitFeeBps ?? 0) > 0
-            ? `, minus a ${formatBps(rules!.exitFeeBps)} leaving fee that stays with the circle`
-            : ", with no leaving fee"}
-          .
+            ? t("exits.introWithFee", {
+                symbol: asset.symbol,
+                fee: formatBps(rules!.exitFeeBps),
+              })
+            : t("exits.introNoFee", { symbol: asset.symbol })}
         </p>
       </div>
 
       {phase === "none" && (
         <>
           {rageQuit && (
-            <InlineAlert tone="info" title="You can leave before the new rules start">
-              New rules start on {dateFmt.format(new Date(gov.rageQuitUntil * 1000))}. If you ask to
-              leave now, your notice ends by then and you leave under today&apos;s rules.
+            <InlineAlert tone="info" title={t("exits.rageTitle")}>
+              {t("exits.rageBody", { date: dateFmt.format(new Date(gov.rageQuitUntil * 1000)) })}
             </InlineAlert>
           )}
           <dl className="grid gap-4 sm:grid-cols-3">
-            <Fact label="Notice" value={noticeText(noticeDays)} />
-            <Fact label="Leaving fee" value={formatBps(feeBps)} />
-            <Fact label="Your share today" value={`${fmt(gov.exitValue, asset)} ${asset.symbol}`} />
+            <Fact label={t("exits.notice")} value={noticeText(noticeDays)} />
+            <Fact label={t("exits.leavingFee")} value={formatBps(feeBps)} />
+            <Fact
+              label={t("exits.shareToday")}
+              value={`${fmt(gov.exitValue, asset)} ${asset.symbol}`}
+            />
           </dl>
           <div>
             <Button
@@ -152,7 +158,7 @@ export function LeaveCard({
               disabled={Boolean(blocked)}
               disabledReason={blocked}
             >
-              Leave this circle
+              {t("exits.leave")}
             </Button>
             {blocked && <p className="mt-3 text-[12.5px] text-muted-foreground">{blocked}</p>}
           </div>
@@ -164,57 +170,52 @@ export function LeaveCard({
           <div className="grid gap-2">
             <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
               {phase === "notice"
-                ? "Notice period"
+                ? t("exits.phaseNotice")
                 : phase === "ready"
-                  ? "Ready to collect"
-                  : "Waiting for cash"}
+                  ? t("exits.phaseReady")
+                  : t("exits.phaseWaiting")}
             </span>
             <p className="font-display text-[30px] leading-tight tracking-tight">
               {phase === "notice"
-                ? "You asked to leave"
+                ? t("exits.askedTitle")
                 : `${fmt(gov.exitValue, asset)} ${asset.symbol}`}
             </p>
             <Deadline
               deadline={gov.exit.maturesAt}
               chainNow={chainNow}
-              prefix="You can collect from"
-              pastText="your notice is over"
+              prefix={t("exits.collectFrom")}
+              pastText={t("exits.noticeOver")}
             />
           </div>
 
           {phase === "waiting" && (
-            <InlineAlert tone="warn" title="Waiting for cash">
-              The circle can&apos;t pay you yet: some of its money is lent out, or someone who asked
-              to leave before you is paid first. You keep your place, new loans stop until
-              you&apos;re paid, and you can try again at any time.
+            <InlineAlert tone="warn" title={t("exits.phaseWaiting")}>
+              {t("exits.waitingBody")}
             </InlineAlert>
           )}
           {phase === "notice" && (
-            <p className="text-[13.5px] text-muted-foreground">
-              Your share keeps earning with the circle until you collect it. You can change your
-              mind until then.
-            </p>
+            <p className="text-[13.5px] text-muted-foreground">{t("exits.noticeBody")}</p>
           )}
 
           <div className="flex flex-wrap gap-3">
             {phase !== "notice" && (
               <Button
                 icon={HandCoins}
-                workingLabel="Collecting…"
+                workingLabel={t("exits.collecting")}
                 state={claim.working ? "working" : undefined}
                 onClick={collect}
               >
-                Collect my share
+                {t("exits.collect")}
               </Button>
             )}
             <Button
               variant="secondary"
               icon={Undo2}
-              workingLabel="Withdrawing…"
+              workingLabel={t("exits.withdrawing")}
               state={cancel.working ? "working" : undefined}
               onClick={stay}
             >
-              Stay in the circle
+              {t("exits.stay")}
             </Button>
           </div>
           <TxFor tx={claim.tx} />
@@ -225,33 +226,33 @@ export function LeaveCard({
       <Dialog open={open} onOpenChange={(v) => !request.working && setOpen(v)}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>Leave this circle?</DialogTitle>
+            <DialogTitle>{t("exits.dialogTitle")}</DialogTitle>
             <DialogDescription>
               {noticeDays === 0
-                ? "There's no notice right now, so you can collect your share straight away."
-                : `You give ${noticeText(noticeDays)} notice. After that you collect your share; until then it keeps earning with the circle and you can change your mind.`}
+                ? t("exits.dialogNoNotice")
+                : t("exits.dialogNotice", { notice: noticeText(noticeDays) })}
             </DialogDescription>
           </DialogHeader>
           <dl className="grid gap-4 rounded-[12px] bg-secondary/60 p-5">
             <Fact
-              label="If you left today you'd get"
+              label={t("exits.ifLeft")}
               value={`${fmt(gov.exitValue, asset)} ${asset.symbol}`}
               big
             />
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              The final amount is your share at its value on the day you collect it
-              {feeBps > 0 ? `, minus the ${formatBps(feeBps)} leaving fee` : ""}. Your name is freed
-              and you stop owing installments once you&apos;re paid.
+              {feeBps > 0
+                ? t("exits.finalWithFee", { fee: formatBps(feeBps) })
+                : t("exits.finalNoFee")}
             </p>
           </dl>
           <div className="grid gap-4 pt-1">
             <Button
               icon={DoorOpen}
-              workingLabel="Asking…"
+              workingLabel={t("exits.asking")}
               state={request.working ? "working" : undefined}
               onClick={ask}
             >
-              Yes, ask to leave
+              {t("exits.yesLeave")}
             </Button>
             <TxFor tx={request.tx} />
           </div>

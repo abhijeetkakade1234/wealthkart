@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { rich, useT } from "@/i18n/react";
 import { fmt, type CircleAsset } from "@/lib/asset";
 import { messages } from "@/lib/messages";
 import { claimNoticeDays, claimPhase, exitsToProcess, nomineeProblem } from "@/lib/nominee";
@@ -47,6 +48,7 @@ export function BackupWalletCard({
   exitNoticeDays: number;
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const b = useMyBackupWallet(circle);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -86,19 +88,17 @@ export function BackupWalletCard({
     >
       <div className="grid gap-1.5">
         <h3 id="backup-heading" className="text-[15px] font-semibold">
-          Backup wallet
+          {t("nominee.title")}
         </h3>
         <p className="max-w-[60ch] text-[13.5px] leading-relaxed text-muted-foreground">
-          Nobody can recover a lost wallet. Name one wallet you trust, such as a family
-          member&apos;s or a second wallet of yours, to receive your share if you can never come
-          back.
+          {t("nominee.body")}
         </p>
       </div>
 
       {b.isPending ? (
         <StateView
           state="loading"
-          label="Loading your backup wallet"
+          label={t("nominee.loading")}
           skeleton={<Skeleton className="h-14 w-full rounded-[12px]" />}
         />
       ) : b.isError || !b.data ? (
@@ -107,19 +107,19 @@ export function BackupWalletCard({
         <div className="flex items-center gap-4" data-testid="backup-wallet-set">
           <Avatar address={b.data.nominee} size={40} />
           <div className="grid gap-0.5">
-            <span className="font-medium">{b.data.nomineeName || "No name in this circle"}</span>
+            <span className="font-medium">{b.data.nomineeName || t("nominee.noNameHere")}</span>
             <span className="font-mono text-[12.5px] text-muted-foreground" title={b.data.nominee}>
               {shortAddress(b.data.nominee)}
             </span>
           </div>
           <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-good-soft px-2.5 py-0.5 text-[12px] text-good">
             <ShieldCheck className="size-3.5" strokeWidth={1.5} aria-hidden />
-            Set
+            {t("nominee.set")}
           </span>
         </div>
       ) : (
         <p className="text-[13.5px] text-muted-foreground" data-testid="backup-wallet-empty">
-          No backup wallet yet. If you lose this wallet, your share stays locked for good.
+          {t("nominee.empty")}
         </p>
       )}
 
@@ -135,19 +135,19 @@ export function BackupWalletCard({
               setOpen(true);
             }}
             disabled={claimOpen}
-            disabledReason={claimOpen ? "Cancel the claim first" : undefined}
+            disabledReason={claimOpen ? t("nominee.cancelClaimFirst") : undefined}
           >
-            {b.data.nominee ? "Change backup wallet" : "Add a backup wallet"}
+            {b.data.nominee ? t("nominee.change") : t("nominee.add")}
           </Button>
           {b.data.nominee && !claimOpen && (
             <Button
               variant="ghost"
               icon={ShieldOff}
-              workingLabel="Removing…"
+              workingLabel={t("nominee.removing")}
               state={clear.working ? "working" : undefined}
               onClick={remove}
             >
-              Remove
+              {t("nominee.remove")}
             </Button>
           )}
         </div>
@@ -157,21 +157,15 @@ export function BackupWalletCard({
       <Dialog open={open} onOpenChange={(v) => !save.working && setOpen(v)}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>Your backup wallet</DialogTitle>
-            <DialogDescription>
-              Paste the wallet address of someone you trust. It can be inside this circle or outside
-              it.
-            </DialogDescription>
+            <DialogTitle>{t("nominee.dialogTitle")}</DialogTitle>
+            <DialogDescription>{t("nominee.dialogDesc")}</DialogDescription>
           </DialogHeader>
-          <InlineAlert tone="warn" title="What this wallet can do">
-            It can ask for your share only if the circle has marked you dormant (you stopped paying
-            for months) and the members then vote yes. After that there is a{" "}
-            {claimNoticeDays(exitNoticeDays)}-day notice. If you are fine, cancel from this page at
-            any time before it is paid. It can never pay, vote or borrow as you.
+          <InlineAlert tone="warn" title={t("nominee.whatTitle")}>
+            {t("nominee.whatBody", { days: claimNoticeDays(exitNoticeDays) })}
           </InlineAlert>
           <div className="grid gap-2">
             <label htmlFor="nominee-address" className="text-[14px] font-medium">
-              Backup wallet address
+              {t("nominee.addrLabel")}
             </label>
             <input
               id="nominee-address"
@@ -194,19 +188,17 @@ export function BackupWalletCard({
               role={touched && problem ? "alert" : undefined}
               aria-live="polite"
             >
-              {touched && problem
-                ? problem
-                : "Check it twice. A payout sent to a wrong address can't be taken back."}
+              {touched && problem ? problem : t("nominee.addrHint")}
             </p>
           </div>
           <div className="grid gap-4 pt-1">
             <Button
               icon={ShieldCheck}
-              workingLabel="Saving…"
+              workingLabel={t("nominee.saving")}
               state={save.working ? "working" : undefined}
               onClick={submit}
             >
-              Save backup wallet
+              {t("nominee.save")}
             </Button>
             <TxFor tx={save.tx} />
           </div>
@@ -229,12 +221,13 @@ export function NomineeClaimAlert({
   chainNow: number;
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const b = useMyBackupWallet(circle);
   const cancel = useVaultAction(circle);
   if (!b.data) return null;
   const phase = claimPhase(b.data.claim, chainNow);
   if (phase === "none") return null;
-  const who = b.data.nomineeName || "Your backup wallet";
+  const who = b.data.nomineeName || t("nominee.defaultWho");
 
   async function stop() {
     const receipt = await cancel.send("cancelNomineeClaim");
@@ -250,33 +243,26 @@ export function NomineeClaimAlert({
       <InlineAlert
         tone="bad"
         icon={HandCoins}
-        title={
-          phase === "voting" ? "Someone asked for your share" : "Your share will be paid out soon"
-        }
+        title={phase === "voting" ? t("nominee.alertTitleVoting") : t("nominee.alertTitlePaid")}
         action={
           <Button
             icon={Undo2}
-            workingLabel="Cancelling…"
+            workingLabel={t("nominee.cancelling")}
             state={cancel.working ? "working" : undefined}
             onClick={stop}
           >
-            Cancel the claim
+            {t("nominee.cancelClaim")}
           </Button>
         }
       >
-        {who} asked the circle for your share because you were marked dormant.{" "}
-        {phase === "voting"
-          ? "The members are voting now. "
-          : "The circle voted yes, so it is paid to them when the notice ends. "}
-        If you still use this wallet, cancel now. Your share stays yours and your payments start
-        again.
+        {phase === "voting" ? t("nominee.alertVoting", { who }) : t("nominee.alertNotice", { who })}
         {phase !== "voting" && (
           <span className="mt-2 block">
             <Deadline
               deadline={b.data.claim.maturesAt}
               chainNow={chainNow}
-              prefix="Paid out from"
-              pastText="the notice is over"
+              prefix={t("nominee.paidOutFrom")}
+              pastText={t("nominee.noticeOver")}
             />
           </span>
         )}
@@ -360,6 +346,7 @@ function BackupForCard({
   chainNow: number;
   onChanged: () => void;
 }) {
+  const { t, tn } = useT();
   const ask = useVaultAction(circle);
   const collect = useVaultAction(circle);
   const phase = claimPhase(claim, chainNow);
@@ -379,7 +366,7 @@ function BackupForCard({
     const n = BigInt(Math.max(exitsToProcess(q.queue, member), 1));
     const receipt = await collect.send("processExits", [n], undefined, GAS_PER_EXIT * n + 200_000n);
     if (receipt) {
-      notify.success(`Done. ${who}'s share was sent to your wallet.`);
+      notify.success(t("nominee.paidToast", { who }));
       q.refetch();
       onChanged();
     }
@@ -387,7 +374,7 @@ function BackupForCard({
 
   return (
     <section
-      aria-label={`You are the backup wallet for ${who}`}
+      aria-label={t("nominee.forTitle", { who })}
       data-testid="backup-for-card"
       className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8"
     >
@@ -395,33 +382,28 @@ function BackupForCard({
         <Avatar address={member} size={44} />
         <div className="grid gap-1">
           <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-            Backup wallet
+            {t("nominee.title")}
           </span>
           <h3 className="font-display text-[26px] leading-none tracking-tight">
-            You are the backup wallet for {who}
+            {t("nominee.forTitle", { who })}
           </h3>
         </div>
       </header>
 
       {phase === "none" && !dormant && (
         <p className="max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
-          {who} is active in this circle, so there is nothing to do. If they ever miss{" "}
-          {dormantAfter} {dormantAfter === 1 ? "month" : "months"} and the circle marks them
-          dormant, you can come back here and ask for their share.
-          {overdue > 0 && ` They have missed ${overdue} so far.`}
+          {tn("nominee.activeBody", dormantAfter, { who })}
+          {overdue > 0 && t("nominee.missedSoFar", { overdue })}
         </p>
       )}
 
       {phase === "none" && dormant && (
         <div className="grid gap-5">
           <p className="max-w-[62ch] text-[13.5px] leading-relaxed text-muted-foreground">
-            The circle marked {who} dormant. If they can&apos;t come back, ask the circle for their
-            share. Members vote (66% yes needed); then there is a {claimNoticeDays(exitNoticeDays)}
-            -day notice in which {who} can still cancel. After that the share is paid to this
-            wallet.
+            {t("nominee.dormantBody", { who, days: claimNoticeDays(exitNoticeDays) })}
           </p>
           <dl className="grid gap-1">
-            <dt className="text-[12.5px] text-muted-foreground">Their share today</dt>
+            <dt className="text-[12.5px] text-muted-foreground">{t("nominee.shareToday")}</dt>
             <dd className="font-display text-[34px] leading-none tracking-tight tabular">
               {fmt(value, asset)} {asset.symbol}
             </dd>
@@ -429,11 +411,11 @@ function BackupForCard({
           <div>
             <Button
               icon={UserRoundCheck}
-              workingLabel="Asking…"
+              workingLabel={t("nominee.asking")}
               state={ask.working ? "working" : undefined}
               onClick={request}
             >
-              Ask the circle for {who}&apos;s share
+              {t("nominee.askFor", { who })}
             </Button>
           </div>
         </div>
@@ -441,13 +423,16 @@ function BackupForCard({
 
       {phase === "voting" && (
         <p className="text-[13.5px] text-muted-foreground">
-          You asked for {who}&apos;s share. The members are voting now.{" "}
-          <Link
-            href={`/app/circle/votes/?id=${circle}`}
-            className="font-semibold text-brand underline-offset-4 hover:underline"
-          >
-            Follow the vote
-          </Link>
+          {rich(t("nominee.votingBody", { who }), {
+            link: (c) => (
+              <Link
+                href={`/app/circle/votes/?id=${circle}`}
+                className="font-semibold text-brand underline-offset-4 hover:underline"
+              >
+                {c}
+              </Link>
+            ),
+          })}
         </p>
       )}
 
@@ -455,7 +440,7 @@ function BackupForCard({
         <div className="grid gap-5" data-testid="backup-for-status">
           <dl className="grid gap-1">
             <dt className="text-[12.5px] text-muted-foreground">
-              {phase === "notice" ? "The circle voted yes. Notice period" : "Ready to pay out"}
+              {phase === "notice" ? t("nominee.statusNotice") : t("nominee.statusReady")}
             </dt>
             <dd className="font-display text-[34px] leading-none tracking-tight tabular">
               {fmt(value, asset)} {asset.symbol}
@@ -464,29 +449,28 @@ function BackupForCard({
           <Deadline
             deadline={claim.maturesAt}
             chainNow={chainNow}
-            prefix="Can be paid from"
-            pastText="the notice is over"
+            prefix={t("nominee.canBePaidFrom")}
+            pastText={t("nominee.noticeOver")}
           />
           {claim.waiting && (
-            <InlineAlert tone="warn" title="Waiting for cash">
-              The circle can&apos;t pay yet: some of its money is lent out, or someone who asked to
-              leave earlier is paid first. The share keeps its place.
+            <InlineAlert tone="warn" title={t("nominee.waitingCash")}>
+              {t("nominee.waitingCashBody")}
             </InlineAlert>
           )}
           {phase === "ready" ? (
             <div>
               <Button
                 icon={HandCoins}
-                workingLabel="Paying out…"
+                workingLabel={t("nominee.payingOut")}
                 state={collect.working ? "working" : undefined}
                 onClick={payOut}
               >
-                Pay out to my wallet
+                {t("nominee.payOut")}
               </Button>
             </div>
           ) : (
             <p className="text-[13.5px] text-muted-foreground">
-              {who} can still cancel until then. The amount is their share on the day it is paid.
+              {t("nominee.stillCancel", { who })}
             </p>
           )}
         </div>

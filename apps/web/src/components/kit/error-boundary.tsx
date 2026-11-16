@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CircleAlert, RefreshCw, RotateCw } from "lucide-react";
 
+import { useT } from "@/i18n/react";
 import { messages } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +90,7 @@ function ErrorFallback({
   className?: string;
 }) {
   const details = errorDetails(error);
+  const { t } = useT();
 
   if (preset === "app") {
     return (
@@ -110,10 +112,10 @@ function ErrorFallback({
         <Button
           icon={RotateCw}
           iconAnimation="spin"
-          workingLabel="Reloading…"
+          workingLabel={t("kit.reloading")}
           onAction={() => window.location.reload()}
         >
-          Reload
+          {t("kit.reload")}
         </Button>
         <Details>{details}</Details>
       </main>
@@ -137,7 +139,7 @@ function ErrorFallback({
           {messages.unknown()}
         </p>
         <Button icon={RefreshCw} iconAnimation="spin" onClick={onReset} className="mt-2">
-          Try again
+          {t("kit.tryAgain")}
         </Button>
         <Details>{details}</Details>
       </section>
@@ -177,7 +179,7 @@ function ErrorFallback({
           iconAnimation="spin"
           onClick={onReset}
         >
-          Retry
+          {t("kit.retry")}
         </Button>
         <Details>{details}</Details>
       </div>

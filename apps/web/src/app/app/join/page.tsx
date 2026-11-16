@@ -16,6 +16,7 @@ import { DisplayNameField, useNameCheck } from "@/components/membership/display-
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { rich, useT } from "@/i18n/react";
 import { fmt } from "@/lib/asset";
 import { parseCircleId, useChainNow, useCircle, useJoinRequest } from "@/lib/circle";
 import {
@@ -75,6 +76,7 @@ function Join() {
   const c = useCircle(id);
   const chainNow = useChainNow();
   const [remembered, remember] = useRememberedRequest(id, address);
+  const { t } = useT();
 
   const openId = c.data?.openRequestId ?? 0n;
   useEffect(() => {
@@ -87,7 +89,7 @@ function Join() {
     return (
       <StateView
         state="loading"
-        label="Loading the circle"
+        label={t("join.loadingCircle")}
         skeleton={
           <div className="grid max-w-[720px] gap-8">
             <Skeleton className="h-[150px] rounded-[14px]" />
@@ -126,8 +128,11 @@ function Join() {
     body = (
       <StateView
         state="empty"
-        message={`You're a member of ${d.name}.`}
-        action={{ label: "Open the circle", onAction: () => router.push(`/app/circle/?id=${id}`) }}
+        message={t("join.youreMember", { name: d.name })}
+        action={{
+          label: t("join.openCircle"),
+          onAction: () => router.push(`/app/circle/?id=${id}`),
+        }}
       />
     );
   } else if (inviteLive) {
@@ -156,11 +161,7 @@ function Join() {
   } else {
     body = (
       <>
-        {inviteExpired && (
-          <InlineAlert tone="warn">
-            Your founder invite expired. You can still ask to join; the members will vote.
-          </InlineAlert>
-        )}
+        {inviteExpired && <InlineAlert tone="warn">{t("join.inviteExpired")}</InlineAlert>}
         <RequestForm
           circle={id}
           me={address}
@@ -183,11 +184,7 @@ function Join() {
       </div>
       <PageHeader
         title={d.name}
-        subtitle={
-          inviteLive
-            ? "You've been invited as a founder."
-            : "You've been invited to join this circle."
-        }
+        subtitle={inviteLive ? t("join.subtitleFounder") : t("join.subtitleJoin")}
       />
       <CircleFacts d={d} />
       <div className="mt-14 grid gap-8">{body}</div>
@@ -196,20 +193,36 @@ function Join() {
 }
 
 function CircleFacts({ d }: { d: NonNullable<ReturnType<typeof useCircle>["data"]> }) {
+  const { t } = useT();
   const hours = Math.round(d.votingWindow / 3600);
   const asset = d.asset;
+  const voteWindow =
+    hours >= 48
+      ? t("join.windowDays", { count: Math.round(hours / 24) })
+      : t("join.windowHours", { count: hours });
   const facts: Array<[string, string]> = [
-    ["Money", asset.symbol === "USDT" ? "USDT (network fees in AVAX)" : "AVAX"],
-    ["Each month", `${fmt(d.installment, asset)} ${asset.symbol}`],
-    ["Due", `Day ${d.dueDay}, 23:59 UTC`],
+    [t("join.factMoney"), asset.symbol === "USDT" ? t("join.moneyUsdt") : "AVAX"],
+    [t("join.factEachMonth"), `${fmt(d.installment, asset)} ${asset.symbol}`],
+    [t("join.factDue"), t("join.dueValue", { day: d.dueDay })],
     [
-      "Late fees",
-      `${fmt(d.fee1, asset)} ${asset.symbol} after day ${d.dueDay}, ${fmt(d.fee2, asset)} more after day ${d.secondFeeDay}`,
+      t("join.factLateFees"),
+      t("join.lateFeesValue", {
+        fee1: fmt(d.fee1, asset),
+        symbol: asset.symbol,
+        day: d.dueDay,
+        fee2: fmt(d.fee2, asset),
+        day2: d.secondFeeDay,
+      }),
     ],
-    ["Members", d.maxMembers > 0 ? `${d.memberCount} of ${d.maxMembers}` : String(d.memberCount)],
     [
-      "Joining",
-      `${d.quorumPct}% of members vote, ${ADMISSION_PASS_PCT}% yes to get in, ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`} to vote`,
+      t("join.factMembers"),
+      d.maxMembers > 0
+        ? t("join.membersOf", { count: String(d.memberCount), max: d.maxMembers })
+        : String(d.memberCount),
+    ],
+    [
+      t("join.factJoining"),
+      t("join.joiningValue", { quorum: d.quorumPct, pass: ADMISSION_PASS_PCT, window: voteWindow }),
     ],
   ];
   return (
@@ -238,14 +251,15 @@ function FounderInvite({
   const writeContractAsync = useBufferedWriteContract();
   const acceptTx = useTx();
   const declineTx = useTx();
-  const busy = (t: { status: string }) => t.status === "confirm" || t.status === "sending";
+  const busy = (x: { status: string }) => x.status === "confirm" || x.status === "sending";
+  const { t } = useT();
 
   async function accept() {
     const receipt = await acceptTx.run(() =>
       writeContractAsync({ abi: circleVaultAbi, address: circle, functionName: "acceptInvite" }),
     );
     if (receipt) {
-      notify.success("Welcome in. You're a founder of this circle now.");
+      notify.success(t("join.founderToast"));
       onDone();
     }
   }
@@ -254,38 +268,34 @@ function FounderInvite({
       writeContractAsync({ abi: circleVaultAbi, address: circle, functionName: "declineInvite" }),
     );
     if (receipt) {
-      notify.info("Invite declined. Nothing else changes.");
+      notify.info(t("join.declinedToast"));
       onDone();
     }
   }
 
   return (
     <section className="grid gap-6">
-      <p className="text-[15px] leading-relaxed">
-        The person who started this circle named you as a founder. Accept to become a member
-        straight away, with no vote. You start paying from the next due date that hasn&apos;t passed
-        yet.
-      </p>
-      <Deadline deadline={expiresAt} chainNow={chainNow} prefix="Invite expires" />
+      <p className="text-[15px] leading-relaxed">{t("join.founderBody")}</p>
+      <Deadline deadline={expiresAt} chainNow={chainNow} prefix={t("join.inviteExpires")} />
       <div className="flex flex-wrap gap-3">
         <Button
           size="lg"
           icon={Check}
-          workingLabel="Joining…"
+          workingLabel={t("join.joining")}
           state={busy(acceptTx) ? "working" : undefined}
           onClick={accept}
         >
-          Accept invite
+          {t("join.accept")}
         </Button>
         <Button
           size="lg"
           variant="secondary"
           icon={X}
-          workingLabel="Declining…"
+          workingLabel={t("join.declining")}
           state={busy(declineTx) ? "working" : undefined}
           onClick={decline}
         >
-          Decline
+          {t("join.decline")}
         </Button>
       </div>
       {acceptTx.status !== "idle" && <TxTracker {...trackerProps(acceptTx)} />}
@@ -319,6 +329,7 @@ function RequestForm({
   onSent: (id: bigint | null) => void;
 }) {
   const [name, setName] = useState("");
+  const { t } = useT();
   const check = useNameCheck(circle, me, name);
   const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
@@ -351,57 +362,45 @@ function RequestForm({
       }),
     );
     if (receipt) {
-      notify.success("Request sent. The members will vote on it.");
+      notify.success(t("join.sentToast"));
       onSent(null);
     }
   }
 
   if (full) {
-    return (
-      <InlineAlert tone="warn">
-        This circle is full. It has reached the member limit its rules set.
-      </InlineAlert>
-    );
+    return <InlineAlert tone="warn">{t("join.full")}</InlineAlert>;
   }
 
   return (
     <section className="grid gap-8">
       <div className="grid gap-2">
         <h2 className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          Ask to join
+          {t("join.askToJoin")}
         </h2>
         <p className="text-[14.5px] leading-relaxed text-muted-foreground">
-          Pick the name members will see, then send your request. The members vote: enough of them
-          must take part, and {ADMISSION_PASS_PCT}% of votes must be yes. Nothing is paid now; your
-          first installment is due after you&apos;re in.
+          {t("join.askBody", { pct: ADMISSION_PASS_PCT })}
         </p>
       </div>
       {validInviter && (
         <p className="text-[14px]">
-          Invited by{" "}
-          <strong className="font-semibold">
-            {inviterName.data || shortAddress(validInviter)}
-          </strong>
-          . Members will see this; it counts as confirmed once they vote yes.
+          {rich(t("join.invitedBy", { name: inviterName.data || shortAddress(validInviter) }), {
+            b: (c) => <strong className="font-semibold">{c}</strong>,
+          })}
         </p>
       )}
-      {tooMany && (
-        <InlineAlert tone="warn">
-          Too many people are waiting to join right now. Try again after the members vote.
-        </InlineAlert>
-      )}
+      {tooMany && <InlineAlert tone="warn">{t("join.tooMany")}</InlineAlert>}
       <DisplayNameField value={name} onChange={setName} check={check} />
       <div>
         <Button
           size="lg"
           icon={UserPlus}
-          workingLabel="Sending…"
+          workingLabel={t("join.sending")}
           state={busy ? "working" : undefined}
           onClick={send}
           disabled={check.state !== "available" || tooMany}
-          disabledReason={tooMany ? "Too many requests waiting" : "Pick a free name first"}
+          disabledReason={tooMany ? t("join.tooManyReason") : t("membership.pickFreeFirst")}
         >
-          Ask to join
+          {t("join.askToJoin")}
         </Button>
       </div>
       {tx.status !== "idle" && <TxTracker {...trackerProps(tx)} />}
@@ -425,6 +424,7 @@ function RequestStatus({
   onAskAgain: () => void;
 }) {
   const router = useRouter();
+  const { t, tn } = useT();
   const q = useJoinRequest(circle, requestId);
   const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
@@ -434,7 +434,7 @@ function RequestStatus({
     return (
       <StateView
         state="loading"
-        label="Loading your request"
+        label={t("join.loadingRequest")}
         skeleton={<Skeleton className="h-40 rounded-[14px]" />}
       />
     );
@@ -453,7 +453,7 @@ function RequestStatus({
       }),
     );
     if (receipt) {
-      notify.info("Request cancelled.");
+      notify.info(t("join.cancelledToast"));
       void q.refetch();
       onChanged();
     }
@@ -471,11 +471,11 @@ function RequestStatus({
         <div className="flex flex-wrap gap-3">
           {status === "approved" ? (
             <Button icon={ArrowRight} onClick={() => router.push(`/app/circle/?id=${circle}`)}>
-              Open the circle
+              {t("join.openCircle")}
             </Button>
           ) : (
             <Button variant="secondary" icon={LogIn} onClick={onAskAgain}>
-              Ask again
+              {t("join.askAgain")}
             </Button>
           )}
         </div>
@@ -490,11 +490,13 @@ function RequestStatus({
       data-testid="join-status"
     >
       <div className="grid gap-2">
-        <h2 className="font-display text-[28px] leading-tight tracking-tight">Waiting for votes</h2>
+        <h2 className="font-display text-[28px] leading-tight tracking-tight">
+          {t("join.waitingTitle")}
+        </h2>
         <p className="text-[14.5px] text-muted-foreground">
-          You asked to join as{" "}
-          <strong className="font-semibold text-foreground">{r.displayName}</strong>. At least{" "}
-          {need} of {r.eligible} {r.eligible === 1 ? "member" : "members"} must vote.
+          {rich(tn("join.waitingBody", r.eligible, { name: r.displayName, need }), {
+            b: (c) => <strong className="font-semibold text-foreground">{c}</strong>,
+          })}
         </p>
       </div>
       <p className="tabular text-[14px]">{tallyLine({ ...r, quorumPct })}</p>
@@ -503,11 +505,11 @@ function RequestStatus({
         <Button
           variant="ghost"
           icon={Undo2}
-          workingLabel="Cancelling…"
+          workingLabel={t("join.cancelling")}
           state={busy ? "working" : undefined}
           onClick={cancel}
         >
-          Cancel my request
+          {t("join.cancelRequest")}
         </Button>
       </div>
       {tx.status !== "idle" && <TxTracker {...trackerProps(tx)} />}

@@ -4,6 +4,7 @@ import { Check, CircleDollarSign, LoaderCircle, X, type LucideIcon } from "lucid
 
 import { TxFor } from "@/components/app/tx-for";
 import { Button } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { type CircleAsset, fmtSmall, isToken } from "@/lib/asset";
 import type { AssetPayment, StepStatus } from "@/lib/use-asset-payment";
 import { cn } from "@/lib/utils";
@@ -13,14 +14,11 @@ import { cn } from "@/lib/utils";
  * (ADR 0046). Neutral: the asset is a fact about the circle, not a status.
  */
 export function AssetBadge({ asset, className }: { asset: CircleAsset; className?: string }) {
+  const { t } = useT();
   return (
     <span
       data-testid="asset-badge"
-      title={
-        asset.symbol === "USDT"
-          ? "This circle saves in USDT, a digital dollar. Network fees are still paid in AVAX."
-          : "This circle saves in AVAX."
-      }
+      title={asset.symbol === "USDT" ? t("pay.badgeUsdt") : t("pay.badgeAvax")}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 font-mono text-[11.5px] tracking-wide text-muted-foreground",
         className,
@@ -47,6 +45,7 @@ export function PayButton({
   disabledReason,
   onClick,
   testId,
+  kind,
 }: {
   payment: AssetPayment;
   /** The amount shown on the button (the exact amount is re-read when paying). */
@@ -60,16 +59,19 @@ export function PayButton({
   disabledReason?: string;
   onClick: () => void;
   testId?: string;
+  /** "repay" shows "Repaying…" while it works; also inferred from an English "Repay" label. */
+  kind?: "pay" | "repay";
 }) {
+  const { t } = useT();
   const a = payment.asset;
   const shown = `${fmtSmall(amount, a)} ${a.symbol}`;
   const working = payment.working;
   const workingLabel =
     isToken(a) && payment.step === "approve"
-      ? "Approving…"
-      : label === "Repay"
-        ? "Repaying…"
-        : "Paying…";
+      ? t("pay.approving")
+      : kind === "repay" || label === "Repay"
+        ? t("pay.repaying")
+        : t("pay.paying");
   return (
     <Button
       size={size}
@@ -92,6 +94,7 @@ export function PayButton({
  * transaction in flight. AVAX: just the tracker.
  */
 export function PayProgress({ payment, amount }: { payment: AssetPayment; amount: bigint }) {
+  const { t } = useT();
   const a = payment.asset;
   if (!isToken(a)) return <TxFor tx={payment.payTx} />;
   const shown = `${fmtSmall(amount, a)} ${a.symbol}`;
@@ -100,21 +103,21 @@ export function PayProgress({ payment, amount }: { payment: AssetPayment; amount
   return (
     <div className="grid gap-4">
       <ol
-        aria-label="Payment steps"
+        aria-label={t("pay.steps")}
         className="grid gap-2.5 rounded-[12px] border border-border bg-card px-5 py-4"
       >
         <StepRow
           n={1}
           status={payment.approveStatus}
-          title={`Approve up to ${approveShown}`}
-          hint="Lets the circle take up to this much USDT. It only ever takes what's due."
+          title={t("pay.approveUpTo", { amount: approveShown })}
+          hint={t("pay.approveHint")}
           testId="step-approve"
         />
         <StepRow
           n={2}
           status={payment.payStatus}
-          title={`Pay ${shown}`}
-          hint="The circle takes the USDT you approved."
+          title={t("pay.payAmount", { amount: shown })}
+          hint={t("pay.payHint")}
           testId="step-pay"
         />
       </ol>
@@ -122,13 +125,6 @@ export function PayProgress({ payment, amount }: { payment: AssetPayment; amount
     </div>
   );
 }
-
-const STATUS_TEXT: Record<StepStatus, string> = {
-  upcoming: "Waiting",
-  working: "In progress",
-  done: "Done",
-  failed: "Didn't go through",
-};
 
 function StepRow({
   n,
@@ -143,6 +139,7 @@ function StepRow({
   hint: string;
   testId: string;
 }) {
+  const { t } = useT();
   return (
     <li className="flex items-start gap-3.5 py-1" data-testid={testId} data-status={status}>
       <span
@@ -171,7 +168,7 @@ function StepRow({
       <span className="grid gap-0.5">
         <span className="text-[14px] font-medium">
           {title}
-          <span className="sr-only">: {STATUS_TEXT[status]}</span>
+          <span className="sr-only">: {t(`pay.status.${status}`)}</span>
         </span>
         <span className="text-[12.5px] text-muted-foreground">{hint}</span>
       </span>

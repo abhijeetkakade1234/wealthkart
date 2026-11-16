@@ -6,6 +6,8 @@ import {
 } from "@wealthkart/rules";
 import { AVAX, type CircleAsset, fmtSmall, money, parseAmount } from "@/lib/asset";
 
+import { t } from "@/i18n/runtime";
+import type { PlainKey } from "@/i18n/types";
 import type { DecodedLog } from "@/lib/events";
 import { formatBps, type RulesParams } from "@/lib/rules";
 
@@ -81,32 +83,32 @@ export function loanLimits(i: LimitInputs): {
   const lines: LimitLine[] = [
     {
       key: "fund",
-      label: "Biggest loan the circle allows",
+      label: t("loans.limits.fund"),
       cap: fund,
-      explain: `One loan can be at most ${formatBps(i.rules.maxLoanBps)} of the circle's value.`,
+      explain: t("loans.limits.fundExplain", { pct: formatBps(i.rules.maxLoanBps) }),
     },
     {
       key: "stake",
-      label: "Your savings limit",
+      label: t("loans.limits.stake"),
       cap: stake,
       explain:
         i.guarantorStake > 0n
-          ? `${i.rules.kMultiplier} times your savings plus your guarantor's.`
-          : `${i.rules.kMultiplier} times your savings. A guarantor's savings count too.`,
+          ? t("loans.limits.stakeExplainGuarantor", { k: i.rules.kMultiplier })
+          : t("loans.limits.stakeExplain", { k: i.rules.kMultiplier }),
     },
     {
       key: "cash",
-      label: "Cash free to lend",
+      label: t("loans.limits.cash"),
       cap: i.lendable,
-      explain: `Cash in the circle, minus the ${formatBps(i.rules.reserveBps)} it always keeps back.`,
+      explain: t("loans.limits.cashExplain", { pct: formatBps(i.rules.reserveBps) }),
     },
   ];
   if (i.medical) {
     lines.push({
       key: "medical",
-      label: "Medical loan limit",
+      label: t("loans.limits.medical"),
       cap: i.rules.medicalCap,
-      explain: "The most the circle lends for a medical need.",
+      explain: t("loans.limits.medicalExplain"),
     });
   }
   let best = lines[0]!;
@@ -318,10 +320,10 @@ export function cureText(
   const pastTenors = currentPeriod > l.disbursedPeriod + TENORS * Math.max(1, l.tenorMonths);
   if (pastTenors) {
     return owedNow > 0n
-      ? `All three loan terms are over, so the whole loan is due. Pay the ${money(owedNow, asset)} of interest and fees, then repay the rest of the loan, and the freeze lifts.`
-      : "All three loan terms are over, so the whole loan is due. Repay it in full and the freeze lifts.";
+      ? t("loans.cure.allDue", { amount: money(owedNow, asset) })
+      : t("loans.cure.allDueNothing");
   }
-  return `Pay the ${money(owedNow, asset)} of interest and late fees you owe and the freeze lifts straight away.`;
+  return t("loans.cure.pay", { amount: money(owedNow, asset) });
 }
 
 /**
@@ -337,17 +339,15 @@ export function repayProblem(
   overdueMonths: number,
   asset: CircleAsset = AVAX,
 ): string | null {
-  if (overdueMonths > 0) return "Pay the overdue interest first. Then you can repay.";
+  if (overdueMonths > 0) return t("loans.repayProblem.overdueFirst");
   if (mode === "full") {
     return interestNow > 0n
-      ? `Pay this month's interest (${money(interestNow, asset)}) first, then repay the loan in full.`
+      ? t("loans.repayProblem.interestFirst", { amount: money(interestNow, asset) })
       : null;
   }
   if (amount === null)
-    return asset.symbol === "USDT"
-      ? "Type an amount in USDT, like 25."
-      : "Type an amount in AVAX, like 0.25.";
-  if (amount >= principal) return "That covers the whole loan. Choose Repay in full instead.";
+    return asset.symbol === "USDT" ? t("loans.typeAmountUsdt") : t("loans.typeAmountAvax");
+  if (amount >= principal) return t("loans.repayProblem.coversAll");
   return null;
 }
 
@@ -459,28 +459,29 @@ export function loansFromLogs(logs: readonly DecodedLog[]): LoanRecord[] {
 
 export type LoanFilter = "all" | "voting" | "active" | "repaid" | "default" | "declined";
 
-export const LOAN_FILTERS: Array<{ value: LoanFilter; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "voting", label: "Voting" },
-  { value: "active", label: "Active" },
-  { value: "repaid", label: "Repaid" },
-  { value: "default", label: "Default" },
-  { value: "declined", label: "Didn't go ahead" },
+/** Filter, type and sort lists keep translation keys; render with `t(label)`. */
+export const LOAN_FILTERS: Array<{ value: LoanFilter; label: PlainKey }> = [
+  { value: "all", label: "loans.filter.all" },
+  { value: "voting", label: "loans.filter.voting" },
+  { value: "active", label: "loans.filter.active" },
+  { value: "repaid", label: "loans.filter.repaid" },
+  { value: "default", label: "loans.filter.default" },
+  { value: "declined", label: "loans.filter.declined" },
 ];
 
 export type LoanType = "all" | "regular" | "medical";
-export const LOAN_TYPES: Array<{ value: LoanType; label: string }> = [
-  { value: "all", label: "Any type" },
-  { value: "regular", label: "Regular" },
-  { value: "medical", label: "Medical" },
+export const LOAN_TYPES: Array<{ value: LoanType; label: PlainKey }> = [
+  { value: "all", label: "loans.filter.anyType" },
+  { value: "regular", label: "loans.regular" },
+  { value: "medical", label: "loans.medical" },
 ];
 
 export type LoanSort = "newest" | "oldest" | "amount" | "rate";
-export const LOAN_SORTS: Array<{ value: LoanSort; label: string }> = [
-  { value: "newest", label: "Newest" },
-  { value: "oldest", label: "Oldest" },
-  { value: "amount", label: "Biggest amount" },
-  { value: "rate", label: "Highest rate now" },
+export const LOAN_SORTS: Array<{ value: LoanSort; label: PlainKey }> = [
+  { value: "newest", label: "loans.filter.newest" },
+  { value: "oldest", label: "loans.filter.oldest" },
+  { value: "amount", label: "loans.filter.amount" },
+  { value: "rate", label: "loans.filter.rate" },
 ];
 
 /** Reads a URL value against a fixed list; anything else falls back to the first entry. */
@@ -488,13 +489,14 @@ export function pickParam<T extends string>(raw: string | null, list: Array<{ va
   return list.some((x) => x.value === raw) ? (raw as T) : list[0]!.value;
 }
 
-export const STATUS_LABEL: Record<LoanRowStatus, string> = {
-  voting: "Voting",
-  active: "Active",
-  default: "In default",
-  repaid: "Repaid",
-  settled: "Settled from savings",
-  declined: "Didn't go ahead",
+/** Translation key of each loan status; render with `t(STATUS_LABEL[status])`. */
+export const STATUS_LABEL: Record<LoanRowStatus, PlainKey> = {
+  voting: "loans.status.voting",
+  active: "loans.status.active",
+  default: "loans.status.default",
+  repaid: "loans.status.repaid",
+  settled: "loans.status.settled",
+  declined: "loans.status.declined",
 };
 
 /** Status filter, type filter and search over borrower names and addresses. */
@@ -558,15 +560,11 @@ export function loanSettledLine(
   waitingForGuarantor: boolean,
 ): string {
   if (outcome === "approved") {
-    if (kind === "settle") return "Enough members voted yes. Anyone can settle it now.";
-    return waitingForGuarantor
-      ? "Enough members voted yes. The money goes out as soon as the guarantor agrees to back it."
-      : "Enough members voted yes. Anyone can settle it to send the money.";
+    if (kind === "settle") return t("loans.settled.approvedSettle");
+    return waitingForGuarantor ? t("loans.settled.approvedWaiting") : t("loans.settled.approved");
   }
-  if (outcome === "expired") {
-    return "Voting time ran out before enough members voted. Anyone can record the result.";
-  }
-  return "There aren't enough yes votes for this to pass. Anyone can record the result.";
+  if (outcome === "expired") return t("loans.settled.expired");
+  return t("loans.settled.rejected");
 }
 
 // ------------------------------------------------------------------ charts
@@ -663,21 +661,17 @@ export interface AskState {
 
 /** Why this wallet can't ask for a loan right now (LoanBook._checkRequest), or null. */
 export function askBlocker(s: AskState): string | null {
-  if (s.dissolved) return "This circle has voted to close, so no new loans start.";
-  if (s.paused) return "Loans are paused for a short time by the circle's guardian.";
-  if (s.frozen)
-    return "You're frozen because of a loan in default, so you can't ask for a new one.";
-  if (s.exiting)
-    return "You've asked to leave the circle, so you can't borrow. Stay to ask for a loan.";
-  if (s.dormant) return "Your payments are paused (dormant). Come back first, then you can ask.";
-  if (!s.voter) return "You can ask for a loan once you can vote in this circle.";
-  if (s.hasLoan) return "You already have a loan. Repay it before asking for another.";
-  if (s.hasRequest) return "You already asked for a loan. Wait for the vote, or withdraw it.";
-  if (s.guaranteeing) {
-    return "You're backing someone else's loan. Your savings can back one loan at a time, so you can borrow once theirs is repaid.";
-  }
+  if (s.dissolved) return t("loans.blocked.dissolved");
+  if (s.paused) return t("loans.blocked.paused");
+  if (s.frozen) return t("loans.blocked.frozen");
+  if (s.exiting) return t("loans.blocked.exiting");
+  if (s.dormant) return t("loans.blocked.dormant");
+  if (!s.voter) return t("loans.blocked.notVoter");
+  if (s.hasLoan) return t("loans.blocked.hasLoan");
+  if (s.hasRequest) return t("loans.blocked.hasRequest");
+  if (s.guaranteeing) return t("loans.blocked.guaranteeing");
   if (s.memberCount < s.minMembersForLoans) {
-    return `Loans start once the circle has ${s.minMembersForLoans} members. It has ${s.memberCount}.`;
+    return t("loans.blocked.tooFew", { min: s.minMembersForLoans, count: s.memberCount });
   }
   return null;
 }

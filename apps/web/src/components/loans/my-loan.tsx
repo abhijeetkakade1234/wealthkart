@@ -1,6 +1,6 @@
 "use client";
 
-import { periodLabel, shortAddress } from "@wealthkart/sdk";
+import { shortAddress } from "@wealthkart/sdk";
 import { Gavel, HandCoins, Snowflake, Undo2, Wallet } from "lucide-react";
 import { useState } from "react";
 import type { Address } from "viem";
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/i18n/react";
 import { money, useCircleAsset } from "@/lib/asset";
 import { proposalOutcome, proposalTallyLine } from "@/lib/governance";
 import { type MyLoan, useLoanAmounts, useLoanRequest, useLoanTx } from "@/lib/loan-hooks";
@@ -33,7 +34,7 @@ import { notify } from "@/lib/toast";
 import { useAssetPayment } from "@/lib/use-asset-payment";
 import { cn } from "@/lib/utils";
 
-import { Fact, inputCls } from "./parts";
+import { Fact, inputCls, usePeriodText } from "./parts";
 import { TenorTimeline } from "./tenor-timeline";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -66,6 +67,7 @@ export function MyLoanPanel({
   onChanged: () => void;
 }) {
   const { asset } = useCircleAsset(circle);
+  const { t } = useT();
   if (my.loan) {
     return (
       <ActiveLoan
@@ -93,32 +95,30 @@ export function MyLoanPanel({
     );
   }
   return (
-    <section aria-label="Your loan" className={card} data-testid="no-loan">
+    <section aria-label={t("loans.page.yourLoan")} className={card} data-testid="no-loan">
       <div className="grid gap-2">
         <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          Your loan
+          {t("loans.page.yourLoan")}
         </span>
         <p className="font-display text-[34px] leading-tight tracking-tight">
-          You don&apos;t have a loan
+          {t("loans.my.none")}
         </p>
         <p className="max-w-[60ch] text-[13.5px] leading-relaxed text-muted-foreground">
-          When you need money, ask the circle. The members vote, and if enough say yes the{" "}
-          {asset.symbol} arrives in your wallet on its own. Interest goes back into the circle and
-          lifts everyone&apos;s share, yours included.
+          {t("loans.my.noneBody", { symbol: asset.symbol })}
         </p>
       </div>
       <dl className="grid gap-6 sm:grid-cols-3">
         <Fact
-          label="Interest"
-          value={`${formatBps(rules.interestBps)} a month`}
-          hint="To start; it steps up each term"
+          label={t("loans.my.interest")}
+          value={t("loans.rateMonth", { rate: formatBps(rules.interestBps) })}
+          hint={t("loans.my.interestHint")}
         />
         <Fact
-          label="Each term"
-          value={`${rules.tenorMonths} months`}
-          hint="Three terms, then the loan is due"
+          label={t("loans.my.eachTerm")}
+          value={t("loans.my.termMonths", { months: rules.tenorMonths })}
+          hint={t("loans.my.termHint")}
         />
-        <Fact label="Cash free to lend" value={money(my.lendable, asset)} />
+        <Fact label={t("loans.limits.cash")} value={money(my.lendable, asset)} />
       </dl>
     </section>
   );
@@ -147,6 +147,8 @@ function ActiveLoan({
   const asset = payment.asset;
   const amounts = useLoanAmounts(circle);
   const [repayOpen, setRepayOpen] = useState(false);
+  const { t, tn } = useT();
+  const period = usePeriodText();
   const owedNow = my.interest + my.fees;
   const rate = rateIn(loan, Math.max(currentPeriod, loan.disbursedPeriod + 1));
   const hasGuarantor = loan.guarantor !== "" && loan.guarantor !== ZERO;
@@ -160,22 +162,22 @@ function ActiveLoan({
 
   async function payInterest() {
     if ((await interestNow()) === 0n) {
-      notify.info("There's no interest to pay right now.");
+      notify.info(t("loans.my.noInterestToast"));
       return;
     }
     const r = await payment.pay({ fn: "payInterest", amount: interestNow });
     if (r) {
-      notify.success(`Interest paid: ${money(r.amount, asset)}. Thank you.`);
+      notify.success(t("loans.my.interestPaid", { amount: money(r.amount, asset) }));
       onChanged();
     }
   }
 
   return (
-    <section aria-label="Your loan" className={card} data-testid="my-loan">
+    <section aria-label={t("loans.page.yourLoan")} className={card} data-testid="my-loan">
       <header className="flex flex-wrap items-start justify-between gap-6">
         <div className="grid gap-2">
           <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-            Your loan{loan.medical ? " · medical" : ""}
+            {loan.medical ? t("loans.my.eyebrowMedical") : t("loans.page.yourLoan")}
           </span>
           <p
             className="font-display text-[48px] leading-none tracking-tight tabular"
@@ -183,66 +185,76 @@ function ActiveLoan({
           >
             {avax(loan.principal, asset)}
             <small className="ml-2 font-sans text-[14px] tracking-normal text-muted-foreground">
-              {asset.symbol} still owed
+              {t("loans.my.stillOwed", { symbol: asset.symbol })}
             </small>
           </p>
           <p className="text-[13px] text-muted-foreground">
-            You borrowed {money(loan.amount, asset)} in {periodLabel(loan.disbursedPeriod)}
-            {hasGuarantor ? ` · backed by ${guarantorName || shortAddress(loan.guarantor)}` : ""}.
+            {hasGuarantor
+              ? t("loans.my.borrowedBacked", {
+                  amount: money(loan.amount, asset),
+                  month: period.long(loan.disbursedPeriod),
+                  name: guarantorName || shortAddress(loan.guarantor),
+                })
+              : t("loans.my.borrowed", {
+                  amount: money(loan.amount, asset),
+                  month: period.long(loan.disbursedPeriod),
+                })}
           </p>
         </div>
       </header>
 
       {loan.defaulted ? (
-        <InlineAlert tone="bad" icon={Snowflake} title="Your loan is in default, so you're frozen">
+        <InlineAlert tone="bad" icon={Snowflake} title={t("loans.my.frozenTitle")}>
           <span data-testid="frozen-notice">
-            While frozen you can&apos;t leave the circle or ask for a new loan
-            {hasGuarantor ? ", and neither can your guarantor" : ""}. If it stays unpaid, the
-            members can vote to repay it from your savings
-            {hasGuarantor ? ", then your guarantor's" : ""}.{" "}
-            {cureText(loan, owedNow, currentPeriod, asset)}
+            {t(hasGuarantor ? "loans.my.frozenBodyGuarantor" : "loans.my.frozenBody", {
+              cure: cureText(loan, owedNow, currentPeriod, asset),
+            })}
           </span>
         </InlineAlert>
       ) : my.overdueMonths > 0 ? (
-        <InlineAlert tone="warn" title="Your interest is late">
-          {my.overdueMonths} {my.overdueMonths === 1 ? "month is" : "months are"} unpaid, with{" "}
-          {money(loan.interestFee || rules.interestFee, asset)} added for each late month. After{" "}
-          {loan.defaultAfter || rules.defaultAfter} late{" "}
-          {(loan.defaultAfter || rules.defaultAfter) === 1 ? "month" : "months"}, anyone in the
-          circle can mark the loan as defaulted, which freezes you
-          {hasGuarantor ? " and your guarantor" : ""}. Pay now to stay clear.
+        <InlineAlert tone="warn" title={t("loans.my.lateTitle")}>
+          {`${tn("loans.my.lateUnpaid", my.overdueMonths, {
+            fee: money(loan.interestFee || rules.interestFee, asset),
+          })} ${tn(
+            hasGuarantor ? "loans.my.lateAfterGuarantor" : "loans.my.lateAfter",
+            loan.defaultAfter || rules.defaultAfter,
+          )}`}
         </InlineAlert>
       ) : null}
 
       <dl className="grid gap-6 sm:grid-cols-3">
         <Fact
-          label="Interest to pay now"
+          label={t("loans.my.interestNow")}
           value={money(owedNow, asset)}
           testId="interest-now"
           hint={
             my.fees > 0n
-              ? `Includes ${money(my.fees, asset)} in late fees`
+              ? t("loans.my.includesFees", { amount: money(my.fees, asset) })
               : owedNow > 0n
-                ? `Due by day ${dueDay} (UTC); paying early is fine`
+                ? t("loans.my.dueByDay", { day: dueDay })
                 : currentPeriod <= loan.disbursedPeriod
-                  ? `Interest starts in ${periodLabel(loan.disbursedPeriod + 1)}`
-                  : "All paid up for this month"
+                  ? t("loans.my.interestStartsIn", {
+                      month: period.long(loan.disbursedPeriod + 1),
+                    })
+                  : t("loans.my.allPaid")
           }
         />
         <Fact
-          label={currentPeriod <= loan.disbursedPeriod ? "First rate" : "Rate now"}
-          value={`${formatBps(rate)} a month`}
-          hint={rate === 0 && loan.medical ? "Interest-free month" : undefined}
+          label={
+            currentPeriod <= loan.disbursedPeriod ? t("loans.my.firstRate") : t("loans.my.rateNow")
+          }
+          value={t("loans.rateMonth", { rate: formatBps(rate) })}
+          hint={rate === 0 && loan.medical ? t("loans.my.freeMonth") : undefined}
         />
         <Fact
-          label="To close it today"
+          label={t("loans.my.closeToday")}
           value={money(my.payoff, asset)}
           hint={
             my.payoff > loan.principal
-              ? `Includes ${money(my.payoff - loan.principal, asset)}: one month's minimum interest`
+              ? t("loans.my.includesMinimum", { amount: money(my.payoff - loan.principal, asset) })
               : owedNow > 0n
-                ? "Pay the interest first, then this"
-                : "What you still owe; no extra interest"
+                ? t("loans.my.interestFirst")
+                : t("loans.my.noExtra")
           }
         />
       </dl>
@@ -255,13 +267,13 @@ function ActiveLoan({
             icon={HandCoins}
             payment={payment}
             amount={owedNow}
-            label="Pay interest"
+            label={t("loans.my.payInterest")}
             disabled={owedNow === 0n}
-            disabledReason="There's no interest to pay right now"
+            disabledReason={t("loans.my.noInterest")}
             onClick={payInterest}
           />
           <Button variant="secondary" icon={Wallet} onClick={() => setRepayOpen(true)}>
-            Repay
+            {t("loans.my.repay")}
           </Button>
         </div>
         {(payment.step !== null || payment.payTx.status !== "idle") && (
@@ -300,6 +312,7 @@ function RepayDialog({
   const asset = payment.asset;
   const amounts = useLoanAmounts(circle);
   const [mode, setMode] = useState<"part" | "full">("full");
+  const { t } = useT();
   const [text, setText] = useState("");
   const amount = parseAvaxInput(text, asset);
   const problem = repayProblem(mode, amount, loan.principal, my.interest, my.overdueMonths, asset);
@@ -322,8 +335,11 @@ function RepayDialog({
     setText("");
     notify.success(
       mode === "full"
-        ? "Loan repaid in full. It's closed, and you're free to ask again whenever you need."
-        : `Repaid ${money(value, asset)}. ${money(loan.principal - value, asset)} left to repay.`,
+        ? t("loans.my.repaidFull")
+        : t("loans.my.repaidPart", {
+            amount: money(value, asset),
+            left: money(loan.principal - value, asset),
+          }),
     );
     onRepaid();
   }
@@ -332,15 +348,12 @@ function RepayDialog({
     <Dialog open={open} onOpenChange={(v) => !payment.working && onOpenChange(v)}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>Repay your loan</DialogTitle>
-          <DialogDescription>
-            Repaying lowers next month&apos;s interest. This month&apos;s interest stays on what you
-            owed at the start of the month.
-          </DialogDescription>
+          <DialogTitle>{t("loans.my.repayTitle")}</DialogTitle>
+          <DialogDescription>{t("loans.my.repayDescription")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-7 pt-2">
           <fieldset className="grid gap-3 sm:grid-cols-2">
-            <legend className="sr-only">How much</legend>
+            <legend className="sr-only">{t("loans.my.howMuch")}</legend>
             {(["full", "part"] as const).map((m) => (
               <label
                 key={m}
@@ -358,12 +371,12 @@ function RepayDialog({
                 />
                 <span className="grid gap-0.5">
                   <span className="text-[14px] font-medium">
-                    {m === "full" ? "Repay in full" : "Repay part"}
+                    {m === "full" ? t("loans.my.repayFull") : t("loans.my.repayPart")}
                   </span>
                   <span className="text-[12px] text-muted-foreground">
                     {m === "full"
-                      ? `${money(my.payoff, asset)} closes the loan`
-                      : "Any amount below what you owe"}
+                      ? t("loans.my.fullHint", { amount: money(my.payoff, asset) })
+                      : t("loans.my.partHint")}
                   </span>
                 </span>
               </label>
@@ -373,7 +386,7 @@ function RepayDialog({
           {mode === "part" && (
             <div className="grid gap-1.5">
               <label htmlFor="repay-amount" className="text-[13px] font-medium">
-                Amount in {asset.symbol}
+                {t("loans.amountIn", { symbol: asset.symbol })}
               </label>
               <input
                 id="repay-amount"
@@ -381,15 +394,14 @@ function RepayDialog({
                 autoComplete="off"
                 className={inputCls}
                 value={text}
-                placeholder={`Less than ${avax(loan.principal, asset)}`}
+                placeholder={t("loans.my.lessThan", { amount: avax(loan.principal, asset) })}
                 onChange={(e) => setText(e.target.value)}
               />
             </div>
           )}
           {mode === "full" && my.payoff > loan.principal && (
             <p className="text-[13px] leading-relaxed text-muted-foreground">
-              This includes {money(my.payoff - loan.principal, asset)}: a loan repaid before any
-              interest was charged still pays one month&apos;s interest (rule 17).
+              {t("loans.my.includesRule17", { amount: money(my.payoff - loan.principal, asset) })}
             </p>
           )}
           {problem && (mode === "full" || text !== "") && (
@@ -401,7 +413,7 @@ function RepayDialog({
               icon={Wallet}
               payment={payment}
               amount={sending}
-              label="Repay"
+              label={t("loans.my.repay")}
               disabled={Boolean(problem)}
               disabledReason={problem ?? undefined}
               onClick={repay}
@@ -435,11 +447,12 @@ function PendingRequest({
   const { asset } = useCircleAsset(circle);
   const cancel = useLoanTx(circle);
   const settle = useLoanTx(circle);
+  const { t } = useT();
   const r = q.request;
   if (!r) {
     return (
-      <section aria-label="Your loan" className={card}>
-        <p className="text-[13.5px] text-muted-foreground">Loading your loan request…</p>
+      <section aria-label={t("loans.page.yourLoan")} className={card}>
+        <p className="text-[13.5px] text-muted-foreground">{t("loans.my.loadingRequest")}</p>
       </section>
     );
   }
@@ -453,29 +466,29 @@ function PendingRequest({
   async function withdraw() {
     const ok = await cancel.cancel();
     if (ok) {
-      notify.success("Loan request withdrawn.");
+      notify.success(t("loans.withdrawnToast"));
       onChanged();
     }
   }
   async function finalize() {
     const ok = await settle.finalize(id);
     if (ok) {
-      notify.success("Vote settled.");
+      notify.success(t("loans.voteSettledToast"));
       onChanged();
     }
   }
 
   return (
-    <section aria-label="Your loan" className={card} data-testid="my-request">
+    <section aria-label={t("loans.page.yourLoan")} className={card} data-testid="my-request">
       <header className="flex flex-wrap items-start justify-between gap-6">
         <div className="grid gap-2">
           <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-            Your loan request{r.medical ? " · medical" : ""}
+            {r.medical ? t("loans.my.eyebrowRequestMedical") : t("loans.my.eyebrowRequest")}
           </span>
           <p className="font-display text-[48px] leading-none tracking-tight tabular">
             {avax(r.amount, asset)}
             <small className="ml-2 font-sans text-[14px] tracking-normal text-muted-foreground">
-              {asset.symbol} asked for
+              {t("loans.my.askedFor", { symbol: asset.symbol })}
             </small>
           </p>
         </div>
@@ -483,17 +496,17 @@ function PendingRequest({
       </header>
       <dl className="grid gap-6 sm:grid-cols-2">
         <Fact
-          label="Votes"
+          label={t("loans.votes")}
           value={<span data-testid="my-request-tally">{proposalTallyLine(tally)}</span>}
         />
         <Fact
-          label="Guarantor"
-          value={hasGuarantor ? gName : "None"}
+          label={t("loans.guarantor")}
+          value={hasGuarantor ? gName : t("loans.none")}
           hint={
             hasGuarantor
               ? r.guarantorAccepted
-                ? "Has agreed to back your loan"
-                : "Hasn't agreed yet. The money goes out only after they do."
+                ? t("loans.my.agreedHint")
+                : t("loans.my.notAgreedHint")
               : undefined
           }
         />
@@ -508,21 +521,21 @@ function PendingRequest({
           {outcome !== "open" && !(outcome === "approved" && waiting && !ended) && (
             <Button
               icon={Gavel}
-              workingLabel="Settling…"
+              workingLabel={t("loans.settling")}
               state={settle.working ? "working" : undefined}
               onClick={finalize}
             >
-              Settle the vote
+              {t("loans.settleVote")}
             </Button>
           )}
           <Button
             variant="ghost"
             icon={Undo2}
-            workingLabel="Withdrawing…"
+            workingLabel={t("loans.withdrawing")}
             state={cancel.working ? "working" : undefined}
             onClick={withdraw}
           >
-            Withdraw request
+            {t("loans.withdrawRequest")}
           </Button>
         </div>
         <TxFor tx={settle.tx} />

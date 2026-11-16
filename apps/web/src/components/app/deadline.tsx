@@ -2,15 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { formatTimeLeft } from "./countdown-utc";
+import { useT } from "@/i18n/react";
 
-const utcFmt = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
+import { formatTimeLeft, localDeadline, UTC_FORMAT } from "./countdown-utc";
 
 /**
  * Any on-chain deadline (seconds) in UTC and the viewer's time, with time left (ADR 0014).
@@ -20,16 +14,18 @@ const utcFmt = new Intl.DateTimeFormat("en-GB", {
 export function Deadline({
   deadline,
   chainNow,
-  prefix = "Voting ends",
-  pastText = "voting time is over",
+  prefix,
+  pastText,
 }: {
   deadline: number;
   chainNow: number;
+  /** Words before the date; defaults to "Voting ends". */
   prefix?: string;
   /** Shown instead of the countdown once the moment has passed. */
   pastText?: string;
 }) {
   const [drift, setDrift] = useState(0);
+  const { t, locale, formatDate } = useT();
   useEffect(() => {
     const started = Date.now();
     setDrift(0);
@@ -38,23 +34,20 @@ export function Deadline({
   }, [chainNow]);
 
   const now = chainNow + drift;
-  const local = new Intl.DateTimeFormat(undefined, {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-  }).format(new Date(deadline * 1000));
+  const local = localDeadline(deadline, locale);
   const left = deadline - now;
 
   return (
     <span className="font-mono text-[12px] leading-relaxed text-muted-foreground">
-      {prefix}{" "}
+      {prefix ?? t("kit.votingEnds")}{" "}
       <strong className="font-semibold text-foreground">
-        {utcFmt.format(new Date(deadline * 1000))} UTC
+        {t("kit.utcTime", { time: formatDate(new Date(deadline * 1000), UTC_FORMAT) })}
       </strong>
       <br />
-      Your time: {local} · {left >= 0 ? formatTimeLeft(left) : pastText}
+      {t("kit.yourTime", {
+        local,
+        left: left >= 0 ? formatTimeLeft(left) : (pastText ?? t("kit.votingOver")),
+      })}
     </span>
   );
 }

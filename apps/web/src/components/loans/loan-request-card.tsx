@@ -8,6 +8,7 @@ import { Deadline } from "@/components/app/deadline";
 import { TxFor } from "@/components/app/tx-for";
 import { Avatar } from "@/components/art";
 import { Button } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { proposalOutcome, proposalTallyLine } from "@/lib/governance";
 import { money, useCircleAsset } from "@/lib/asset";
 import { type LoanRequestView, useLoanTx } from "@/lib/loan-hooks";
@@ -38,6 +39,7 @@ export function LoanRequestCard({
   onChanged: () => void;
 }) {
   const voteA = useLoanTx(circle);
+  const { t } = useT();
   const { asset } = useCircleAsset(circle);
   const settleA = useLoanTx(circle);
   const otherA = useLoanTx(circle);
@@ -53,50 +55,50 @@ export function LoanRequestCard({
   const borrower = r.borrowerName || shortAddress(r.borrower);
   const guarantor = r.guarantorName || shortAddress(r.guarantor);
   const title = settle
-    ? `Settle ${borrower}'s default`
-    : `${money(r.amount, asset)} for ${borrower}`;
+    ? t("loans.request.titleSettle", { name: borrower })
+    : t("loans.request.titleLoan", { amount: money(r.amount, asset), name: borrower });
 
   async function vote(support: boolean) {
     const ok = await voteA.vote(r.id, support);
     if (ok) {
-      notify.success(support ? "Vote counted: yes." : "Vote counted: no.");
+      notify.success(support ? t("loans.voteYesToast") : t("loans.voteNoToast"));
       onChanged();
     }
   }
   async function finalize() {
     const ok = await settleA.finalize(r.id);
     if (ok) {
-      notify.success("Vote settled.");
+      notify.success(t("loans.voteSettledToast"));
       onChanged();
     }
   }
   async function accept() {
     const ok = await otherA.acceptGuarantee(r.borrower);
     if (ok) {
-      notify.success(`You're backing ${borrower}'s loan.`);
+      notify.success(t("loans.backingToast", { name: borrower }));
       onChanged();
     }
   }
   async function withdraw() {
     const ok = await otherA.cancel();
     if (ok) {
-      notify.success("Loan request withdrawn.");
+      notify.success(t("loans.withdrawnToast"));
       onChanged();
     }
   }
 
   const why = ended
-    ? "Voting time is over."
+    ? t("loans.whyEnded")
     : isBorrower
-      ? "It's your loan, so you can't vote on it."
+      ? t("loans.request.whyBorrower")
       : settle && isGuarantor
-        ? "You backed this loan, so you can't vote on settling it."
-        : "You've voted on this one, or you can't vote on it: only members who could vote when it started, and are up to date, can.";
+        ? t("loans.request.whyGuarantor")
+        : t("loans.whyOther");
 
   return (
     <article
       className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8"
-      aria-label={settle ? "Settle vote" : "Loan request"}
+      aria-label={settle ? t("loans.request.ariaSettle") : t("loans.request.ariaLoan")}
       data-kind={r.kind}
       data-testid="loan-request-card"
     >
@@ -113,7 +115,11 @@ export function LoanRequestCard({
           </span>
           <div className="grid gap-1">
             <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-              {settle ? "Settle a default" : r.medical ? "Medical loan request" : "Loan request"}
+              {settle
+                ? t("loans.request.eyebrowSettle")
+                : r.medical
+                  ? t("loans.request.eyebrowMedical")
+                  : t("loans.request.eyebrowLoan")}
             </span>
             <h3 className="font-display text-[26px] leading-none tracking-tight">{title}</h3>
           </div>
@@ -124,33 +130,36 @@ export function LoanRequestCard({
       <div className="grid gap-4 text-[13.5px] leading-relaxed">
         {settle ? (
           <p className="text-muted-foreground">
-            {borrower}&apos;s loan is in default with {money(r.amount, asset)} still owed. If this
-            passes, {borrower}&apos;s savings repay it at today&apos;s value
-            {hasGuarantor ? `, then ${guarantor}'s as guarantor` : ""}. Anything still uncovered is
-            shared by everyone through the share value. If {borrower} pays up first, the vote is
-            called off. {borrower}
-            {hasGuarantor ? ` and ${guarantor}` : ""} can&apos;t vote on it.
+            {hasGuarantor
+              ? t("loans.request.settleBodyGuarantor", {
+                  name: borrower,
+                  guarantor,
+                  amount: money(r.amount, asset),
+                })
+              : t("loans.request.settleBody", { name: borrower, amount: money(r.amount, asset) })}
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-4">
             <Avatar address={r.borrower} size={36} />
             <dl className="grid flex-1 gap-x-8 gap-y-2 sm:grid-cols-3">
               <div>
-                <dt className="text-[12px] text-muted-foreground">Borrower</dt>
+                <dt className="text-[12px] text-muted-foreground">{t("loans.borrower")}</dt>
                 <dd className="font-semibold">{borrower}</dd>
               </div>
               <div>
-                <dt className="text-[12px] text-muted-foreground">Type</dt>
-                <dd className="font-semibold">{r.medical ? "Medical" : "Regular"}</dd>
+                <dt className="text-[12px] text-muted-foreground">{t("loans.type")}</dt>
+                <dd className="font-semibold">
+                  {r.medical ? t("loans.medical") : t("loans.regular")}
+                </dd>
               </div>
               <div>
-                <dt className="text-[12px] text-muted-foreground">Guarantor</dt>
+                <dt className="text-[12px] text-muted-foreground">{t("loans.guarantor")}</dt>
                 <dd className="font-semibold" data-testid="guarantor-state">
                   {!hasGuarantor
-                    ? "None"
+                    ? t("loans.none")
                     : r.guarantorAccepted
-                      ? `${guarantor}, agreed`
-                      : `${guarantor}, not agreed yet`}
+                      ? t("loans.request.agreed", { name: guarantor })
+                      : t("loans.request.notAgreed", { name: guarantor })}
                 </dd>
               </div>
             </dl>
@@ -170,11 +179,11 @@ export function LoanRequestCard({
             <div>
               <Button
                 icon={Gavel}
-                workingLabel="Settling…"
+                workingLabel={t("loans.settling")}
                 state={settleA.working ? "working" : undefined}
                 onClick={finalize}
               >
-                Settle the vote
+                {t("loans.settleVote")}
               </Button>
             </div>
           )}
@@ -185,20 +194,20 @@ export function LoanRequestCard({
             <>
               <Button
                 icon={ThumbsUp}
-                workingLabel="Voting…"
+                workingLabel={t("loans.voting")}
                 state={voteA.working ? "working" : undefined}
                 onClick={() => vote(true)}
               >
-                Vote yes
+                {t("loans.voteYes")}
               </Button>
               <Button
                 variant="secondary"
                 icon={ThumbsDown}
-                workingLabel="Voting…"
+                workingLabel={t("loans.voting")}
                 state={voteA.working ? "working" : undefined}
                 onClick={() => vote(false)}
               >
-                Vote no
+                {t("loans.voteNo")}
               </Button>
             </>
           ) : (
@@ -212,22 +221,22 @@ export function LoanRequestCard({
           {waiting && isGuarantor && !ended && (
             <Button
               icon={ShieldCheck}
-              workingLabel="Agreeing…"
+              workingLabel={t("loans.agreeing")}
               state={otherA.working ? "working" : undefined}
               onClick={accept}
             >
-              Back this loan
+              {t("loans.backThisLoan")}
             </Button>
           )}
           {isBorrower && !settle && (
             <Button
               variant="ghost"
               icon={Undo2}
-              workingLabel="Withdrawing…"
+              workingLabel={t("loans.withdrawing")}
               state={otherA.working ? "working" : undefined}
               onClick={withdraw}
             >
-              Withdraw request
+              {t("loans.withdrawRequest")}
             </Button>
           )}
         </div>

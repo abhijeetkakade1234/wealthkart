@@ -5,6 +5,7 @@ import type { Address } from "viem";
 
 import { TxFor } from "@/components/app/tx-for";
 import { Button, InlineAlert } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { fmt, useCircleAsset } from "@/lib/asset";
 import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
@@ -23,14 +24,16 @@ export function WithdrawAlert({
   amount: bigint;
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const w = useVaultAction(circle);
   const { asset } = useCircleAsset(circle);
   if (amount <= 0n) return null;
+  const money = { amount: fmt(amount, asset), symbol: asset.symbol };
 
   async function withdraw() {
     const receipt = await w.send("withdraw");
     if (receipt) {
-      notify.success(`Withdrawn. ${fmt(amount, asset)} ${asset.symbol} is in your wallet.`);
+      notify.success(t("exits.withdrawnToast", money));
       onChanged();
     }
   }
@@ -40,21 +43,19 @@ export function WithdrawAlert({
       <InlineAlert
         tone="info"
         icon={Wallet}
-        title={`${fmt(amount, asset)} ${asset.symbol} is waiting for you`}
+        title={t("exits.waitingForYou", money)}
         action={
           <Button
             icon={Wallet}
-            workingLabel="Withdrawing…"
+            workingLabel={t("exits.withdrawing")}
             state={w.working ? "working" : undefined}
             onClick={withdraw}
           >
-            Withdraw
+            {t("exits.withdraw")}
           </Button>
         }
       >
-        {asset.symbol === "USDT"
-          ? "The circle tried to pay you, but the USDT transfer didn't go through (for example, Tether froze the wallet). It's kept safe here until you withdraw it."
-          : "The circle tried to pay you, but your wallet didn't accept it. It's kept safe here until you withdraw it."}
+        {asset.symbol === "USDT" ? t("exits.withdrawBodyUsdt") : t("exits.withdrawBodyAvax")}
       </InlineAlert>
       <TxFor tx={w.tx} />
     </div>

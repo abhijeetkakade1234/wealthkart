@@ -1,4 +1,5 @@
 import { type CashFlow, dueMoment, xirr } from "@wealthkart/rules";
+import { t } from "@/i18n/runtime";
 import type { CircleEvent } from "@/lib/analytics";
 import { AVAX, type CircleAsset, toNumber } from "@/lib/asset";
 
@@ -77,9 +78,9 @@ export function project(
 
 /** "+4.2% a year" style label. */
 export function formatRate(rate: number | null): string {
-  if (rate === null) return "Not enough history yet";
+  if (rate === null) return t("analytics.rateNotEnough");
   const pct = rate * 100;
-  return `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% a year`;
+  return t("analytics.ratePerYear", { rate: `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}` });
 }
 
 /** One CSV field, quoted when needed (RFC 4180), with formula injection neutralised. */

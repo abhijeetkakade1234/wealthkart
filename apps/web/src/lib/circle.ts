@@ -1,14 +1,31 @@
 "use client";
 
-import { DEPLOYMENTS, circleFactoryAbi, circleVaultAbi } from "@wealthkart/sdk";
+import { DEPLOYMENTS, circleFactoryAbi, circleVaultAbi, periodLabel } from "@wealthkart/sdk";
 import { type Address, isAddress } from "viem";
 import { useBlock, useReadContract, useReadContracts } from "wagmi";
 
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { formatDate, getLocale, t } from "@/i18n/runtime";
 import { type CircleAsset, ZERO_ADDRESS, circleAsset } from "@/lib/asset";
 import { type RequestKind, requestKind } from "@/lib/membership";
 
 export const CIRCLES_PAGE_SIZE = 12;
+
+/**
+ * A circle month ("December 2026") in the active language. English keeps the sdk's
+ * `periodLabel`; Hindi and Marathi use `Intl` month names ("दिसंबर 2026", "डिसेंबर 2026").
+ */
+export function monthLabel(period: number | bigint): string {
+  if (getLocale() === "en") return periodLabel(period);
+  const p = Number(period);
+  return formatDate(Date.UTC(Math.floor(p / 12), p % 12, 1), {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+    // mr-IN defaults to Devanagari digits; the app keeps 0-9 (docs/i18n.md §3).
+    numberingSystem: "latn",
+  });
+}
 export const MEMBERS_PAGE_SIZE = 10;
 
 /** Build-time override for E2E runs against a local chain. Unset in real builds. */
@@ -101,7 +118,7 @@ export function useMyCircles(page: number) {
         : null;
     return {
       address: c,
-      name: r[0]?.status === "success" ? (r[0].result as string) : "Circle",
+      name: r[0]?.status === "success" ? (r[0].result as string) : t("circle.fallbackName"),
       totalAssets: r[1]?.status === "success" ? (r[1].result as bigint) : 0n,
       memberCount: r[2]?.status === "success" ? (r[2].result as bigint) : 0n,
       stake: r[3]?.status === "success" ? (r[3].result as bigint) : 0n,
@@ -548,7 +565,7 @@ export function usePortfolio() {
     const assets = ok<bigint>(4) ?? 0n;
     return {
       address: c,
-      name: ok<string>(0) ?? "Circle",
+      name: ok<string>(0) ?? t("circle.fallbackName"),
       stake,
       paidIn: BigInt(paid) * installment,
       shareBps: assets > 0n ? Number((stake * 10_000n) / assets) : 0,

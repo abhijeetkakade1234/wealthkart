@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Address } from "viem";
 
 import { Button, InlineAlert, TxTracker } from "@/components/kit";
+import { rich, useT } from "@/i18n/react";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
@@ -16,6 +17,7 @@ import { useBufferedWriteContract } from "@/lib/use-buffered-write";
  * Paying from the Pay page also wakes them (RT-11).
  */
 export function DormantNotice({ circle, onWoke }: { circle: Address; onWoke: () => void }) {
+  const { t } = useT();
   const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const working = tx.status === "confirm" || tx.status === "sending";
@@ -25,7 +27,7 @@ export function DormantNotice({ circle, onWoke }: { circle: Address; onWoke: () 
       writeContractAsync({ abi: circleVaultAbi, address: circle, functionName: "wake" }),
     );
     if (receipt) {
-      notify.success("Welcome back. Your payments start again from the next due date.");
+      notify.success(t("membership.wokeToast"));
       onWoke();
     }
   }
@@ -35,28 +37,28 @@ export function DormantNotice({ circle, onWoke }: { circle: Address; onWoke: () 
       <InlineAlert
         tone="warn"
         icon={PauseCircle}
-        title="Your payments are paused"
+        title={t("membership.pausedTitle")}
         action={
           <Button
             icon={Sunrise}
-            workingLabel="Waking up…"
+            workingLabel={t("membership.waking")}
             state={working ? "working" : undefined}
             onClick={wake}
           >
-            I&apos;m back
+            {t("membership.imBack")}
           </Button>
         }
       >
-        The circle marked you dormant after several missed months. Nothing is owed while you&apos;re
-        dormant, and your savings are still yours. Tap &quot;I&apos;m back&quot; to start paying
-        again, or{" "}
-        <Link
-          href={`/app/circle/pay/?id=${circle}`}
-          className="font-semibold underline underline-offset-4"
-        >
-          pay this month
-        </Link>{" "}
-        to come back straight away.
+        {rich(t("membership.dormantBody"), {
+          link: (c) => (
+            <Link
+              href={`/app/circle/pay/?id=${circle}`}
+              className="font-semibold underline underline-offset-4"
+            >
+              {c}
+            </Link>
+          ),
+        })}
       </InlineAlert>
       {tx.status !== "idle" && (
         <TxTracker
@@ -85,6 +87,7 @@ export function ProposeDormantButton({
   name: string;
   onProposed: () => void;
 }) {
+  const { t } = useT();
   const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const working = tx.status === "confirm" || tx.status === "sending";
@@ -99,7 +102,7 @@ export function ProposeDormantButton({
       }),
     );
     if (receipt) {
-      notify.success(`Vote started. Your yes is counted. The others can vote on Votes.`);
+      notify.success(t("membership.proposedToast"));
       onProposed();
     }
   }
@@ -109,12 +112,12 @@ export function ProposeDormantButton({
       size="sm"
       variant="secondary"
       icon={PauseCircle}
-      workingLabel="Starting…"
+      workingLabel={t("membership.starting")}
       state={working ? "working" : undefined}
       onClick={propose}
-      aria-label={`Ask the circle to pause ${name}'s payments`}
+      aria-label={t("membership.pauseAria", { name })}
     >
-      Pause payments
+      {t("membership.pausePayments")}
     </Button>
   );
 }

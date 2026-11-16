@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 import { EmptyArt } from "@/components/art";
+import { useT } from "@/i18n/react";
+import type { PlainKey } from "@/i18n/types";
 import { messages } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +86,7 @@ export type StateViewProps = Common &
 export type UIState = StateViewProps["state"];
 
 export function StateView(props: StateViewProps) {
+  const { t } = useT();
   switch (props.state) {
     case "loading":
       return (
@@ -91,7 +94,7 @@ export function StateView(props: StateViewProps) {
           className={props.className}
           role="status"
           aria-busy="true"
-          aria-label={props.label ?? "Loading"}
+          aria-label={props.label ?? t("kit.loading")}
           data-state="loading"
         >
           {props.skeleton}
@@ -139,11 +142,11 @@ export function StateView(props: StateViewProps) {
             size="sm"
             icon={RefreshCw}
             iconAnimation="spin"
-            workingLabel="Trying again…"
+            workingLabel={t("kit.tryingAgain")}
             onAction={props.onRetry}
             className="mt-2"
           >
-            Retry
+            {t("kit.retry")}
           </Button>
           {props.details && <Details className="mt-1">{props.details}</Details>}
         </Panel>
@@ -171,10 +174,10 @@ export function StateView(props: StateViewProps) {
                   size="sm"
                   icon={RefreshCw}
                   iconAnimation="spin"
-                  workingLabel="Trying again…"
+                  workingLabel={t("kit.tryingAgain")}
                   onAction={props.onRetry}
                 >
-                  Try again
+                  {t("kit.tryAgain")}
                 </Button>
               )}
               {props.details && <Details>{props.details}</Details>}
@@ -201,10 +204,10 @@ export function StateView(props: StateViewProps) {
               size="sm"
               icon={RefreshCw}
               iconAnimation="spin"
-              workingLabel="Refreshing…"
+              workingLabel={t("kit.refreshing")}
               onAction={props.onRefresh}
             >
-              Refresh
+              {t("kit.refresh")}
             </Button>
           </div>
           {props.children}
@@ -241,8 +244,8 @@ export function StateView(props: StateViewProps) {
             {copy.body()}
           </p>
           {props.onAction && (
-            <Button onAction={props.onAction} className="mt-3" workingLabel={copy.working}>
-              {props.actionLabel ?? copy.action}
+            <Button onAction={props.onAction} className="mt-3" workingLabel={t(copy.working)}>
+              {props.actionLabel ?? t(copy.action)}
             </Button>
           )}
         </Panel>
@@ -253,28 +256,34 @@ export function StateView(props: StateViewProps) {
 
 const ACCESS: Record<
   AccessReason,
-  { icon: LucideIcon; title: () => string; body: () => string; action: string; working: string }
+  {
+    icon: LucideIcon;
+    title: () => string;
+    body: () => string;
+    action: PlainKey;
+    working: PlainKey;
+  }
 > = {
   "no-wallet": {
     icon: Wallet,
     title: messages.accessNoWalletTitle,
     body: messages.accessNoWalletBody,
-    action: "Connect Core",
-    working: "Connecting…",
+    action: "kit.accessNoWalletAction",
+    working: "kit.accessNoWalletWorking",
   },
   "wrong-network": {
     icon: Network,
     title: messages.accessWrongNetworkTitle,
     body: messages.accessWrongNetworkBody,
-    action: "Switch to Avalanche",
-    working: "Switching…",
+    action: "kit.accessWrongNetworkAction",
+    working: "kit.accessWrongNetworkWorking",
   },
   "not-member": {
     icon: UserPlus,
     title: messages.accessNotMemberTitle,
     body: messages.accessNotMemberBody,
-    action: "Go to my circles",
-    working: "Opening…",
+    action: "kit.accessNotMemberAction",
+    working: "kit.accessNotMemberWorking",
   },
 };
 

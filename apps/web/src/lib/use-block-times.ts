@@ -3,6 +3,8 @@
 import { useQueries } from "@tanstack/react-query";
 import { usePublicClient } from "wagmi";
 
+import { formatDate } from "@/i18n/runtime";
+
 /** Timestamps for the blocks on the current page only (one read per block, cached). */
 export function useBlockTimes(items: ReadonlyArray<{ block: bigint }>): Map<string, number> {
   const client = usePublicClient();
@@ -26,16 +28,8 @@ export function useBlockTimes(items: ReadonlyArray<{ block: bigint }>): Map<stri
 /** "3 Dec 2026, 14:05 UTC": deadlines and records are UTC on-chain (ADR 0014). */
 export function formatWhen(sec: number): string {
   const d = new Date(sec * 1000);
-  const date = d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-  const time = d.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
+  // English stays en-GB ("3 Dec 2026"); hi/mr use their own month names.
+  const date = formatDate(d, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const time = formatDate(d, { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
   return `${date}, ${time} UTC`;
 }

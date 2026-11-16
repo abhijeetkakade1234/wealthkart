@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
 
+import { useT } from "@/i18n/react";
 import { cn } from "@/lib/utils";
 
 import { AnimatedIcon } from "./animated-icon";
@@ -14,6 +15,7 @@ import { AnimatedIcon } from "./animated-icon";
 export function Details({ children, className }: { children: string; className?: string }) {
   const [open, setOpen] = React.useState(false);
   const id = React.useId();
+  const { t } = useT();
   return (
     <div className={cn("text-[13px]", className)}>
       <button
@@ -23,7 +25,7 @@ export function Details({ children, className }: { children: string; className?:
         aria-controls={id}
         onClick={() => setOpen((v) => !v)}
       >
-        Details
+        {t("kit.details")}
         <AnimatedIcon icon={ChevronDown} animation="rotate" active={open} size={14} />
       </button>
       {open && (

@@ -5,6 +5,7 @@ import { ArrowLeftRight, Copy, LogOut, Wallet } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { CORE_DOWNLOAD_URL } from "@/lib/wagmi";
 import { notify } from "@/lib/toast";
 
@@ -13,6 +14,7 @@ import { useCoreWallet } from "./use-core-wallet";
 /** Top-bar wallet control: connect Core, switch network, or show the connected address. */
 export function ConnectButton() {
   const w = useCoreWallet();
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -34,7 +36,7 @@ export function ConnectButton() {
         className="inline-flex h-9 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium hover:bg-secondary"
       >
         <Wallet className="size-4" aria-hidden />
-        Get Core wallet
+        {t("wallet.getCore")}
       </a>
     );
   }
@@ -44,12 +46,12 @@ export function ConnectButton() {
       <Button
         size="sm"
         icon={Wallet}
-        workingLabel="Connecting…"
+        workingLabel={t("wallet.connecting")}
         onAction={w.connect}
         onError={(e) => notify.error(e)}
         state={w.status === "connecting" ? "working" : undefined}
       >
-        Connect Core
+        {t("wallet.connectCore")}
       </Button>
     );
   }
@@ -60,11 +62,11 @@ export function ConnectButton() {
         size="sm"
         variant="secondary"
         icon={ArrowLeftRight}
-        workingLabel="Switching…"
+        workingLabel={t("wallet.switching")}
         onAction={w.switchToTarget}
         onError={(e) => notify.error(e)}
       >
-        Switch to {w.targetChain.name}
+        {t("wallet.switchTo", { network: w.targetChain.name })}
       </Button>
     );
   }
@@ -102,7 +104,7 @@ export function ConnectButton() {
             }}
           >
             <Copy className="size-4 text-muted-foreground" aria-hidden />
-            Copy address
+            {t("wallet.copyAddress")}
           </button>
           <button
             type="button"
@@ -114,7 +116,7 @@ export function ConnectButton() {
             }}
           >
             <LogOut className="size-4 text-muted-foreground" aria-hidden />
-            Disconnect
+            {t("wallet.disconnect")}
           </button>
         </div>
       )}

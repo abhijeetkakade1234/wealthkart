@@ -7,7 +7,11 @@
  *
  * Amounts are passed in already formatted (e.g. "0.50") so this file never does
  * money maths; formatting AVAX from wei is the job of the amount helpers.
+ *
+ * The words live in `src/i18n/{en,hi,mr}/msg.ts` (ADR 0057). Each function reads the active
+ * language when it is called, so names, signatures and error codes stay the same.
  */
+import { t, tn } from "@/i18n/runtime";
 
 export interface InsufficientAvaxParams {
   /** Total the wallet needs, e.g. "0.52". */
@@ -20,267 +24,199 @@ export interface InsufficientAvaxParams {
 
 export const messages = {
   // Wallet and network problems
-  userRejected: () => "You cancelled this in Core. Nothing was sent.",
+  userRejected: () => t("msg.userRejected"),
   insufficientAvax: (p?: InsufficientAvaxParams) =>
-    p
-      ? `Not enough AVAX in your wallet. You need ${p.needed} AVAX (${p.amount} + about ${p.fee} network fee).`
-      : "Not enough AVAX in your wallet to cover this and the network fee.",
-  wrongNetwork: () => "Your wallet is on the wrong network. Switch to Avalanche to continue.",
-  networkUnreachable: () =>
-    "We can't reach the Avalanche network right now. Your money is safe. Try again in a minute.",
-  timeout: () =>
-    "This is taking longer than usual. It may still go through; we'll update this page when it does.",
-  unknown: () =>
-    "Something went wrong on our side. Your money is safe. Try again, or share the details with your circle admin.",
+    p ? t("msg.insufficientAvaxDetail", { ...p }) : t("msg.insufficientAvax"),
+  wrongNetwork: () => t("msg.wrongNetwork"),
+  networkUnreachable: () => t("msg.networkUnreachable"),
+  timeout: () => t("msg.timeout"),
+  unknown: () => t("msg.unknown"),
 
   // Transactions the circle contract turned down
   alreadyPaid: (month?: string) =>
-    month ? `You've already paid for ${month}.` : "You've already paid for this month.",
-  amountChanged: () =>
-    "The amount due just changed, usually because a late fee started. Check the new amount and try again.",
-  notMember: () => "This wallet isn't a member of this circle.",
-  holidayTooLate: () =>
-    "It's past this month's due date, so a payment holiday can't be taken now. Pay as soon as you can to keep fees low.",
-  holidayAlreadyTaken: () => "You've already taken a payment holiday for this month.",
-  holidayLimitReached: () => "You've used all your payment holidays for this year.",
-  monthAlreadyPaid: () => "You've already paid this month, so there's nothing to delay.",
-  notAvailableYet: () =>
-    "Circles aren't open on the main Avalanche network yet. Use the Fuji test network for now.",
-  voteClosed: () => "This vote has already ended.",
+    month ? t("msg.alreadyPaidMonth", { month }) : t("msg.alreadyPaid"),
+  amountChanged: () => t("msg.amountChanged"),
+  notMember: () => t("msg.notMember"),
+  holidayTooLate: () => t("msg.holidayTooLate"),
+  holidayAlreadyTaken: () => t("msg.holidayAlreadyTaken"),
+  holidayLimitReached: () => t("msg.holidayLimitReached"),
+  monthAlreadyPaid: () => t("msg.monthAlreadyPaid"),
+  notAvailableYet: () => t("msg.notAvailableYet"),
+  voteClosed: () => t("msg.voteClosed"),
   loanAboveCap: (maxAvax?: string) =>
-    maxAvax
-      ? `This loan is bigger than the circle allows for you right now. The most you can ask for is ${maxAvax} AVAX.`
-      : "This loan is bigger than the circle allows for you right now.",
+    maxAvax ? t("msg.loanAboveCapMax", { max: maxAvax }) : t("msg.loanAboveCap"),
 
   // Membership (ADR 0028, 0029)
-  notACircle: () =>
-    "This link doesn't point to a WealthKart circle. Don't send it any money; ask your friend for the link again.",
-  noFounderInvite: () => "There's no founder invite for this wallet in this circle.",
-  founderInviteExpired: () =>
-    "Your founder invite has expired. You can still ask to join; the members will vote.",
-  alreadyMember: () => "This wallet is already a member of this circle.",
-  requestAlreadyOpen: () =>
-    "You've already asked to join. Wait for the vote, or cancel your request first.",
-  tooManyOpenRequests: () =>
-    "This circle has too many people waiting to join right now. Try again after the members vote.",
-  circleFull: () => "This circle is full. It has reached the member limit its rules set.",
-  inviterNotMember: () =>
-    "The friend who invited you isn't a member of this circle, so we can't show them as your inviter.",
-  invalidDisplayName: () =>
-    "Names need 3 to 24 letters, numbers, spaces, dots, dashes or underscores, with no space at the start or end.",
-  nameTaken: () => "Someone in this circle already uses that name. Try another one.",
+  notACircle: () => t("msg.notACircle"),
+  noFounderInvite: () => t("msg.noFounderInvite"),
+  founderInviteExpired: () => t("msg.founderInviteExpired"),
+  alreadyMember: () => t("msg.alreadyMember"),
+  requestAlreadyOpen: () => t("msg.requestAlreadyOpen"),
+  tooManyOpenRequests: () => t("msg.tooManyOpenRequests"),
+  circleFull: () => t("msg.circleFull"),
+  inviterNotMember: () => t("msg.inviterNotMember"),
+  invalidDisplayName: () => t("msg.invalidDisplayName"),
+  nameTaken: () => t("msg.nameTaken"),
   nameChangeTooSoon: (when?: string) =>
-    when
-      ? `You changed your name recently. You can change it again on ${when}.`
-      : "You changed your name recently. You can change it again after 30 days.",
-  requestNotOpen: () => "This join request has already been settled.",
-  notEligibleToVote: () =>
-    "You can't vote on this one. Only members who joined before the request, and are at most one month behind, can vote.",
-  alreadyVoted: () => "You've already voted on this request.",
-  notDecidedYet: () => "The vote isn't decided yet. It can be settled once the voting time ends.",
-  noOpenRequest: () => "You don't have a join request waiting in this circle.",
-  memberIsDormant: () =>
-    "Your payments are paused because the circle marked you dormant. Wake up on the circle page, or just pay, to come back.",
-  notDormant: () => "You're already active in this circle.",
-  notOverdueEnough: () =>
-    "They haven't missed enough months yet. The circle can only pause someone's payments after the number of missed months it agreed on.",
-  noOtherVoters: () => "There's nobody else in the circle who could vote on this yet.",
-  nothingToWithdraw: () => "There's nothing waiting for you to withdraw.",
-  withdrawFailed: () =>
-    "Your wallet didn't accept the payout. Try again from a wallet that can receive it.",
-  insufficientCash: () =>
-    "The circle doesn't have enough cash for this right now. Some of its money is lent out.",
+    when ? t("msg.nameChangeTooSoonWhen", { when }) : t("msg.nameChangeTooSoon"),
+  requestNotOpen: () => t("msg.requestNotOpen"),
+  notEligibleToVote: () => t("msg.notEligibleToVote"),
+  alreadyVoted: () => t("msg.alreadyVoted"),
+  notDecidedYet: () => t("msg.notDecidedYet"),
+  noOpenRequest: () => t("msg.noOpenRequest"),
+  memberIsDormant: () => t("msg.memberIsDormant"),
+  notDormant: () => t("msg.notDormant"),
+  notOverdueEnough: () => t("msg.notOverdueEnough"),
+  noOtherVoters: () => t("msg.noOtherVoters"),
+  nothingToWithdraw: () => t("msg.nothingToWithdraw"),
+  withdrawFailed: () => t("msg.withdrawFailed"),
+  insufficientCash: () => t("msg.insufficientCash"),
   // USDT circles (ADR 0046).
-  avaxNotAccepted: () => "This circle is paid in USDT. Send the payment without any AVAX attached.",
-  tokenAllowanceTooLow: () =>
-    "Approve the USDT payment in your wallet first, then pay. If the amount changed, approve again.",
-  tokenBalanceTooLow: () => "Your wallet doesn't have enough USDT for this payment.",
-  needGasAvax: (fee: string) =>
-    `Network fees are paid in AVAX, even in a USDT circle. Add about ${fee} AVAX to your wallet, then pay.`,
+  avaxNotAccepted: () => t("msg.avaxNotAccepted"),
+  tokenAllowanceTooLow: () => t("msg.tokenAllowanceTooLow"),
+  tokenBalanceTooLow: () => t("msg.tokenBalanceTooLow"),
+  needGasAvax: (fee: string) => t("msg.needGasAvax", { fee }),
   /** Checked before anything is sent, so the member never approves a payment they can't make. */
   notEnoughToken: (p: { needed: string; have: string; symbol: string }) =>
-    `Your wallet has ${p.have} ${p.symbol}, but this payment needs ${p.needed} ${p.symbol}. Add ${p.symbol} to your wallet, then try again.`,
-  tokenAmountMismatch: () =>
-    "The USDT token took a bigger fee than the circle accepts (1%), so the payment was refused. Nothing was taken.",
-  tokenTransferFailed: () =>
-    "The USDT transfer didn't go through. Check your USDT balance and approval, then try again.",
-  usdtNotAvailable: () =>
-    "USDT circles aren't available on this network yet. Choose AVAX for this circle.",
+    t("msg.notEnoughToken", { ...p }),
+  tokenAmountMismatch: () => t("msg.tokenAmountMismatch"),
+  tokenTransferFailed: () => t("msg.tokenTransferFailed"),
+  usdtNotAvailable: () => t("msg.usdtNotAvailable"),
   // Test USDT faucet, test network builds only (ADR 0053)
-  testUsdtNote: (amount: string) =>
-    `You're on the test network. Test USDT has no value; it only lets you try USDT circles. Each tap adds ${amount}.`,
-  testUsdtAdded: (amount: string) =>
-    `Added ${amount} test USDT to your wallet. It has no value and only works on the test network.`,
-  notAllowedToPropose: () => "Only members who can vote right now can start a proposal.",
-  tooManyOpenProposals: () =>
-    "There are already 10 open proposals. Wait for some to be decided first.",
-  tooManyOpenProposalsBy: () => "You already have 2 open proposals. Wait until one is decided.",
-  noEligibleVoters: () => "There's nobody who could vote on this yet.",
-  ruleChangeInProgress: () =>
-    "A rule change is already being voted on or waiting to apply. One at a time.",
-  invalidRule: () =>
-    "One of these settings is outside what a circle allows. Check the numbers and try again.",
-  noPendingRuleChange: () => "There's no rule change waiting to apply.",
-  ruleChangeNotDue: () => "The new rules can't apply yet. They start once the waiting period ends.",
-  invalidWaiver: () =>
-    "That month can't be waived: it must be a started, unpaid month that isn't waived already.",
-  guardianAlreadyOff: () => "The guardian is already switched off for this circle.",
-  proposalNotOpen: () => "This proposal is already decided or was withdrawn.",
-  proposalVotingClosed: () => "Voting on this proposal has closed.",
-  cannotVoteOnProposal: () =>
-    "You can't vote on this one: only members who could vote when it started, and are up to date, can.",
-  alreadyVotedOnProposal: () => "You've already voted on this proposal.",
-  proposalNotDecided: () =>
-    "The vote isn't decided yet. It can be settled once the voting time ends.",
-  notProposer: () => "Only the member who started this proposal can withdraw it.",
-  circleDissolved: () =>
-    "This circle has voted to close. Payments have stopped; members can claim their share.",
-  notDissolved: () => "The circle hasn't voted to close, so there's nothing to claim yet.",
-  claimBlockedByLoan: () =>
-    "Your loan, or the loan you guarantee, must be repaid or settled before you can claim.",
+  testUsdtNote: (amount: string) => t("msg.testUsdtNote", { amount }),
+  testUsdtAdded: (amount: string) => t("msg.testUsdtAdded", { amount }),
+  notAllowedToPropose: () => t("msg.notAllowedToPropose"),
+  tooManyOpenProposals: () => t("msg.tooManyOpenProposals"),
+  tooManyOpenProposalsBy: () => t("msg.tooManyOpenProposalsBy"),
+  noEligibleVoters: () => t("msg.noEligibleVoters"),
+  ruleChangeInProgress: () => t("msg.ruleChangeInProgress"),
+  invalidRule: () => t("msg.invalidRule"),
+  noPendingRuleChange: () => t("msg.noPendingRuleChange"),
+  ruleChangeNotDue: () => t("msg.ruleChangeNotDue"),
+  invalidWaiver: () => t("msg.invalidWaiver"),
+  guardianAlreadyOff: () => t("msg.guardianAlreadyOff"),
+  proposalNotOpen: () => t("msg.proposalNotOpen"),
+  proposalVotingClosed: () => t("msg.proposalVotingClosed"),
+  cannotVoteOnProposal: () => t("msg.cannotVoteOnProposal"),
+  alreadyVotedOnProposal: () => t("msg.alreadyVotedOnProposal"),
+  proposalNotDecided: () => t("msg.proposalNotDecided"),
+  notProposer: () => t("msg.notProposer"),
+  circleDissolved: () => t("msg.circleDissolved"),
+  notDissolved: () => t("msg.notDissolved"),
+  claimBlockedByLoan: () => t("msg.claimBlockedByLoan"),
   // Backup wallet (nominee), ADR 0016 and 0056.
-  invalidNominee: () =>
-    "That wallet can't be your backup: it's your own wallet or the circle itself. Pick someone else's wallet.",
-  notNominee: () => "Only the backup wallet this member named can ask for their share.",
-  nomineeClaimPending: () =>
-    "A backup wallet claim about this member is already open. The member can cancel it from the circle page; otherwise the circle's vote decides.",
-  noNomineeClaim: () => "There's no backup wallet claim about you to cancel.",
-  nomineeSaved: () =>
-    "Saved. This wallet can ask for your share only if the circle marks you dormant and then votes yes.",
-  nomineeCleared: () => "Backup wallet removed. Nobody can claim your share now.",
-  nomineeClaimCancelled: () =>
-    "Claim cancelled. Your share stays yours and your payments start again from the next due date.",
-  nomineeClaimRequested: () =>
-    "You asked for the share. The circle votes now; you can follow it on the Votes page.",
-  nothingToClaimYet: () =>
-    "There's no cash to share out right now. Claim again once loans are repaid.",
-  proposalTooSoon: () => "You started a proposal recently. You can start the next one tomorrow.",
-  memberExiting: () =>
-    "A member who has asked to leave can't take a loan or back one. Cancel the exit first.",
-  payoutGasTooLow: () => "This needs a little more gas to send the payment. Please try again.",
-  exitAlreadyPending: () => "You've already asked to leave this circle.",
-  noExitPending: () => "You haven't asked to leave this circle.",
-  exitNotReady: () => "Your notice period isn't over yet. You can collect your share when it ends.",
-  memberFrozen: () =>
-    "Your share is frozen because of an unpaid loan. Pay what's owed to unfreeze it.",
-  hasLoanTies: () => "You can't leave while you have a loan, a loan request or a guarantee open.",
-  notGuardian: () => "Only the circle's guardian can do this.",
-  guardianOff: () =>
-    "The guardian role has ended (voted off, or the creator left), so pausing isn't possible.",
-  pauseTooSoon: () => "The guardian can pause at most once every 90 days.",
-  notPaused: () => "The circle isn't paused.",
-  circlePaused: () =>
-    "The circle is paused for a short time, so new members and loans wait. Leaving and paying still work.",
-  loansClosed: () => "This circle has voted to close, so it doesn't lend any more.",
-  loansPaused: () =>
-    "Loans are paused for a short time by the circle's guardian. Paying and leaving still work.",
-  notAVoter: () => "Only members who can vote right now can ask for a loan.",
-  loanRequestOpen: () => "You already have a loan request waiting for votes.",
-  loanActive: () => "You already have a loan. Repay it before asking for another.",
-  tooFewMembers: () => "The circle needs more members before it can lend.",
-  zeroAmount: () => "Enter an amount above 0.",
-  amountTooLarge: () => "That's more than this circle can lend you. Try a smaller amount.",
-  medicalLoansOff: () => "This circle doesn't offer medical loans.",
-  medicalLoanThisYear: () => "You've already had a medical loan this year.",
-  guarantorRequired: () =>
-    "This circle needs a guarantor for every loan. Pick a member to back you.",
-  invalidGuarantor: () => "That member can't be your guarantor. Pick another member of the circle.",
-  alreadyGuaranteeing: () => "That member is already backing another loan.",
-  notYourGuarantee: () => "You weren't named as the guarantor for this loan.",
-  noOtherLoanVoters: () => "There's nobody else in the circle who could vote on this loan yet.",
-  loanRequestNotOpen: () => "This loan request is already decided or was withdrawn.",
-  loanVotingClosed: () => "Voting on this loan has closed.",
-  cannotVoteOnLoan: () =>
-    "You can't vote on this loan: the borrower can't, and only members who could vote when it started, and are up to date, can.",
-  alreadyVotedOnLoan: () => "You've already voted on this loan.",
-  loanNotDecidedYet: () =>
-    "The vote isn't decided yet. It can be settled once the voting time ends.",
-  guaranteeNotAccepted: () =>
-    "The guarantor hasn't accepted yet. The loan can be paid out once they do.",
-  disbursalBlocked: () =>
-    "The loan can't be paid out right now: members are waiting to be paid for leaving, or the circle is paused.",
-  noLoanRequest: () => "You don't have a loan request waiting.",
-  noLoan: () => "There's no loan to pay.",
-  nothingOwed: () => "Nothing is owed on this loan right now.",
-  wrongLoanAmount: () => "The amount doesn't match what's owed. Refresh and try again.",
-  interestOverdue: () => "Pay the overdue interest first, then repay the loan.",
-  interestOwed: () => "Pay the interest that's due first.",
-  notInDefault: () => "This loan isn't in default.",
-  alreadyDefaulted: () => "This loan is already marked as in default.",
-  settleOpen: () => "A vote to settle this loan is already open.",
-  exitGasTooLow: () =>
-    "There wasn't enough gas to reach your place in the queue. Try again; your wallet will ask for a bit more.",
-  tooManyOpenRequestsBy: () =>
-    "That member already has 3 open invites or proposals. Ask them to wait until one is decided, or ask another member to invite you.",
+  invalidNominee: () => t("msg.invalidNominee"),
+  notNominee: () => t("msg.notNominee"),
+  nomineeClaimPending: () => t("msg.nomineeClaimPending"),
+  noNomineeClaim: () => t("msg.noNomineeClaim"),
+  nomineeSaved: () => t("msg.nomineeSaved"),
+  nomineeCleared: () => t("msg.nomineeCleared"),
+  nomineeClaimCancelled: () => t("msg.nomineeClaimCancelled"),
+  nomineeClaimRequested: () => t("msg.nomineeClaimRequested"),
+  nothingToClaimYet: () => t("msg.nothingToClaimYet"),
+  proposalTooSoon: () => t("msg.proposalTooSoon"),
+  memberExiting: () => t("msg.memberExiting"),
+  payoutGasTooLow: () => t("msg.payoutGasTooLow"),
+  exitAlreadyPending: () => t("msg.exitAlreadyPending"),
+  noExitPending: () => t("msg.noExitPending"),
+  exitNotReady: () => t("msg.exitNotReady"),
+  memberFrozen: () => t("msg.memberFrozen"),
+  hasLoanTies: () => t("msg.hasLoanTies"),
+  notGuardian: () => t("msg.notGuardian"),
+  guardianOff: () => t("msg.guardianOff"),
+  pauseTooSoon: () => t("msg.pauseTooSoon"),
+  notPaused: () => t("msg.notPaused"),
+  circlePaused: () => t("msg.circlePaused"),
+  loansClosed: () => t("msg.loansClosed"),
+  loansPaused: () => t("msg.loansPaused"),
+  notAVoter: () => t("msg.notAVoter"),
+  loanRequestOpen: () => t("msg.loanRequestOpen"),
+  loanActive: () => t("msg.loanActive"),
+  tooFewMembers: () => t("msg.tooFewMembers"),
+  zeroAmount: () => t("msg.zeroAmount"),
+  amountTooLarge: () => t("msg.amountTooLarge"),
+  medicalLoansOff: () => t("msg.medicalLoansOff"),
+  medicalLoanThisYear: () => t("msg.medicalLoanThisYear"),
+  guarantorRequired: () => t("msg.guarantorRequired"),
+  invalidGuarantor: () => t("msg.invalidGuarantor"),
+  alreadyGuaranteeing: () => t("msg.alreadyGuaranteeing"),
+  notYourGuarantee: () => t("msg.notYourGuarantee"),
+  noOtherLoanVoters: () => t("msg.noOtherLoanVoters"),
+  loanRequestNotOpen: () => t("msg.loanRequestNotOpen"),
+  loanVotingClosed: () => t("msg.loanVotingClosed"),
+  cannotVoteOnLoan: () => t("msg.cannotVoteOnLoan"),
+  alreadyVotedOnLoan: () => t("msg.alreadyVotedOnLoan"),
+  loanNotDecidedYet: () => t("msg.loanNotDecidedYet"),
+  guaranteeNotAccepted: () => t("msg.guaranteeNotAccepted"),
+  disbursalBlocked: () => t("msg.disbursalBlocked"),
+  noLoanRequest: () => t("msg.noLoanRequest"),
+  noLoan: () => t("msg.noLoan"),
+  nothingOwed: () => t("msg.nothingOwed"),
+  wrongLoanAmount: () => t("msg.wrongLoanAmount"),
+  interestOverdue: () => t("msg.interestOverdue"),
+  interestOwed: () => t("msg.interestOwed"),
+  notInDefault: () => t("msg.notInDefault"),
+  alreadyDefaulted: () => t("msg.alreadyDefaulted"),
+  settleOpen: () => t("msg.settleOpen"),
+  exitGasTooLow: () => t("msg.exitGasTooLow"),
+  tooManyOpenRequestsBy: () => t("msg.tooManyOpenRequestsBy"),
 
   // Success
   paid: (month: string, amount: string, symbol = "AVAX") =>
-    `Paid. Your ${month} installment of ${amount} ${symbol} is in.`,
-  voted: (votes: number, members: number) => `Vote counted. ${votes} of ${members} have voted.`,
-  copied: (what = "Address") => `${what} copied.`,
+    t("msg.paid", { month, amount, symbol }),
+  voted: (votes: number, members: number) => t("msg.voted", { votes, members }),
+  /** Without `what`, "Address copied." in the active language. */
+  copied: (what?: string) => (what ? t("msg.copied", { what }) : t("msg.addressCopied")),
 
   // Reminders (ADR 0052)
-  remindersNotSetUp: () =>
-    "Reminders aren't set up on this site yet. Your dues and votes still show when you open the app.",
-  remindersUnsupported: () =>
-    "This browser can't show reminders. Chrome, Edge, Firefox and Safari can.",
-  remindersIosInstall: () =>
-    "On iPhone and iPad, reminders work once WealthKart is on your Home Screen. In Safari, tap Share, then Add to Home Screen, and open it from there.",
-  remindersDenied: () =>
-    "Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.",
-  remindersOtherWallet: (who: string) =>
-    `This device gets reminders for ${who}. You can switch them to this wallet.`,
-  remindersOn: () => "Reminders are on for this device.",
-  remindersOff: () => "Reminders are off for this device.",
-  remindersSaved: () => "Saved.",
-  remindersTestSent: () => "Test sent. It should show up on this device in a few seconds.",
-  remindersTestFailed: () =>
-    "The test didn't reach this device. Check that notifications are allowed, then try again.",
-  remindersDeviceGone: () =>
-    "This device stopped accepting reminders, so we turned them off. Turn them on again to fix it.",
-  remindersBusy: () => "That was a lot of changes at once. Wait a minute and try again.",
-  remindersFailed: () =>
-    "We couldn't reach the reminder service. Nothing changed. Try again in a minute.",
-  remindersCircleUnknown: () =>
-    "This circle is very new, so reminders can't be set yet. Try again in a minute.",
+  remindersNotSetUp: () => t("msg.remindersNotSetUp"),
+  remindersUnsupported: () => t("msg.remindersUnsupported"),
+  remindersIosInstall: () => t("msg.remindersIosInstall"),
+  remindersDenied: () => t("msg.remindersDenied"),
+  remindersOtherWallet: (who: string) => t("msg.remindersOtherWallet", { who }),
+  remindersOn: () => t("msg.remindersOn"),
+  remindersOff: () => t("msg.remindersOff"),
+  remindersSaved: () => t("msg.remindersSaved"),
+  remindersTestSent: () => t("msg.remindersTestSent"),
+  remindersTestFailed: () => t("msg.remindersTestFailed"),
+  remindersDeviceGone: () => t("msg.remindersDeviceGone"),
+  remindersBusy: () => t("msg.remindersBusy"),
+  remindersFailed: () => t("msg.remindersFailed"),
+  remindersCircleUnknown: () => t("msg.remindersCircleUnknown"),
 
   // UI states (docs/ui.md §10)
-  offline: () => "You're offline. You can look around, but paying and voting need a connection.",
+  offline: () => t("msg.offline"),
   staleNote: (minutesAgo: number) => {
-    if (minutesAgo < 1) return "Showing saved data from less than a minute ago";
-    if (minutesAgo < 60) return `Showing saved data from ${Math.round(minutesAgo)} min ago`;
-    const hours = Math.round(minutesAgo / 60);
-    return `Showing saved data from ${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    if (minutesAgo < 1) return t("msg.staleLessThanMinute");
+    if (minutesAgo < 60) return tn("msg.staleMinutes", Math.round(minutesAgo));
+    return tn("msg.staleHours", Math.round(minutesAgo / 60));
   },
-  loadFailed: () => "We couldn't load this right now. Your money is safe. Try again in a moment.",
-  txFailed: () =>
-    "This didn't go through. Nothing was sent except the network fee. You can try again.",
+  loadFailed: () => t("msg.loadFailed"),
+  txFailed: () => t("msg.txFailed"),
 
   // Access cards
-  accessNoWalletTitle: () => "Connect your Core wallet",
-  accessNoWalletBody: () =>
-    "Your wallet address is your account. WealthKart stores no names, emails or phone numbers.",
-  accessWrongNetworkTitle: () => "Switch to Avalanche",
-  accessWrongNetworkBody: () =>
-    "Your wallet is on a different network. Switch to Avalanche to see this circle.",
-  accessNotMemberTitle: () => "You're not in this circle yet",
-  accessNotMemberBody: () =>
-    "Ask a member for an invite link. Once the circle votes you in, it shows up here.",
+  accessNoWalletTitle: () => t("msg.accessNoWalletTitle"),
+  accessNoWalletBody: () => t("msg.accessNoWalletBody"),
+  accessWrongNetworkTitle: () => t("msg.accessWrongNetworkTitle"),
+  accessWrongNetworkBody: () => t("msg.accessWrongNetworkBody"),
+  accessNotMemberTitle: () => t("msg.accessNotMemberTitle"),
+  accessNotMemberBody: () => t("msg.accessNotMemberBody"),
 
   // Error boundaries (docs/ui.md §11)
-  appErrorTitle: () => "Something went wrong",
-  pageErrorTitle: () => "This page couldn't load",
-  widgetErrorTitle: (name?: string) => (name ? `${name} couldn't load` : "This part couldn't load"),
-  widgetErrorBody: () => "The rest of the page still works. Try again in a moment.",
+  appErrorTitle: () => t("msg.appErrorTitle"),
+  pageErrorTitle: () => t("msg.pageErrorTitle"),
+  widgetErrorTitle: (name?: string) =>
+    name ? t("msg.widgetErrorTitleNamed", { name }) : t("msg.widgetErrorTitle"),
+  widgetErrorBody: () => t("msg.widgetErrorBody"),
 
   // First-run checklist on the home screen (ADR 0054)
-  checklistHidden: () => "Checklist hidden. The full guide is still on the Get started page.",
-  checklistCantCheck: () => "Couldn't check this right now.",
+  checklistHidden: () => t("msg.checklistHidden"),
+  checklistCantCheck: () => t("msg.checklistCantCheck"),
 
   // Transaction tracker
-  txStepConfirm: () => "Confirm in Core",
-  txStepSending: () => "Sending",
-  txStepConfirmed: () => "Confirmed",
+  txStepConfirm: () => t("msg.txStepConfirm"),
+  txStepSending: () => t("msg.txStepSending"),
+  txStepConfirmed: () => t("msg.txStepConfirmed"),
 } as const;
 
 export type MessageKey = keyof typeof messages;

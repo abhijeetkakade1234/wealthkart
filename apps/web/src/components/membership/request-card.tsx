@@ -15,6 +15,7 @@ import type { Address } from "viem";
 import { Deadline } from "@/components/app/deadline";
 import { Avatar } from "@/components/art";
 import { Button, TxTracker } from "@/components/kit";
+import { rich, useT } from "@/i18n/react";
 import type { JoinRequestView } from "@/lib/circle";
 import {
   invitedTooMany,
@@ -49,6 +50,7 @@ export function RequestCard({
   chainNow: number;
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const writeContractAsync = useBufferedWriteContract();
   const voteTx = useTx();
   const finalizeTx = useTx();
@@ -75,7 +77,7 @@ export function RequestCard({
       }),
     );
     if (receipt) {
-      notify.success(support ? "Vote counted: yes." : "Vote counted: no.");
+      notify.success(support ? t("membership.votedYes") : t("membership.votedNo"));
       onChanged();
     }
   }
@@ -92,42 +94,42 @@ export function RequestCard({
     if (receipt) {
       notify.success(
         outcome === "expired"
-          ? `Settled: voting time ran out before enough members voted on ${who}.`
+          ? t("membership.toastExpired", { who })
           : claim
             ? outcome === "approved"
-              ? `Settled: ${who}'s share goes to their backup wallet after the notice, unless ${who} cancels.`
-              : `Settled: the circle chose not to pay ${who}'s share to their backup wallet.`
+              ? t("membership.toastClaimApproved", { who })
+              : t("membership.toastClaimRejected", { who })
             : dormant
               ? outcome === "approved"
-                ? `${who} is now dormant. Their payments are paused and their savings stay theirs.`
-                : `Settled: the circle chose not to pause ${who}'s payments.`
+                ? t("membership.toastDormantApproved", { who })
+                : t("membership.toastDormantRejected", { who })
               : outcome === "approved"
-                ? `${who} is now a member.`
-                : `Settled: the members didn't vote ${who} in.`,
+                ? t("membership.toastJoinApproved", { who })
+                : t("membership.toastJoinRejected", { who }),
       );
       onChanged();
     }
   }
 
   const why = r.hasVoted
-    ? "You've voted on this one."
+    ? t("membership.whyVoted")
     : ended
-      ? "Voting time is over."
+      ? t("membership.whyOver")
       : claim
-        ? "You can't vote on this one: the member it's about and their backup wallet can't vote, and only members who were in the circle before it started, and are at most one month behind, can."
+        ? t("membership.whyClaim")
         : dormant
-          ? "You can't vote on this one: the member it's about can't vote, and only members who were in the circle before it started, and are at most one month behind, can."
-          : "You can't vote on this one: only members who joined before the request, and are at most one month behind, can vote.";
+          ? t("membership.whyDormant")
+          : t("membership.whyJoin");
 
   return (
     <article
       className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8"
       aria-label={
         claim
-          ? `Backup wallet claim for ${who}`
+          ? t("membership.ariaClaim", { who })
           : dormant
-            ? `Dormant vote about ${who}`
-            : `Join request from ${who}`
+            ? t("membership.ariaDormant", { who })
+            : t("membership.ariaJoin", { who })
       }
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -135,10 +137,14 @@ export function RequestCard({
           <Avatar address={r.account} size={44} />
           <div className="grid gap-1">
             <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-              {claim ? "Backup wallet claim" : dormant ? "Pause payments" : "Wants to join"}
+              {claim
+                ? t("membership.kindClaim")
+                : dormant
+                  ? t("membership.pausePayments")
+                  : t("membership.kindJoin")}
             </span>
             <h3 className="font-display text-[26px] leading-none tracking-tight">
-              {(aboutMember ? r.accountName : r.displayName) || "No name"}
+              {(aboutMember ? r.accountName : r.displayName) || t("membership.noName")}
             </h3>
             <span className="font-mono text-[12px] text-muted-foreground">
               {shortAddress(r.account)}
@@ -153,10 +159,9 @@ export function RequestCard({
           <p className="flex items-start gap-2 text-muted-foreground">
             <LifeBuoy className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={1.5} aria-hidden />
             <span>
-              <strong className="font-semibold text-foreground">{nominee}</strong> is the backup
-              wallet {who} named, and asks for their share. {who} is dormant. If the circle votes
-              yes, the share is paid to the backup wallet after a notice of at least 30 days, unless{" "}
-              {who} cancels. Vote yes only if you believe {who} can&apos;t come back.
+              {rich(t("membership.claimBody", { nominee, who }), {
+                b: (c) => <strong className="font-semibold text-foreground">{c}</strong>,
+              })}
             </span>
           </p>
         ) : dormant ? (
@@ -167,28 +172,27 @@ export function RequestCard({
               aria-hidden
             />
             <span>
-              <strong className="font-semibold text-foreground">
-                {r.inviterName || shortAddress(r.invitedBy)}
-              </strong>{" "}
-              asks the circle to mark them dormant, maybe because they lost their wallet. Their
-              monthly payments and late fees stop. Their savings stay theirs, and paying again
-              brings them back.
+              {rich(
+                t("membership.dormantVoteBody", {
+                  name: r.inviterName || shortAddress(r.invitedBy),
+                }),
+                { b: (c) => <strong className="font-semibold text-foreground">{c}</strong> },
+              )}
             </span>
           </p>
         ) : hasInviter ? (
           <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
-            Says they were invited by{" "}
-            <strong className="font-semibold text-foreground">
-              {r.inviterName || shortAddress(r.invitedBy)}
-            </strong>
+            {rich(t("membership.invitedBy", { name: r.inviterName || shortAddress(r.invitedBy) }), {
+              b: (c) => <strong className="font-semibold text-foreground">{c}</strong>,
+            })}
             {r.inviterConfirmed ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-good-soft px-2.5 py-0.5 text-[12px] text-good">
                 <BadgeCheck className="size-3.5" strokeWidth={1.5} aria-hidden />
-                Confirmed
+                {t("membership.confirmed")}
               </span>
             ) : (
               <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12px]">
-                Not confirmed yet
+                {t("membership.notConfirmed")}
               </span>
             )}
           </p>
@@ -201,12 +205,11 @@ export function RequestCard({
         {!aboutMember && hasInviter && invitedTooMany(r.inviterAdmitted, memberCount) && (
           <p className="flex items-start gap-2 text-warn">
             <TriangleAlert className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} aria-hidden />
-            This member has brought in more than a third of the circle. Make sure each newcomer is
-            someone the group knows.
+            {t("membership.tooManyInvited")}
           </p>
         )}
         {!aboutMember && !hasInviter && (
-          <p className="text-muted-foreground">No inviter named. Make sure someone knows them.</p>
+          <p className="text-muted-foreground">{t("membership.noInviter")}</p>
         )}
         <p className="tabular" data-testid="tally">
           {tallyLine(tally)}
@@ -219,11 +222,11 @@ export function RequestCard({
           <div>
             <Button
               icon={Gavel}
-              workingLabel="Settling…"
+              workingLabel={t("membership.settling")}
               state={finalizing ? "working" : undefined}
               onClick={finalize}
             >
-              Settle the vote
+              {t("membership.settle")}
             </Button>
           </div>
         </div>
@@ -231,20 +234,20 @@ export function RequestCard({
         <div className="flex flex-wrap gap-3">
           <Button
             icon={ThumbsUp}
-            workingLabel="Voting…"
+            workingLabel={t("membership.voting")}
             state={voting ? "working" : undefined}
             onClick={() => vote(true)}
           >
-            Vote yes
+            {t("membership.voteYes")}
           </Button>
           <Button
             variant="secondary"
             icon={ThumbsDown}
-            workingLabel="Voting…"
+            workingLabel={t("membership.voting")}
             state={voting ? "working" : undefined}
             onClick={() => vote(false)}
           >
-            Vote no
+            {t("membership.voteNo")}
           </Button>
         </div>
       ) : (

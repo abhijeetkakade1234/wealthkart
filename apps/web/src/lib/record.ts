@@ -4,6 +4,7 @@ import { circleFactoryAbi, DEPLOYMENTS, reputationAbi } from "@wealthkart/sdk";
 import { type Address, isAddress } from "viem";
 import { useReadContract, useReadContracts } from "wagmi";
 
+import { t, tn } from "@/i18n/runtime";
 import { FACTORY_OVERRIDE } from "@/lib/circle";
 import { TARGET_CHAIN } from "@/lib/wagmi";
 
@@ -26,13 +27,15 @@ export interface RecordView {
 /** Plain-words summary line for a record. */
 export function recordSummary(r: RecordView): string {
   const months = r.onTime + r.late;
-  if (months === 0 && r.loansRepaid === 0 && r.defaults === 0) return "No record yet.";
+  if (months === 0 && r.loansRepaid === 0 && r.defaults === 0) return t("record.none");
   const parts = [
-    `${(r.onTimeBps / 100).toFixed(r.onTimeBps % 100 === 0 ? 0 : 1)}% of ${months} ${months === 1 ? "month" : "months"} paid on time`,
-    `${r.loansRepaid} ${r.loansRepaid === 1 ? "loan" : "loans"} repaid`,
-    r.defaults === 0 ? "no defaults" : `${r.defaults} ${r.defaults === 1 ? "default" : "defaults"}`,
+    tn("record.onTime", months, {
+      pct: (r.onTimeBps / 100).toFixed(r.onTimeBps % 100 === 0 ? 0 : 1),
+    }),
+    tn("record.repaid", r.loansRepaid),
+    r.defaults === 0 ? t("record.noDefaults") : tn("record.defaultCount", r.defaults),
   ];
-  return `${parts.join(", ")}, across ${r.circles} ${r.circles === 1 ? "circle" : "circles"}.`;
+  return tn("record.across", r.circles, { parts: parts.join(", ") });
 }
 
 export function parseAddress(raw: string | null): Address | null {

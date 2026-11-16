@@ -18,6 +18,7 @@ import { parseEventLogs } from "viem";
 import { PageHeader } from "@/components/app/page-header";
 import { Button, InlineAlert, TxTracker } from "@/components/kit";
 import { RequireWallet } from "@/components/wallet/require-wallet";
+import { useT } from "@/i18n/react";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { type AssetSymbol, fmt } from "@/lib/asset";
 import { useFactory, useFactoryUsdt } from "@/lib/circle";
@@ -61,11 +62,14 @@ function NewCircle() {
   const { usdt } = useFactoryUsdt();
   const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
+  const { t, tn, locale } = useT();
   const [templateId, setTemplateId] = useState<TemplateId>(DEFAULT_TEMPLATE);
   const template = templateById(templateId) ?? TEMPLATES[0]!;
   const [form, setForm] = useState<FormState>(() => applyTemplate(DEFAULTS, template));
   const [touched, setTouched] = useState(false);
-  const v = useMemo(() => validate(form, address), [form, address]);
+  // Messages come from the active language, so a switch re-validates.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const v = useMemo(() => validate(form, address), [form, address, locale]);
   const set =
     (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -111,10 +115,8 @@ function NewCircle() {
   if (!factory) {
     return (
       <>
-        <PageHeader title="Start a circle" />
-        <InlineAlert tone="warn">
-          {"WealthKart isn't live on this network yet. Check back soon."}
-        </InlineAlert>
+        <PageHeader title={t("create.title")} />
+        <InlineAlert tone="warn">{t("create.notLive")}</InlineAlert>
       </>
     );
   }
@@ -123,21 +125,18 @@ function NewCircle() {
 
   return (
     <div className="max-w-[720px]">
-      <PageHeader
-        title="Start a circle"
-        subtitle="Set the rules once. After that, changes need a vote from the members."
-      />
+      <PageHeader title={t("create.title")} subtitle={t("create.subtitle")} />
 
       <div className="grid gap-12">
-        <Section title="1. Pick a starting point">
+        <Section title={t("create.section.template")}>
           <TemplatePicker value={template} onChange={pickTemplate} />
           <TemplateSummary template={template} asset={form.asset} changed={changed} />
         </Section>
 
-        <Section title="2. The basics">
+        <Section title={t("create.section.basics")}>
           <Field
-            label="Circle name"
-            hint="Shown to members. Letters, numbers and spaces; no web addresses. It's public on the blockchain, so don't use personal details."
+            label={t("create.field.name")}
+            hint={t("create.field.nameHint")}
             error={err("name")}
           >
             <input
@@ -145,30 +144,24 @@ function NewCircle() {
               className={inputCls}
               value={form.name}
               onChange={set("name")}
-              placeholder="College Gang"
+              placeholder={t("create.field.namePlaceholder")}
               maxLength={60}
             />
           </Field>
         </Section>
 
-        <Section title="3. Money the circle holds">
+        <Section title={t("create.section.asset")}>
           <AssetChoice value={form.asset} usdtAvailable={Boolean(usdt)} onChange={pickAsset} />
           {form.asset === "USDT" && (
-            <InlineAlert tone="warn" title="Before you pick USDT">
-              <span data-testid="usdt-warning">
-                Tether, the company behind USDT, can freeze any wallet. If it froze this
-                circle&apos;s, nobody could get the money out. If it froze a member&apos;s, their
-                payout waits in the circle until Tether lets it through. If Tether ever adds a
-                transfer fee, the circle covers small fees (up to 1%) so payments keep working.
-                Network fees are still paid in AVAX, so every member needs a little AVAX too.
-              </span>
+            <InlineAlert tone="warn" title={t("create.usdtWarningTitle")}>
+              <span data-testid="usdt-warning">{t("create.usdtWarning")}</span>
             </InlineAlert>
           )}
         </Section>
 
-        <Section title="4. Monthly installment">
+        <Section title={t("create.section.installment")}>
           <div className="grid gap-6 sm:grid-cols-2">
-            <Field label={`Amount each month (${unit})`} error={err("installment")}>
+            <Field label={t("create.field.amount", { unit })} error={err("installment")}>
               <input
                 id="installment"
                 className={inputCls}
@@ -178,8 +171,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Due day of the month"
-              hint="Payments are due by 23:59 UTC on this day."
+              label={t("create.field.dueDay")}
+              hint={t("create.field.dueDayHint")}
               error={err("dueDay")}
             >
               <input
@@ -190,7 +183,7 @@ function NewCircle() {
                 onChange={set("dueDay")}
               />
             </Field>
-            <Field label={`Late fee after the due day (${unit})`} error={err("fee1")}>
+            <Field label={t("create.field.fee1", { unit })} error={err("fee1")}>
               <input
                 id="fee1"
                 className={inputCls}
@@ -199,7 +192,7 @@ function NewCircle() {
                 onChange={set("fee1")}
               />
             </Field>
-            <Field label={`Second late fee (${unit})`} error={err("fee2")}>
+            <Field label={t("create.field.fee2", { unit })} error={err("fee2")}>
               <input
                 id="fee2"
                 className={inputCls}
@@ -208,7 +201,7 @@ function NewCircle() {
                 onChange={set("fee2")}
               />
             </Field>
-            <Field label="Second fee starts after day" error={err("secondFeeDay")}>
+            <Field label={t("create.field.secondFeeDay")} error={err("secondFeeDay")}>
               <input
                 id="secondFeeDay"
                 className={inputCls}
@@ -218,8 +211,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Payment holidays per year"
-              hint="A holiday delays one month's payment with no late fee."
+              label={t("create.field.holidays")}
+              hint={t("create.field.holidaysHint")}
               error={err("holidays")}
             >
               <input
@@ -231,8 +224,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Missed months before a dormant vote"
-              hint="If someone loses their wallet, the circle can vote to pause their payments after this many missed months. Their savings stay theirs."
+              label={t("create.field.dormantAfter")}
+              hint={t("create.field.dormantAfterHint")}
               error={err("dormantAfter")}
             >
               <input
@@ -244,8 +237,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Payments before a new member can vote"
-              hint="Friends you start with vote straight away. Someone voted in later votes after paying this many months, so nobody can stack the circle with spare wallets."
+              label={t("create.field.minPaidToVote")}
+              hint={t("create.field.minPaidToVoteHint")}
               error={err("minPaidToVote")}
             >
               <input
@@ -259,11 +252,11 @@ function NewCircle() {
           </div>
         </Section>
 
-        <Section title="5. Loans, votes and leaving">
+        <Section title={t("create.section.loans")}>
           <div className="grid gap-6 sm:grid-cols-2">
             <Field
-              label="Loan interest per month (%)"
-              hint="0 to 5. Later loan terms never charge less than this."
+              label={t("create.field.interestPct")}
+              hint={t("create.field.interestPctHint")}
               error={err("interestPct")}
             >
               <input
@@ -275,8 +268,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Loan limit vs savings"
-              hint="A loan can be this many times your savings plus your guarantor's, 1 to 10."
+              label={t("create.field.kMultiplier")}
+              hint={t("create.field.kMultiplierHint")}
               error={err("kMultiplier")}
             >
               <input
@@ -288,8 +281,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Voters who must take part (%)"
-              hint={`${MIN_QUORUM_PCT} to ${MAX_QUORUM_PCT}. A vote only counts once this share of voters has voted.`}
+              label={t("create.field.quorumPct")}
+              hint={t("create.field.quorumPctHint", { min: MIN_QUORUM_PCT, max: MAX_QUORUM_PCT })}
               error={err("quorumPct")}
             >
               <input
@@ -301,8 +294,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Yes votes needed (%)"
-              hint="50 to 100, for loans and rule changes. 50 means more than half."
+              label={t("create.field.passPct")}
+              hint={t("create.field.passPctHint")}
               error={err("passPct")}
             >
               <input
@@ -314,8 +307,8 @@ function NewCircle() {
               />
             </Field>
             <Field
-              label="Notice to leave (days)"
-              hint="0 to 90. A member who leaves is paid out after this many days."
+              label={t("create.field.exitNoticeDays")}
+              hint={t("create.field.exitNoticeDaysHint")}
               error={err("exitNoticeDays")}
             >
               <input
@@ -338,19 +331,18 @@ function NewCircle() {
               }
             />
             <span className="grid gap-1">
-              <span className="text-[14px] font-medium">Every loan needs a guarantor</span>
+              <span className="text-[14px] font-medium">{t("create.field.guarantor")}</span>
               <span className="text-[13px] text-muted-foreground">
-                Another member backs the loan with their savings. Members can change any of these
-                rules later by vote.
+                {t("create.field.guarantorHint")}
               </span>
             </span>
           </label>
         </Section>
 
-        <Section title="6. Members">
+        <Section title={t("create.section.members")}>
           <Field
-            label="Most members the circle can have"
-            hint={`${MIN_MAX_MEMBERS} to ${MAX_MAX_MEMBERS}. It can't be raised later. The starting point only suggests a number; pick what suits your circle.`}
+            label={t("create.field.maxMembers")}
+            hint={t("create.field.maxMembersHint", { min: MIN_MAX_MEMBERS, max: MAX_MAX_MEMBERS })}
             error={err("maxMembers")}
           >
             <input
@@ -363,13 +355,12 @@ function NewCircle() {
           </Field>
           {v.bigCircle && !v.errors.maxMembers && (
             <p className="text-[13px] text-muted-foreground" data-testid="big-circle-note">
-              Bigger circles mean slower votes: every loan, new member and rule change needs enough
-              of them to take part. Most friend circles work best with 20 or fewer.
+              {t("create.field.bigCircle")}
             </p>
           )}
           <Field
-            label="Friends' wallet addresses"
-            hint="One per line. You join straight away; each friend gets an invite and becomes a member once they accept it in the app."
+            label={t("create.field.founders")}
+            hint={t("create.field.foundersHint")}
             error={err("founders")}
           >
             <textarea
@@ -381,28 +372,28 @@ function NewCircle() {
             />
           </Field>
           <p className="text-[13px] text-muted-foreground">
-            {v.founders.length} {v.founders.length === 1 ? "member" : "members"} · each pays{" "}
-            {v.cfg ? fmt(v.cfg.installment, v.asset) : "–"} {unit} a month
+            {tn("create.field.foundersCount", v.founders.length, {
+              amount: v.cfg ? fmt(v.cfg.installment, v.asset) : "–",
+              unit,
+            })}
           </p>
         </Section>
 
         <InlineAlert tone="info">
-          {TARGET_CHAIN.testnet
-            ? "This runs on the Fuji test network, so use test money only. A circle's money and member limit can't be changed after it's created."
-            : "This uses real money on Avalanche. A circle's money and member limit can't be changed after it's created."}
+          {TARGET_CHAIN.testnet ? t("create.testnetNote") : t("create.mainnetNote")}
         </InlineAlert>
 
         <div className="grid gap-6">
           <Button
             size="lg"
             icon={Sparkles}
-            workingLabel="Creating…"
+            workingLabel={t("create.submitting")}
             state={busy ? "working" : undefined}
             onClick={create}
             disabled={touched && !v.ok}
-            disabledReason="Fix the fields marked above"
+            disabledReason={t("create.fixFields")}
           >
-            Create circle
+            {t("create.submit")}
           </Button>
           {tx.status !== "idle" && (
             <TxTracker
@@ -434,22 +425,21 @@ function TemplatePicker({
   onChange,
 }: {
   value: CircleTemplate;
-  onChange: (t: CircleTemplate) => void;
+  onChange: (tpl: CircleTemplate) => void;
 }) {
+  const { t } = useT();
   return (
     <fieldset className="grid gap-4">
-      <legend className="sr-only">Pick a starting point</legend>
-      <p className="text-[14px] text-muted-foreground">
-        Each one fills in the rules below. You can change any of them before you create the circle.
-      </p>
+      <legend className="sr-only">{t("create.picker.legend")}</legend>
+      <p className="text-[14px] text-muted-foreground">{t("create.picker.intro")}</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        {TEMPLATES.map((t) => {
-          const Icon = TEMPLATE_ICON[t.id];
-          const on = value.id === t.id;
+        {TEMPLATES.map((tpl) => {
+          const Icon = TEMPLATE_ICON[tpl.id];
+          const on = value.id === tpl.id;
           return (
             <label
-              key={t.id}
-              data-testid={`template-${t.id}`}
+              key={tpl.id}
+              data-testid={`template-${tpl.id}`}
               className={cn(
                 "group flex cursor-pointer items-start gap-4 rounded-[12px] border px-5 py-5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand/30",
                 on ? "border-brand bg-brand-soft" : "border-border hover:bg-secondary",
@@ -458,11 +448,11 @@ function TemplatePicker({
               <input
                 type="radio"
                 name="template"
-                value={t.id}
-                aria-label={t.name}
+                value={tpl.id}
+                aria-label={tpl.name}
                 className="sr-only"
                 checked={on}
-                onChange={() => onChange(t)}
+                onChange={() => onChange(tpl)}
               />
               <span
                 className={cn(
@@ -478,9 +468,9 @@ function TemplatePicker({
                 )}
               </span>
               <span className="grid gap-1">
-                <span className="text-[15px] font-medium">{t.name}</span>
+                <span className="text-[15px] font-medium">{tpl.name}</span>
                 <span className="text-[12.5px] leading-relaxed text-muted-foreground">
-                  {t.blurb}
+                  {tpl.blurb}
                 </span>
               </span>
             </label>
@@ -501,6 +491,7 @@ function TemplateSummary({
   asset: AssetSymbol;
   changed: number;
 }) {
+  const { t, tn } = useT();
   return (
     <div
       className="grid gap-4 rounded-[14px] border border-line-soft bg-card px-6 py-6"
@@ -509,17 +500,19 @@ function TemplateSummary({
     >
       <p className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="font-display text-[22px] leading-tight">
-          {template.id === "custom" ? "Your own rules" : `What ${template.name} means`}
+          {template.id === "custom"
+            ? t("create.summary.custom")
+            : t("create.summary.means", { name: template.name })}
         </span>
         {changed > 0 && (
           <span className="text-[12.5px] text-muted-foreground" data-testid="template-changed">
-            You changed {changed} {changed === 1 ? "setting" : "settings"}
+            {tn("create.summary.changed", changed)}
           </span>
         )}
       </p>
       {template.id === "custom" ? (
         <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-          The fields start at the usual rules. Set each one the way your circle wants it.
+          {t("create.summary.customBody")}
         </p>
       ) : (
         <ul className="grid gap-2.5 text-[13.5px] leading-relaxed text-muted-foreground">
@@ -548,21 +541,17 @@ function AssetChoice({
   usdtAvailable: boolean;
   onChange: (a: AssetSymbol) => void;
 }) {
+  const { t } = useT();
   const options: Array<{ id: AssetSymbol; body: string }> = [
-    {
-      id: "AVAX",
-      body: "Avalanche's own coin. Its price moves, so savings can rise or fall in value.",
-    },
+    { id: "AVAX", body: t("create.assetChoice.avax") },
     {
       id: "USDT",
-      body: usdtAvailable
-        ? "A digital dollar from Tether. Stays close to 1 US dollar."
-        : "Not available on this network yet.",
+      body: usdtAvailable ? t("create.assetChoice.usdt") : t("create.assetChoice.usdtUnavailable"),
     },
   ];
   return (
     <fieldset className="grid gap-4">
-      <legend className="sr-only">Money the circle holds</legend>
+      <legend className="sr-only">{t("create.assetChoice.legend")}</legend>
       <div className="grid gap-3 sm:grid-cols-2">
         {options.map((o) => {
           const disabled = o.id === "USDT" && !usdtAvailable;
@@ -600,7 +589,7 @@ function AssetChoice({
       </div>
       <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
         <Lock className="size-3.5" strokeWidth={1.5} aria-hidden />
-        Fixed forever. Members pay, borrow and get paid out in this; it can never be switched.
+        {t("create.assetChoice.fixed")}
       </p>
     </fieldset>
   );

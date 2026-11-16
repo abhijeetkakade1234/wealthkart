@@ -1,3 +1,4 @@
+import { getLocale, t, tn } from "@/i18n/runtime";
 import { type AssetSymbol, parseAmount } from "@/lib/asset";
 import { DEFAULTS, formAsset, type FormState } from "@/lib/circle-form";
 import { formatBps } from "@/lib/rules";
@@ -61,14 +62,22 @@ const FRIENDS_AMOUNTS = {
 export const TEMPLATES: readonly CircleTemplate[] = [
   {
     id: "friends",
-    name: "Friends",
-    blurb: "The usual rules. Small late fees, loans up to twice your savings.",
+    get name() {
+      return t("create.tpl.friends");
+    },
+    get blurb() {
+      return t("create.tpl.friendsBlurb");
+    },
     values: both(FRIENDS, FRIENDS_AMOUNTS),
   },
   {
     id: "family",
-    name: "Family",
-    blurb: "Gentler. Tiny late fees, more payment holidays, a longer notice to leave.",
+    get name() {
+      return t("create.tpl.family");
+    },
+    get blurb() {
+      return t("create.tpl.familyBlurb");
+    },
     values: both(
       {
         maxMembers: "10",
@@ -92,8 +101,12 @@ export const TEMPLATES: readonly CircleTemplate[] = [
   },
   {
     id: "office",
-    name: "Office",
-    blurb: "Stricter, for colleagues. Every loan needs a guarantor and more people must vote.",
+    get name() {
+      return t("create.tpl.office");
+    },
+    get blurb() {
+      return t("create.tpl.officeBlurb");
+    },
     values: both(
       {
         maxMembers: "20",
@@ -117,8 +130,12 @@ export const TEMPLATES: readonly CircleTemplate[] = [
   },
   {
     id: "custom",
-    name: "Custom",
-    blurb: "Start from the usual rules and set every field yourself.",
+    get name() {
+      return t("create.tpl.custom");
+    },
+    get blurb() {
+      return t("create.tpl.customBlurb");
+    },
     values: both(FRIENDS, FRIENDS_AMOUNTS),
   },
 ];
@@ -192,33 +209,50 @@ function feeShare(fee: string, installment: string, symbol: AssetSymbol): string
   return formatBps(Number((f * 10_000n) / i));
 }
 
-const plural = (n: number, one: string, many: string) => `${String(n)} ${n === 1 ? one : many}`;
-
 /** What a template means, in a few plain sentences (shown under the template cards). */
-export function templateSummary(t: CircleTemplate, symbol: AssetSymbol): string[] {
-  const v = t.values[symbol];
+export function templateSummary(tpl: CircleTemplate, symbol: AssetSymbol): string[] {
+  const v = tpl.values[symbol];
   const fee1Share = feeShare(v.fee1, v.installment, symbol);
   const sameFees = v.fee1 === v.fee2;
   const k = Number(v.kMultiplier);
   const quorum = Number(v.quorumPct);
   const pass = Number(v.passPct);
+  const dueDay = Number(v.dueDay);
+  const share = fee1Share ? t("create.tpl.feeShare", { share: fee1Share }) : "";
   return [
-    `Suggested monthly amount: ${v.installment} ${symbol}, due by ${ordinal(Number(v.dueDay))} of each month.`,
-    `Late fee after the due day: ${v.fee1} ${symbol}${fee1Share ? ` (${fee1Share} of the monthly amount)` : ""}, ${
-      sameFees ? "and the same again" : `then ${v.fee2} ${symbol}`
-    } after day ${v.secondFeeDay}.`,
-    `${plural(Number(v.holidays), "payment holiday", "payment holidays")} a year, to pay a month late with no fee.`,
-    `Loans at ${v.interestPct}% a month, up to ${k === 1 ? "your savings" : `${String(k)} times your savings`} plus your guarantor's. ${
-      v.guarantorRequired === "true" ? "Every loan needs a guarantor." : "A guarantor is optional."
-    }`,
-    `A vote counts once at least ${quorum === 50 ? "half" : `${String(quorum)}%`} of the voters take part. Loans and rule changes pass with ${
-      pass === 50 ? "more than half" : `at least ${String(pass)}%`
-    } saying yes.`,
-    `${plural(Number(v.exitNoticeDays), "day's", "days'")} notice to leave. New members vote after ${plural(
-      Number(v.minPaidToVote),
-      "payment",
-      "payments",
-    )}.`,
-    `Suggested size: up to ${v.maxMembers} members.`,
+    t("create.tpl.amount", {
+      amount: v.installment,
+      symbol,
+      // "the 10th" in English; Hindi and Marathi write the plain number before "तारीख".
+      due: getLocale() === "en" ? ordinal(dueDay) : String(dueDay),
+    }),
+    sameFees
+      ? t("create.tpl.feeSame", { fee: v.fee1, symbol, share, day: v.secondFeeDay })
+      : t("create.tpl.feeThen", {
+          fee: v.fee1,
+          symbol,
+          share,
+          fee2: v.fee2,
+          day: v.secondFeeDay,
+        }),
+    tn("create.tpl.holidays", Number(v.holidays)),
+    t("create.tpl.loans", {
+      rate: v.interestPct,
+      limit: k === 1 ? t("create.tpl.limitSavings") : t("create.tpl.limitTimes", { k }),
+      guarantor:
+        v.guarantorRequired === "true"
+          ? t("create.tpl.guarantorNeeded")
+          : t("create.tpl.guarantorOptional"),
+    }),
+    t("create.tpl.votes", {
+      quorum: quorum === 50 ? t("create.tpl.quorumHalf") : t("create.tpl.pct", { pct: quorum }),
+      pass:
+        pass === 50 ? t("create.tpl.passMoreThanHalf") : t("create.tpl.passAtLeast", { pct: pass }),
+    }),
+    t("create.tpl.notice", {
+      days: tn("create.tpl.noticeDays", Number(v.exitNoticeDays)),
+      payments: tn("create.tpl.payments", Number(v.minPaidToVote)),
+    }),
+    t("create.tpl.size", { max: v.maxMembers }),
   ];
 }

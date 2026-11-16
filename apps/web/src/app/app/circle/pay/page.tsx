@@ -1,6 +1,6 @@
 "use client";
 
-import { circleVaultAbi, formatAvax, periodLabel } from "@wealthkart/sdk";
+import { circleVaultAbi, formatAvax } from "@wealthkart/sdk";
 import { CalendarClock, Send } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -17,8 +17,9 @@ import { Button, InlineAlert, StateView, TxTracker } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useT } from "@/i18n/react";
 import { fmt, isToken, useTokenBalance } from "@/lib/asset";
-import { parseCircleId, useCircle } from "@/lib/circle";
+import { monthLabel, parseCircleId, useCircle } from "@/lib/circle";
 import { messages } from "@/lib/messages";
 import { notify } from "@/lib/toast";
 import { useAssetPayment } from "@/lib/use-asset-payment";
@@ -50,13 +51,14 @@ function Pay() {
   const asset = payment.asset;
   const token = useTokenBalance(asset, address);
   const holidayTx = useTx();
+  const { t } = useT();
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
   if (c.isPending || !c.data || payment.assetPending) {
     return (
       <StateView
         state="loading"
-        label="Loading what you owe"
+        label={t("pay.loading")}
         skeleton={<Skeleton className="h-64 max-w-[640px] rounded-[14px]" />}
       />
     );
@@ -67,7 +69,7 @@ function Pay() {
   if (!d.isMember) return <StateView state="access" reason="not-member" />;
 
   const due = d.due;
-  const month = due ? periodLabel(due.period) : "";
+  const month = due ? monthLabel(due.period) : "";
 
   /** Re-read right before paying (and again before a second approve): a late fee may have started. */
   async function amountNow(): Promise<bigint> {
@@ -118,9 +120,7 @@ function Pay() {
       writeContractAsync({ abi: circleVaultAbi, address: id, functionName: "declareHoliday" }),
     );
     if (receipt) {
-      notify.success(
-        `Payment holiday taken for ${month}. No late fee until next month's due date.`,
-      );
+      notify.success(t("pay.holidayTaken", { month }));
       void c.refetch();
     }
   }
@@ -136,7 +136,7 @@ function Pay() {
   return (
     <div className="max-w-[640px]">
       <PageHeader
-        title="Pay"
+        title={t("pay.title")}
         subtitle={
           <span className="inline-flex flex-wrap items-center gap-2.5">
             {d.name}
@@ -149,19 +149,23 @@ function Pay() {
       {!due?.payable ? (
         <StateView
           state="empty"
-          message={`You're all paid up. Your next installment is for ${due ? periodLabel(due.period) : "next month"}.`}
-          action={{ label: "Back to circle", onAction: () => router.push(`/app/circle/?id=${id}`) }}
+          message={due ? t("pay.allPaid", { month: monthLabel(due.period) }) : t("pay.allPaidNext")}
+          action={{
+            label: t("pay.backToCircle"),
+            onAction: () => router.push(`/app/circle/?id=${id}`),
+          }}
         />
       ) : (
         <div className="grid gap-8">
           {d.iAmDormant && (
-            <InlineAlert tone="info" title="Paying brings you back">
-              The circle marked you dormant, so nothing from the months you missed is owed. This
-              payment covers {month} only, and your monthly payments start again after it.
+            <InlineAlert tone="info" title={t("pay.dormantTitle")}>
+              {t("pay.dormantBody", { month })}
             </InlineAlert>
           )}
           <div className="grid gap-5 rounded-[14px] border border-[#f1e2c4] bg-warn-soft p-8">
-            <span className="text-[13px] text-muted-foreground">Installment for {month}</span>
+            <span className="text-[13px] text-muted-foreground">
+              {t("pay.installmentFor", { month })}
+            </span>
             <span
               className="font-display text-[56px] leading-none tracking-tight tabular"
               data-testid="pay-amount"
@@ -174,8 +178,7 @@ function Pay() {
             <CountdownUTC period={Number(due.period)} dueDay={d.dueDay} />
             {due.fees > 0n && (
               <p className="text-[13.5px] text-warn">
-                Includes {fmt(due.fees, asset)} {asset.symbol} in late fees. Fees go into the
-                circle, so every member shares them.
+                {t("pay.includesFees", { amount: fmt(due.fees, asset), symbol: asset.symbol })}
               </p>
             )}
           </div>
@@ -206,9 +209,7 @@ function Pay() {
           {isToken(asset) && <TestUsdtFaucet onMinted={() => void token.refetch()} />}
           {isToken(asset) && !tooPoor && (
             <p className="text-[13px] leading-relaxed text-muted-foreground">
-              Paying in USDT takes two steps in your wallet: approve, then pay. You approve up to
-              the installment plus both late fees, so a fee starting mid-way can&apos;t stop the
-              payment; the circle only takes what&apos;s due.
+              {t("pay.usdtSteps")}
             </p>
           )}
 
@@ -218,13 +219,13 @@ function Pay() {
               icon={Send}
               payment={payment}
               amount={due.amount}
-              label="Pay"
+              label={t("pay.payVerb")}
               onClick={pay}
               disabled={Boolean(tooPoor)}
               disabledReason={
                 tooPoorToken
-                  ? `Add ${asset.symbol} to your wallet first`
-                  : "Add AVAX to your wallet first"
+                  ? t("pay.addTokenFirst", { symbol: asset.symbol })
+                  : t("pay.addAvaxFirst")
               }
             />
             {due.fees === 0n && d.holidaysPerYear > 0 && (
@@ -232,7 +233,7 @@ function Pay() {
                 size="lg"
                 variant="secondary"
                 icon={CalendarClock}
-                workingLabel="Saving…"
+                workingLabel={t("pay.saving")}
                 state={
                   holidayTx.status === "confirm" || holidayTx.status === "sending"
                     ? "working"
@@ -240,7 +241,7 @@ function Pay() {
                 }
                 onClick={holiday}
               >
-                Need more time this month
+                {t("pay.needMoreTime")}
               </Button>
             )}
           </div>

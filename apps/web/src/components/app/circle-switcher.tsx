@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useT } from "@/i18n/react";
 import { useMyCircles } from "@/lib/circle";
 
 /** Circle sub-pages that make sense for any circle; switching keeps you on the same one. */
@@ -35,6 +36,7 @@ export function switchHref(pathname: string, target: Address): string {
  */
 export function CircleSwitcher({ circleId }: { circleId: Address | null }) {
   const pathname = usePathname();
+  const { t } = useT();
   const { address } = useCoreWallet();
   const mine = useMyCircles(1);
   const openName = useReadContract({
@@ -52,14 +54,14 @@ export function CircleSwitcher({ circleId }: { circleId: Address | null }) {
       : openName.isSuccess
         ? openName.data
         : shortAddress(circleId)
-    : "Pick a circle";
+    : t("kit.pickCircle");
   const hasMore = mine.total !== undefined && mine.total > mine.circles.length;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className="hidden h-9 max-w-[220px] items-center gap-2 rounded-full border border-border px-3.5 text-[13px] text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex"
-        aria-label="Switch circle"
+        aria-label={t("kit.switchCircle")}
       >
         {label === null ? (
           <Skeleton className="h-3.5 w-24" />
@@ -74,7 +76,7 @@ export function CircleSwitcher({ circleId }: { circleId: Address | null }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 p-1.5">
         <DropdownMenuLabel className="text-[12px] font-normal text-muted-foreground">
-          Your circles
+          {t("kit.yourCircles")}
         </DropdownMenuLabel>
         {mine.isPending ? (
           <div className="space-y-2 px-2 py-2">
@@ -83,12 +85,10 @@ export function CircleSwitcher({ circleId }: { circleId: Address | null }) {
           </div>
         ) : mine.isError ? (
           <p className="px-2 py-2 text-[13px] text-muted-foreground">
-            We couldn&apos;t load your circles right now.
+            {t("kit.circlesLoadFailed")}
           </p>
         ) : mine.circles.length === 0 ? (
-          <p className="px-2 py-2 text-[13px] text-muted-foreground">
-            You&apos;re not in a circle yet.
-          </p>
+          <p className="px-2 py-2 text-[13px] text-muted-foreground">{t("kit.noCirclesYet")}</p>
         ) : (
           mine.circles.map((c) => (
             <DropdownMenuItem key={c.address} asChild>
@@ -98,7 +98,7 @@ export function CircleSwitcher({ circleId }: { circleId: Address | null }) {
                   <Check
                     className="ml-auto size-4 text-brand"
                     strokeWidth={1.5}
-                    aria-label="Open now"
+                    aria-label={t("kit.openNow")}
                   />
                 ) : null}
               </Link>
@@ -110,14 +110,14 @@ export function CircleSwitcher({ circleId }: { circleId: Address | null }) {
           <DropdownMenuItem asChild>
             <Link href="/app/" className="flex items-center gap-2">
               <LayoutGrid className="size-4" strokeWidth={1.5} aria-hidden />
-              See all {mine.total} circles
+              {t("kit.seeAllCircles", { count: String(mine.total) })}
             </Link>
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem asChild>
           <Link href="/app/new/" className="flex items-center gap-2">
             <Plus className="size-4" strokeWidth={1.5} aria-hidden />
-            Start a circle
+            {t("kit.startCircle")}
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

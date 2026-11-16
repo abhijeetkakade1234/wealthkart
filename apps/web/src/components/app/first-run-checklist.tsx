@@ -7,6 +7,8 @@ import { useBalance } from "wagmi";
 
 import { Button } from "@/components/kit";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useT } from "@/i18n/react";
+import type { PlainKey } from "@/i18n/types";
 import {
   type ChecklistItem,
   checklistItems,
@@ -30,6 +32,7 @@ import { TARGET_CHAIN } from "@/lib/wagmi";
  */
 export function FirstRunChecklist({ inCircle }: { inCircle: boolean | undefined | null }) {
   const { address } = useCoreWallet();
+  const { t } = useT();
   const balance = useBalance({ address, query: { enabled: Boolean(address) } });
   const backup = useBackupCoverage();
   const [state, setState] = useState<FirstRunState | null>(null);
@@ -68,18 +71,18 @@ export function FirstRunChecklist({ inCircle }: { inCircle: boolean | undefined 
       <div className="flex items-start justify-between gap-6">
         <div className="grid gap-1.5">
           <h2 id="first-run-h" className="font-display text-[26px] leading-tight">
-            Before you start
+            {t("checklist.title")}
           </h2>
           <p className="text-[13.5px] text-muted-foreground">
-            {done} of {items.length} done.{" "}
+            {t("checklist.progress", { done, total: items.length })}{" "}
             <Link href="/start/" className="text-brand underline-offset-4 hover:underline">
-              Read the full guide
+              {t("checklist.readGuide")}
             </Link>
           </p>
         </div>
         <button
           type="button"
-          aria-label="Hide this checklist"
+          aria-label={t("checklist.hide")}
           onClick={() => {
             update({ ...(state ?? EMPTY_FIRST_RUN), dismissed: true });
             notify.info(messages.checklistHidden());
@@ -93,7 +96,7 @@ export function FirstRunChecklist({ inCircle }: { inCircle: boolean | undefined 
       <div
         className="mt-6 h-px w-full overflow-hidden bg-line-soft"
         role="progressbar"
-        aria-label="Checklist progress"
+        aria-label={t("checklist.progressLabel")}
         aria-valuemin={0}
         aria-valuemax={items.length}
         aria-valuenow={done}
@@ -151,15 +154,17 @@ function StatusMark({ status }: { status: ChecklistItem["status"] }) {
   return <span className={cn(base, "border-border")} />;
 }
 
-const STATUS_TEXT: Record<ChecklistItem["status"], string> = {
-  done: "Done",
-  todo: "To do",
-  checking: "Checking",
-  unknown: messages.checklistCantCheck(),
+const STATUS_TEXT: Record<Exclude<ChecklistItem["status"], "unknown">, PlainKey> = {
+  done: "checklist.statusDone",
+  todo: "checklist.statusTodo",
+  checking: "checklist.statusChecking",
 };
 
 function ChecklistRow({ item, onToggle }: { item: ChecklistItem; onToggle?: () => void }) {
+  const { t } = useT();
   const done = item.status === "done";
+  const statusText =
+    item.status === "unknown" ? messages.checklistCantCheck() : t(STATUS_TEXT[item.status]);
   return (
     <li
       className="flex flex-col gap-4 border-b border-line-soft py-5 last:border-0 sm:flex-row sm:items-center sm:justify-between"
@@ -171,10 +176,10 @@ function ChecklistRow({ item, onToggle }: { item: ChecklistItem; onToggle?: () =
         <div className="grid gap-1">
           <span className={cn("text-[15px] font-medium", done && "text-muted-foreground")}>
             {item.title}
-            <span className="sr-only">: {STATUS_TEXT[item.status]}</span>
+            <span className="sr-only">: {statusText}</span>
           </span>
           <span className="text-[13px] text-muted-foreground">
-            {item.status === "unknown" ? STATUS_TEXT.unknown : item.hint}
+            {item.status === "unknown" ? statusText : item.hint}
           </span>
         </div>
       </div>
@@ -183,9 +188,9 @@ function ChecklistRow({ item, onToggle }: { item: ChecklistItem; onToggle?: () =
           <Link
             href={item.href}
             className="group inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13.5px] text-brand transition-colors hover:bg-brand-soft"
-            aria-label={`How to: ${item.title}`}
+            aria-label={t("checklist.howTo", { title: item.title })}
           >
-            Show me how
+            {t("checklist.showMe")}
             <ArrowUpRight
               className="size-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
               strokeWidth={1.75}
@@ -195,7 +200,7 @@ function ChecklistRow({ item, onToggle }: { item: ChecklistItem; onToggle?: () =
         )}
         {onToggle && (
           <Button size="sm" variant={done ? "ghost" : "secondary"} onClick={onToggle}>
-            {done ? "Undo" : "I've done this"}
+            {done ? t("checklist.undo") : t("checklist.doneThis")}
           </Button>
         )}
       </div>

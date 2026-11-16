@@ -13,6 +13,8 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { ErrorBoundary } from "@/components/kit";
+import { useT } from "@/i18n/react";
+import type { PlainKey } from "@/i18n/types";
 import { type CircleAsset, money, toNumber } from "@/lib/asset";
 import type { DecodedLog } from "@/lib/events";
 import {
@@ -61,12 +63,13 @@ export function CircleLoanCharts({
     if (n?.status === "success" && n.result) map.set(r.borrower.toLowerCase(), n.result as string);
   });
   const name = (a: string) => map.get(a.toLowerCase()) || shortAddress(a);
+  const { t } = useT();
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      <ErrorBoundary preset="widget" name="Loans outstanding per member">
+      <ErrorBoundary preset="widget" name={t("analytics.widgetOutstanding")}>
         <OutstandingChart rows={rows} name={name} asset={asset} />
       </ErrorBoundary>
-      <ErrorBoundary preset="widget" name="Where the money is">
+      <ErrorBoundary preset="widget" name={t("analytics.widgetSplit")}>
         <MoneySplitChart
           split={moneySplit(totals.totalAssets, totals.loansOutstanding, totals.reserveBps)}
           asset={asset}
@@ -84,10 +87,6 @@ const axis = {
   stroke: "var(--faint)",
 } as const;
 
-const outstandingConfig = {
-  owed: { label: "Still owed", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
 /** Ranked horizontal bars, one hue (magnitude, not identity), biggest first. */
 export function OutstandingChart({
   rows,
@@ -98,16 +97,23 @@ export function OutstandingChart({
   name: (address: string) => string;
   asset: CircleAsset;
 }) {
+  const { t, formatNumber } = useT();
+  const outstandingConfig = {
+    owed: { label: t("analytics.stillOwed"), color: "var(--chart-1)" },
+  } satisfies ChartConfig;
   const data = rows.map((r) => ({
     member: name(r.borrower),
     owed: toNumber(r.outstanding, asset),
   }));
   return (
     <ChartFrame
-      title="Loans outstanding per member"
-      subtitle={`What each borrower still owes the circle, in ${asset.symbol}.`}
+      title={t("analytics.outstandingTitle")}
+      subtitle={t("analytics.outstandingSubtitle", { symbol: asset.symbol })}
       table={{
-        columns: ["Member", `Still owed (${asset.symbol})`],
+        columns: [
+          t("analytics.memberColumn"),
+          t("analytics.stillOwedColumn", { symbol: asset.symbol }),
+        ],
         rows: rows.map((r) => [name(r.borrower), avax(r.outstanding, asset)]),
       }}
     >
@@ -116,7 +122,7 @@ export function OutstandingChart({
           className="py-10 text-center text-[13.5px] text-muted-foreground"
           data-testid="no-loans-chart"
         >
-          Nobody owes the circle anything right now.
+          {t("analytics.nobodyOwes")}
         </p>
       ) : (
         <ChartContainer
@@ -126,7 +132,7 @@ export function OutstandingChart({
         >
           <BarChart data={data} layout="vertical" margin={{ left: 4, right: 16, top: 4 }}>
             <CartesianGrid horizontal={false} stroke="var(--line-soft)" />
-            <XAxis type="number" {...axis} tickFormatter={(v: number) => v.toLocaleString()} />
+            <XAxis type="number" {...axis} tickFormatter={(v: number) => formatNumber(v)} />
             <YAxis type="category" dataKey="member" {...axis} width={96} />
             <ChartTooltip cursor={{ fill: "var(--secondary)" }} content={<ChartTooltipContent />} />
             <Bar dataKey="owed" fill="var(--color-owed)" radius={[0, 4, 4, 0]} maxBarSize={24} />
@@ -137,24 +143,30 @@ export function OutstandingChart({
   );
 }
 
-const PARTS = [
-  { key: "free", label: "Cash free to lend", color: "var(--chart-1)" },
-  { key: "lent", label: "Lent out to members", color: "var(--chart-2)" },
-  { key: "reserve", label: "Reserve kept back", color: "var(--chart-6)" },
-] as const;
+const PARTS_RAW: ReadonlyArray<{
+  key: "free" | "lent" | "reserve";
+  labelKey: PlainKey;
+  color: string;
+}> = [
+  { key: "free", labelKey: "analytics.partFree", color: "var(--chart-1)" },
+  { key: "lent", labelKey: "analytics.partLent", color: "var(--chart-2)" },
+  { key: "reserve", labelKey: "analytics.partReserve", color: "var(--chart-6)" },
+];
 
 /**
  * "Where the money is": one tall segmented bar (dataviz Figures: 28px, 4px corners, 2px
  * surface gaps, share printed inside where it fits) with a legend in block order.
  */
 export function MoneySplitChart({ split, asset }: { split: MoneySplit; asset: CircleAsset }) {
+  const { t } = useT();
+  const PARTS = PARTS_RAW.map((p) => ({ ...p, label: t(p.labelKey) }));
   const parts = PARTS.map((p) => ({ ...p, value: split[p.key] })).filter((p) => p.value > 0n);
   return (
     <ChartFrame
-      title="Where the money is"
-      subtitle="The circle's value split into cash free to lend, money lent out, and the reserve it always keeps."
+      title={t("analytics.splitTitle")}
+      subtitle={t("analytics.splitSubtitle")}
       table={{
-        columns: ["Part", asset.symbol, "Share"],
+        columns: [t("analytics.partColumn"), asset.symbol, t("analytics.shareColumn")],
         rows: PARTS.map((p) => [
           p.label,
           avax(split[p.key], asset),
@@ -164,14 +176,14 @@ export function MoneySplitChart({ split, asset }: { split: MoneySplit; asset: Ci
     >
       {split.total === 0n ? (
         <p className="py-10 text-center text-[13.5px] text-muted-foreground">
-          Nothing paid in yet.
+          {t("analytics.nothingPaidIn")}
         </p>
       ) : (
         <div className="grid gap-6 pt-2">
           <p className="font-display text-[34px] leading-none tracking-tight">
             {avax(split.total, asset)}
             <small className="ml-1.5 font-sans text-[13px] tracking-normal text-muted-foreground">
-              {asset.symbol} in total
+              {t("analytics.inTotal", { symbol: asset.symbol })}
             </small>
           </p>
           <div

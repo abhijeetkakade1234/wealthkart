@@ -6,6 +6,7 @@ import type { Address } from "viem";
 import { Deadline } from "@/components/app/deadline";
 import { TxFor } from "@/components/app/tx-for";
 import { Button, InlineAlert } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { fmt, useCircleAsset } from "@/lib/asset";
 import type { CircleGov } from "@/lib/gov-hooks";
 import { messages } from "@/lib/messages";
@@ -15,12 +16,12 @@ import { useVaultAction } from "@/lib/use-vault-action";
 
 import { RuleDiffList } from "./rule-diff-list";
 
-const dateFmt = new Intl.DateTimeFormat("en-GB", {
+const DATE: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "long",
   year: "numeric",
   timeZone: "UTC",
-});
+};
 
 /**
  * A passed rule change waiting to apply (ADR 0019, 0040): what changes, when, the no-notice
@@ -38,6 +39,7 @@ export function RuleChangeBanner({
   onChanged: () => void;
 }) {
   const apply = useVaultAction(circle);
+  const { t, formatDate } = useT();
   const { asset } = useCircleAsset(circle);
   if (!gov.pendingRules || gov.pendingAt === 0 || !gov.rules) return null;
   const due = chainNow >= gov.pendingAt;
@@ -46,7 +48,7 @@ export function RuleChangeBanner({
   async function applyNow() {
     const receipt = await apply.send("applyRuleChange");
     if (receipt) {
-      notify.success("The new rules are in force.");
+      notify.success(t("votes.ruleChange.appliedToast"));
       onChanged();
     }
   }
@@ -66,30 +68,30 @@ export function RuleChangeBanner({
           <div className="grid gap-1.5">
             <p className="text-[15px] font-semibold">
               {due
-                ? "New rules are ready to apply"
-                : `New rules apply on ${dateFmt.format(new Date(gov.pendingAt * 1000))}`}
+                ? t("votes.ruleChange.readyTitle")
+                : t("votes.ruleChange.applyOn", {
+                    date: formatDate(new Date(gov.pendingAt * 1000), DATE),
+                  })}
             </p>
             <p className="max-w-[60ch] text-[13.5px] leading-relaxed text-foreground/80">
-              {due
-                ? "The waiting time is over. Anyone in the circle can put them into force now."
-                : "The members voted for these changes. Until they apply, anyone who doesn't want them can ask to leave and be out under today's rules."}
+              {due ? t("votes.ruleChange.readyBody") : t("votes.ruleChange.waitBody")}
             </p>
             <Deadline
               deadline={gov.pendingAt}
               chainNow={chainNow}
-              prefix="Starts"
-              pastText="ready now"
+              prefix={t("votes.ruleChange.starts")}
+              pastText={t("votes.ruleChange.readyNow")}
             />
           </div>
         </div>
         {due && (
           <Button
             icon={CalendarClock}
-            workingLabel="Applying…"
+            workingLabel={t("votes.ruleChange.applying")}
             state={apply.working ? "working" : undefined}
             onClick={applyNow}
           >
-            Apply new rules
+            {t("votes.ruleChange.apply")}
           </Button>
         )}
       </div>
@@ -120,6 +122,7 @@ export function DissolvedNotice({
   onChanged: () => void;
 }) {
   const claim = useVaultAction(circle);
+  const { t } = useT();
   const { asset } = useCircleAsset(circle);
   if (!gov.dissolved) return null;
   // Claims pay your share of the cash now; while loans are out, claim again as they're repaid
@@ -132,7 +135,7 @@ export function DissolvedNotice({
     const receipt = await claim.send("claimDissolution");
     if (receipt) {
       notify.success(
-        `Done. About ${fmt(value, asset)} ${asset.symbol} was sent to your wallet. Thank you for saving together.`,
+        t("votes.dissolved.claimedToast", { amount: fmt(value, asset), symbol: asset.symbol }),
       );
       onChanged();
     }
@@ -143,30 +146,31 @@ export function DissolvedNotice({
       <InlineAlert
         tone="warn"
         icon={Landmark}
-        title="This circle has voted to close"
+        title={t("votes.dissolved.title")}
         action={
           isMember ? (
             <Button
               icon={HandCoins}
-              workingLabel="Claiming…"
+              workingLabel={t("votes.dissolved.claiming")}
               state={claim.working ? "working" : undefined}
               onClick={claimShare}
               disabled={Boolean(blocked)}
               disabledReason={blocked}
             >
-              Claim your share
+              {t("votes.dissolved.claim")}
             </Button>
           ) : undefined
         }
       >
-        Payments have stopped and no new loans start.{" "}
-        {isMember
-          ? blocked
-            ? `${blocked} Your share stays safe in the circle until then.`
-            : partial
-              ? `You can claim your share of the cash now. Some money is still lent out, so claim again as loans are repaid. Your whole share is worth about ${fmt(share, asset)} ${asset.symbol}.`
-              : `Each member takes their share at today's value. Yours is about ${fmt(share, asset)} ${asset.symbol}.`
-          : "Every member who was still in has a share to claim."}
+        {`${t("votes.dissolved.stopped")} ${
+          isMember
+            ? blocked
+              ? t("votes.dissolved.blocked", { reason: blocked })
+              : partial
+                ? t("votes.dissolved.partial", { amount: fmt(share, asset), symbol: asset.symbol })
+                : t("votes.dissolved.full", { amount: fmt(share, asset), symbol: asset.symbol })
+            : t("votes.dissolved.nonMember")
+        }`}
       </InlineAlert>
       <TxFor tx={claim.tx} />
     </div>

@@ -10,11 +10,18 @@ import { Avatar } from "@/components/art";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CELL_LABEL, type CellState, cellState, type MemberHistory } from "@/lib/analytics";
+import { useT } from "@/i18n/react";
+import {
+  type CellState,
+  cellLabel,
+  cellState,
+  type MemberHistory,
+  monthShortName,
+} from "@/lib/analytics";
 import { MEMBERS_PAGE_SIZE, useCircleMembers } from "@/lib/circle";
 import { cn } from "@/lib/utils";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 /**
  * Status colours are for state only (dataviz), and every cell also carries an icon and a text
@@ -60,6 +67,9 @@ export function PaymentsHeatmap({
   const params = useSearchParams();
   const page = usePageParam("hpage");
   const m = useCircleMembers(id, page);
+  const { t } = useT();
+  // Short month names in the active language ("Jan" in English); `t` changes with it.
+  const MONTHS = MONTH_NUMBERS.map((n) => monthShortName(n));
 
   const firstYear = yearMonthOf(firstPeriod).year;
   const thisYear = yearMonthOf(currentPeriod).year;
@@ -80,13 +90,17 @@ export function PaymentsHeatmap({
     <section className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-1.5">
-          <h3 className="font-display text-[24px] leading-none tracking-tight">Payments</h3>
-          <p className="text-[13.5px] text-muted-foreground">
-            Every member, every month. Hover a square for details.
-          </p>
+          <h3 className="font-display text-[24px] leading-none tracking-tight">
+            {t("analytics.paymentsTitle")}
+          </h3>
+          <p className="text-[13.5px] text-muted-foreground">{t("analytics.paymentsSubtitle")}</p>
         </div>
         {years.length > 1 && (
-          <div className="flex gap-1 rounded-full bg-secondary p-1" role="group" aria-label="Year">
+          <div
+            className="flex gap-1 rounded-full bg-secondary p-1"
+            role="group"
+            aria-label={t("analytics.year")}
+          >
             {years.map((y) => (
               <button
                 key={y}
@@ -117,10 +131,12 @@ export function PaymentsHeatmap({
         <TooltipProvider delayDuration={120}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] border-separate border-spacing-y-1.5 text-[13px]">
-              <caption className="sr-only">Payments by member and month, {year}</caption>
+              <caption className="sr-only">{t("analytics.heatmapCaption", { year })}</caption>
               <thead>
                 <tr className="text-[12px] text-muted-foreground">
-                  <th className="w-[180px] pb-2 text-left font-medium">Member</th>
+                  <th className="w-[180px] pb-2 text-left font-medium">
+                    {t("analytics.memberColumn")}
+                  </th>
                   {MONTHS.map((mo) => (
                     <th key={mo} className="pb-2 text-center font-medium">
                       {mo}
@@ -144,7 +160,7 @@ export function PaymentsHeatmap({
                         const p = periodFromYearMonth(year, i + 1);
                         const state = cellState(h, p, currentPeriod, chainNow, due);
                         const { cls, Icon } = CELL[state];
-                        const label = `${who} · ${mo} ${year} · ${CELL_LABEL[state]}`;
+                        const label = `${who} · ${mo} ${year} · ${cellLabel(state)}`;
                         return (
                           <td key={mo} className="text-center">
                             <Tooltip>
@@ -187,7 +203,7 @@ export function PaymentsHeatmap({
               >
                 {Icon && <Icon className="size-3" strokeWidth={2} aria-hidden />}
               </span>
-              {CELL_LABEL[s]}
+              {cellLabel(s)}
             </li>
           );
         })}
