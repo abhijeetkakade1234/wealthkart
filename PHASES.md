@@ -11,7 +11,7 @@ Last updated: 2026-11-16
 | 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                              |
 | 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Done**: contracts reviewed and fixed (239 tests), all screens with Playwright tests |
 | 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: bug bounty, external audit and mainnet deploy are owner/external       |
-| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page, test USDT faucet, `pnpm dev:local` done                    |
+| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page, draft legal pages, test USDT faucet, `pnpm dev:local` done |
 | 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                 |
 | 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                 |
 

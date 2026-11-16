@@ -21,6 +21,9 @@ import { CORE_DOWNLOAD_URL } from "@/lib/wagmi";
 import { PaperCircle } from "./paper-circle";
 import { safeNext } from "./safe-next";
 
+const agreeLinkCls =
+  "text-foreground underline decoration-foreground/30 underline-offset-2 transition-colors hover:decoration-foreground";
+
 /**
  * Sign-in: art on the left, one clear action on the right (ADR 0025 look, ADR 0026 states).
  * There is no account: connecting Core is the login (ADR 0003, 0004). Once the wallet is
@@ -83,6 +86,26 @@ export function LoginScreen() {
           <div className="mt-10 grid gap-4 [@media(max-height:640px)]:mt-6">
             <SignInAction status={w.status} />
           </div>
+
+          {/* ADR 0055: connecting is accepting the terms, so say so where the button is. */}
+          <p
+            data-testid="login-agreement"
+            className="mt-5 text-[12.5px] leading-relaxed text-muted-foreground"
+          >
+            By connecting you agree to the{" "}
+            <Link href="/terms/" className={agreeLinkCls}>
+              Terms
+            </Link>{" "}
+            and have read the{" "}
+            <Link href="/risks/" className={agreeLinkCls}>
+              Risks
+            </Link>{" "}
+            and the{" "}
+            <Link href="/privacy/" className={agreeLinkCls}>
+              Privacy policy
+            </Link>
+            .
+          </p>
 
           {/* On very short screens the notes give way, so the page still never scrolls. */}
           <ul className="mt-10 grid gap-4 border-t border-line-soft pt-8 text-[13.5px] text-muted-foreground [@media(max-height:720px)]:hidden">

@@ -333,6 +333,19 @@ ADR 0049. E2E in `apps/web/e2e/landing.e2e.ts`; copy checks in `apps/web/src/lib
 - S-LAND-06 Scrolling the month scene highlights step 1 at the start and step 4 at the end
 - S-LAND-07 Landing copy never advertises returns, the description fits search limits, FAQ teaser answers match `/faq`, and llms-full.txt carries the landing copy
 
+### Legal pages (S-LEGAL)
+
+ADR 0055. Unit checks in `apps/web/src/lib/__tests__/legal.test.ts`; E2E in `apps/web/e2e/legal.e2e.ts`.
+
+- S-LEGAL-01 Privacy, terms and risks each have a title (≤ 60), a description (≤ 155), an ISO last-updated date and the "Draft, pending legal review" note; question headings with unique anchors; no page JSON-LD
+- S-LEGAL-02 Legal copy never advertises returns, even in a denial (same banned words as S-LAND-07); the terms say nothing is promised, that WealthKart holds no keys or funds, and still show the court-city placeholder for the lawyer
+- S-LEGAL-03 Every legal page is in the sitemap, linked from llms.txt under "Legal", included in llms-full.txt, and its `.md` twin carries the draft note and links
+- S-LEGAL-04 The privacy policy matches the code: it names every browser storage key, every file that touches browser storage or cookies is on the known list, no analytics or tracker library is present, fonts are self-hosted
+- S-LEGAL-05 `/privacy/`, `/terms/` and `/risks/` load with one h1, the draft note, an "Updated" date, a canonical link and no noindex; the `.md` twins, sitemap and llms.txt serve them
+- S-LEGAL-06 The footer's Legal row reaches each page from home and from a help page
+- S-LEGAL-07 The sign-in page shows "By connecting you agree to the Terms and have read the Risks", and its Terms, Risks and Privacy links work
+- S-LEGAL-08 No sideways scroll at 360px wide on any legal page
+
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
 Real static export, local anvil chain posing as Fuji (chain id 43113), test wallet that announces itself as Core and forwards to anvil. Every user-facing feature adds one here (CLAUDE.md).
