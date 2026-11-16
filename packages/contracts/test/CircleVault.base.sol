@@ -38,7 +38,7 @@ abstract contract CircleVaultBase is Test {
     uint256 internal constant SLOT_RULES = 31;
     uint256 internal constant SLOT_GOV = 33;
     uint256 internal constant SLOT_EXITS = 44;
-    uint256 internal constant SLOT_LOANS = 47;
+    uint256 internal constant SLOT_LOANS = 50;
     string internal constant NAME_RULE =
         "name must be 3..48 letters, digits, spaces or _-'& (no links)";
 

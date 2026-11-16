@@ -620,6 +620,13 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "cancelNomineeClaim",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "cancelProposal",
     inputs: [
       {
@@ -1775,6 +1782,49 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "nomineeClaimOf",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "payTo",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "nomineeOf",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "openDormantOf",
     inputs: [
       {
@@ -2881,6 +2931,25 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "requestNomineeClaim",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "requestToJoin",
     inputs: [
       {
@@ -3034,6 +3103,19 @@ export const circleVaultAbi = [
         name: "displayName",
         type: "string",
         internalType: "string",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "setNominee",
+    inputs: [
+      {
+        name: "nominee",
+        type: "address",
+        internalType: "address",
       },
     ],
     outputs: [],
@@ -4614,6 +4696,137 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
+    name: "NomineeClaimApproved",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "nominee",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "maturesAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "feeBps",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "NomineeClaimCancelled",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "nominee",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "NomineeClaimRequested",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "nominee",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "NomineePaid",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "nominee",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "payout",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "NomineeSet",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "nominee",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "PayoutQueued",
     inputs: [
       {
@@ -4692,6 +4905,17 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "InvalidNominee",
+    inputs: [
+      {
+        name: "nominee",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
     name: "MemberFrozen",
     inputs: [
       {
@@ -4708,6 +4932,28 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "NoNomineeClaim",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NomineeClaimPending",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
     name: "NotDissolved",
     inputs: [],
   },
@@ -4715,6 +4961,17 @@ export const circleVaultAbi = [
     type: "error",
     name: "NotGuardian",
     inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotNominee",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
   },
   {
     type: "error",

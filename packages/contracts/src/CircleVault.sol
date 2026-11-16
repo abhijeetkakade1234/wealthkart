@@ -232,7 +232,7 @@ contract CircleVault is ReentrancyGuardTransient {
         _syncRules();
         Membership.Member storage m = _m.members[msg.sender];
         if (!m.active) revert Membership.NotAMember(msg.sender);
-        if (m.dormant) _m.wakeToPay();
+        if (m.dormant) Exits.wake(_exits, _ledger, _m, dueDay, Exits.WakeMode.Pay);
 
         uint256 period = m.nextPeriod;
         uint256 current = PeriodMath.periodOf(block.timestamp);
@@ -316,17 +316,24 @@ contract CircleVault is ReentrancyGuardTransient {
         return _m.proposeDormant(_params(), member);
     }
 
-    /// @notice Vote on an open request (join or dormant). Only members who were in the circle
-    ///         before the request and are at most one installment behind can vote. The vote that
-    ///         decides the outcome settles it.
+    /// @notice Vote on an open request (join, dormant or nominee claim). Only members who were
+    ///         in the circle before the request and are at most one installment behind can vote.
+    ///         The vote that decides the outcome settles it.
     function vote(uint256 id, bool support) external nonReentrant {
-        _m.vote(_params(), id, support);
+        _afterVote(_m.vote(_params(), id, support));
     }
 
     /// @notice Settle a request once the outcome is certain or the voting window has ended.
     ///         Anyone can call this.
     function finalize(uint256 id) external nonReentrant {
-        _m.finalize(_params(), id);
+        _afterVote(_m.finalize(_params(), id));
+    }
+
+    /// @dev A closed nominee claim (ADR 0056): queue the exit on a pass, under today's rules.
+    function _afterVote(uint256 claim) internal {
+        if (claim == 0) return;
+        _syncRules();
+        Exits.closeClaim(_exits, _m, _rules, claim);
     }
 
     /// @notice Withdraw your own open join request.
@@ -335,9 +342,10 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice Come back from dormant. Dues restart from this month (or next, if this month's
-    ///         due moment has passed); your shares never left (ADR 0032).
-    function wake() external {
-        _m.wake(_params());
+    ///         due moment has passed); your shares never left (ADR 0032). Ends any nominee claim
+    ///         about you (ADR 0056).
+    function wake() external nonReentrant {
+        Exits.wake(_exits, _ledger, _m, dueDay, Exits.WakeMode.Wake);
     }
 
     /// @notice Set or change your display name in this circle (ADR 0029). The first name is
@@ -713,6 +721,43 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @notice End of the guardian pause (in the past = not paused).
     function pausedUntil() external view returns (uint64) {
         return _ledger.pausedUntil;
+    }
+
+    // ---- nominee (ADR 0016, 0056): a backup wallet that can claim a dormant member's share.
+
+    /// @notice Name your backup wallet, or clear it with address(0). It can ask for your share
+    ///         only once you are dormant, and only the circle's vote lets it through. Changing it
+    ///         while a claim about you runs ends that claim and brings you back from dormant.
+    function setNominee(address nominee) external nonReentrant {
+        Exits.setNominee(_exits, _ledger, _m, dueDay, nominee);
+    }
+
+    /// @notice As `member`'s nominee, ask the circle for their share (they must be dormant).
+    ///         On a yes vote their exit is queued with the usual notice and paid to you.
+    /// @return id The request id; it is voted with `vote` like join and dormant requests.
+    function requestNomineeClaim(address member) external nonReentrant returns (uint256 id) {
+        return Exits.requestClaim(_exits, _ledger, _m, _params(), member);
+    }
+
+    /// @notice End a nominee claim about you, before or after the vote, until it is paid. It
+    ///         also brings you back from dormant: dues restart as with `wake`.
+    function cancelNomineeClaim() external nonReentrant {
+        Exits.wake(_exits, _ledger, _m, dueDay, Exits.WakeMode.CancelClaim);
+    }
+
+    /// @notice `member`'s backup wallet (address(0) = none).
+    function nomineeOf(address member) external view returns (address) {
+        return _exits.nominee[member];
+    }
+
+    /// @notice A nominee claim about `member`: `requestId` while the vote runs (0 = none), and
+    ///         `payTo` once it passed and the exit is queued (see `exitOf` for when it matures).
+    function nomineeClaimOf(address member)
+        external
+        view
+        returns (uint256 requestId, address payTo)
+    {
+        return (_exits.claimId[member], _exits.payTo[member]);
     }
 
     // ================================================================== end EXITS

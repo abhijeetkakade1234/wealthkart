@@ -90,6 +90,60 @@ contract ExitsHandler is Test {
     function memberCount() external view returns (uint256) {
         return members.length;
     }
+
+    // ---- nominee claims (ADR 0056): dormant votes, claims, votes, cancels and wakes
+
+    address public constant HEIR = address(0xBEEF);
+
+    function setNominee(uint256 who, uint256 nom) external {
+        address a = members[who % members.length];
+        address n = nom % 3 == 0 ? HEIR : members[nom % members.length];
+        _call(a, 0, abi.encodeCall(CircleVault.setNominee, (n)));
+    }
+
+    function proposeDormant(uint256 who, uint256 target) external {
+        _call(
+            members[who % members.length],
+            0,
+            abi.encodeCall(CircleVault.proposeDormant, (members[target % members.length]))
+        );
+    }
+
+    /// @dev Coverage counters: claims opened and claims that reached the queue.
+    uint256 public ghostClaims;
+    uint256 public ghostClaimsQueued;
+
+    function requestClaim(uint256 target) external {
+        address m = members[target % members.length];
+        address n = vault.nomineeOf(m);
+        if (n == address(0)) return;
+        if (_call(n, 0, abi.encodeCall(CircleVault.requestNomineeClaim, (m)))) ++ghostClaims;
+    }
+
+    /// @dev Votes on (or settles) one of the open requests.
+    function voteOrFinalize(uint256 who, uint256 pick, bool support, bool settle) external {
+        uint256 n = vault.openRequestCount();
+        if (n == 0) return;
+        (uint256[] memory ids,) = vault.openRequestsPage(0, n);
+        uint256 id = ids[pick % ids.length];
+        address subject = vault.getRequest(id).account;
+        (, address before) = vault.nomineeClaimOf(subject);
+        if (settle) {
+            vault.finalize(id);
+        } else {
+            _call(members[who % members.length], 0, abi.encodeCall(CircleVault.vote, (id, support)));
+        }
+        (, address afterPay) = vault.nomineeClaimOf(subject);
+        if (before == address(0) && afterPay != address(0)) ++ghostClaimsQueued;
+    }
+
+    function cancelClaim(uint256 who) external {
+        _call(members[who % members.length], 0, abi.encodeCall(CircleVault.cancelNomineeClaim, ()));
+    }
+
+    function wake(uint256 who) external {
+        _call(members[who % members.length], 0, abi.encodeCall(CircleVault.wake, ()));
+    }
 }
 
 contract CircleVaultExitsInvariantTest is CircleVaultBase {
@@ -123,7 +177,30 @@ contract CircleVaultExitsInvariantTest is CircleVaultBase {
         for (uint256 i = 0; i < everyone.length; ++i) {
             owed += vault.withdrawable(everyone[i]);
         }
+        owed += vault.withdrawable(handler.HEIR());
         assertGe(address(vault).balance, vault.totalAssets() - vault.loansOutstanding() + owed);
+    }
+
+    /// I-14 (ADR 0056): an open claim is an open Claim request about a dormant member; an
+    ///      approved one is a live queue entry of a dormant member, paid to a fixed address.
+    function invariant_I14_nomineeClaimsAreConsistent() public view {
+        for (uint256 i = 0; i < everyone.length; ++i) {
+            address a = everyone[i];
+            (uint256 id, address payTo) = vault.nomineeClaimOf(a);
+            if (id != 0) {
+                Membership.Request memory r = vault.getRequest(id);
+                assertEq(uint8(r.kind), uint8(Membership.Kind.Claim));
+                assertEq(uint8(r.status), uint8(Membership.Status.Open));
+                assertEq(r.account, a);
+                assertTrue(vault.memberOf(a).dormant, "claim about a dormant member");
+                assertEq(payTo, address(0), "never open and approved at once");
+            }
+            if (payTo != address(0)) {
+                assertGt(vault.exitOf(a).requestedAt, 0, "approved claim is queued");
+                assertTrue(vault.memberOf(a).dormant, "payee only for a dormant member");
+            }
+            if (!vault.isMember(a)) assertEq(vault.nomineeOf(a), address(0));
+        }
     }
 
     /// I-2 (with exits): member shares sum to total shares; removed members hold none.

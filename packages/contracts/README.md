@@ -34,6 +34,10 @@
 
 **Sizes (2026-11-16, after the USDT review fixes, ADR 0050):** vault 22,109 B (2,467 B headroom), factory 3,353 B, Membership 17,449 B, LoanBook 20,300 B, Governance 15,296 B, Exits 8,740 B, Rules 3,217 B. Exit batches need `Ledger.payoutGasFloor + Exits.SETTLE_GAS` per exit (AVAX 230k, USDT 280k).
 
+**Sizes (2026-11-16, after the nominee wallet, ADR 0056):** vault 23,103 B (1,473 B headroom), Exits 14,448 B, Membership 17,192 B. `Exits.Store` grew by three mappings, so `_loans` moved to slot 50.
+
+**Nominee / backup wallet (ADR 0016, 0056):** `setNominee`, `requestNomineeClaim` (vote, 66%), `cancelNomineeClaim`, `nomineeOf`, `nomineeClaimOf`. A passed claim is an ordinary queued exit paid to the nominee; any action by the member ends it.
+
 **Circle asset (ADR 0046):** `Config.asset` is AVAX or USDT, fixed at creation. The factory constructor is `(bytes vaultCode, address usdt)`; a USDT circle needs a non-zero factory `usdt`. Payments in USDT circles are approve-then-pay with no AVAX attached; `repay(uint256 amount)` works for both assets. Members: 3..50 (ADR 0045).
 
 **Rules (see `docs/engineering.md`):** immutable contracts, no proxies (ADR 0020); no loops over members (ADR 0015); internal accounting, never `address(this).balance`; custom errors; events for every state change; run the `solidity-hardening` and `redteam-attack` skills on every contract change. The math must match `packages/rules`.
