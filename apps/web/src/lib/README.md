@@ -6,6 +6,7 @@
 **Key files**
 
 - `asset.ts`: the circle's money, AVAX (18 decimals) or USDT (6), from `vault.asset()` (ADR 0046): `useCircleAsset`, `fmt`/`money`/`parseAmount`/`toNumber`, `useTokenBalance`. Every amount goes through it; never assume wei
+- `faucet.ts`: when "Get test USDT" may show (`testUsdtFaucetVisible`: not mainnet, chain 43113, factory USDT with `MINT_CAP`) and how much one tap mints; `use-test-usdt.ts` is the hook (ADR 0053)
 - `use-asset-payment.ts`: pays the circle in its asset: AVAX with `value`; USDT balance check, approve (installments up to installment + both fees, ADR 0048), then pay, re-approving once on `TokenAllowanceTooLow`
 - `circle.ts`: factory and circle read hooks (each circle's `asset` included), `useFactoryUsdt`, per-asset portfolio totals, `parseCircleId`, page sizes, `NEXT_PUBLIC_FACTORY_OVERRIDE` for local chains
 - `analytics.ts`: pure chart and heatmap shaping from circle events (ADR 0034)

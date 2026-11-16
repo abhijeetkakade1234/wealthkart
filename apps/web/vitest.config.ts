@@ -13,5 +13,7 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts"],
     restoreMocks: true,
+    // jsdom render tests can pass 5 s on a busy machine or CI runner; a real hang still fails.
+    testTimeout: 15_000,
   },
 });

@@ -51,7 +51,8 @@ database_name = "wealthkart-indexer-mainnet"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
-# Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs.
+# Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs, which passes the real
+# anvil URL with `--var RPC_URL:...` (ports are configurable, ADR 0053); this one is the default.
 [env.e2e]
 name = "wealthkart-indexer-e2e"
 [env.e2e.vars]
@@ -61,6 +62,7 @@ FACTORY = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 FROM_BLOCK = "0"
 LOG_CHUNK = "2048"
 CONFIRMATIONS = "0"
+D1_SOFT_LIMIT_MB = "450"
 [[env.e2e.d1_databases]]
 binding = "DB"
 database_name = "wealthkart-indexer-e2e"

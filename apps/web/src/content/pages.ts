@@ -12,7 +12,8 @@ export type Block =
   | { kind: "p"; text: string }
   | { kind: "list"; items: string[] }
   | { kind: "steps"; items: { title: string; text: string }[] }
-  | { kind: "table"; head: string[]; rows: string[][] };
+  | { kind: "table"; head: string[]; rows: string[][] }
+  | { kind: "links"; items: { label: string; href: string }[] };
 
 export interface Section {
   /** Stable anchor id: keep it unchanged so answer engines can deep-link. */
@@ -38,7 +39,10 @@ export interface PublicPage {
   intro: string;
   /** ISO date shown on the page and used as dateModified. */
   updated: string;
-  schema: PageSchema;
+  /** JSON-LD type. Legal pages have none (docs/seo.md §3). */
+  schema?: PageSchema;
+  /** Legal pages only: a quiet note under the title until a lawyer has reviewed the page. */
+  draftNote?: string;
   sections: Section[];
 }
 
