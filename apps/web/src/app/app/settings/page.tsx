@@ -2,9 +2,9 @@
 
 import { circleFactoryAbi } from "@wealthkart/sdk";
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import type { Address } from "viem";
-import { useReadContract } from "wagmi";
+import { readContract } from "wagmi/actions";
 
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
@@ -19,6 +19,7 @@ import { CIRCLES_PAGE_SIZE, useFactory, useMyCircles } from "@/lib/circle";
 import { ALL_KINDS, KIND_ROWS, hasKind } from "@/lib/push";
 import { notify } from "@/lib/toast";
 import { reminderError, useReminders } from "@/lib/use-reminders";
+import { wagmiConfig } from "@/lib/wagmi";
 
 /** Most circles switched on in one go when reminders are turned on here. */
 const TURN_ON_MAX = 50n;
@@ -38,36 +39,30 @@ function Settings() {
   const r = useReminders();
   const { address } = useCoreWallet();
   const factory = useFactory();
-  // The newest circles first when there are more than TURN_ON_MAX (each circle page can
-  // still switch its own reminders on).
-  const count = useReadContract({
-    abi: circleFactoryAbi,
-    address: factory ?? undefined,
-    functionName: "circlesOfCount",
-    args: address ? [address] : undefined,
-    // Always fresh: a circle joined a moment ago must be included when turning reminders on.
-    query: { enabled: Boolean(factory && address), refetchOnMount: "always" },
-  });
-  const total = (count.data as bigint | undefined) ?? 0n;
-  const all = useReadContract({
-    abi: circleFactoryAbi,
-    address: factory ?? undefined,
-    functionName: "circlesOf",
-    args: address
-      ? [address, total > TURN_ON_MAX ? total - TURN_ON_MAX : 0n, TURN_ON_MAX]
-      : undefined,
-    query: {
-      enabled: Boolean(factory && address && count.data !== undefined),
-      refetchOnMount: "always",
-    },
-  });
-  const ids = ((all.data ?? []) as readonly Address[]).map((a) => a.toLowerCase());
+  // Read at the moment of turning on, never from a cache: a circle joined a moment ago must be
+  // included. The newest TURN_ON_MAX circles; each circle page can still switch its own on.
+  const circleIds = useCallback(async (): Promise<string[]> => {
+    if (!factory || !address) return [];
+    const total = (await readContract(wagmiConfig, {
+      abi: circleFactoryAbi,
+      address: factory,
+      functionName: "circlesOfCount",
+      args: [address],
+    })) as bigint;
+    const list = (await readContract(wagmiConfig, {
+      abi: circleFactoryAbi,
+      address: factory,
+      functionName: "circlesOf",
+      args: [address, total > TURN_ON_MAX ? total - TURN_ON_MAX : 0n, TURN_ON_MAX],
+    })) as readonly Address[];
+    return list.map((a) => a.toLowerCase());
+  }, [factory, address]);
 
   return (
     <>
       <PageHeader title="Settings" subtitle="How WealthKart keeps in touch on this device." />
       <ErrorBoundary preset="widget" name="Reminders">
-        <DeviceRemindersCard reminders={r} circles={ids} />
+        <DeviceRemindersCard reminders={r} circles={circleIds} />
       </ErrorBoundary>
       {r.status === "on" && (
         <section className="mt-16">

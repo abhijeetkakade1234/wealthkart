@@ -1,4 +1,4 @@
-import { circleVaultAbi } from "@wealthkart/sdk";
+import { circleFactoryAbi, circleVaultAbi } from "@wealthkart/sdk";
 import { type Address, createPublicClient, http, parseAbi, zeroAddress } from "viem";
 
 import type { CircleFacts, MemberFacts, OpenVote } from "./schedule";
@@ -32,6 +32,24 @@ export function viemMembership(rpcUrl: string) {
             abi: circleVaultAbi,
             functionName: "isMember",
             args: [member as Address],
+          })
+          .then((v) => v === true),
+      ),
+    );
+}
+
+/** The factory's `isCircle` registry for many addresses in one JSON-RPC batch (RT-01). */
+export function viemCircleRegistry(rpcUrl: string, factory: string) {
+  const client = createPublicClient({ transport: http(rpcUrl, { batch: { batchSize: 50 } }) });
+  return (circles: string[]) =>
+    Promise.all(
+      circles.map((c) =>
+        client
+          .readContract({
+            address: factory as Address,
+            abi: circleFactoryAbi,
+            functionName: "isCircle",
+            args: [c as Address],
           })
           .then((v) => v === true),
       ),

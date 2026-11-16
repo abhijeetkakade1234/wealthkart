@@ -295,7 +295,7 @@ Worker tests in `workers/indexer/test/push-*.test.ts` (D1 on node:sqlite); app t
 - S-REM-28 A device the push service says is gone is deleted with its settings; a wallet that left the circle stops being watched
 - S-REM-29 An RPC failure retries the pair in 15 minutes; pushes over the run's budget go out next minute
 - S-REM-30 A circle switched off is never read
-- S-REM-31 Only circles the chain lists the wallet as a member of are watched or can be switched on; switching off never needs the check; RPC trouble leaves it to the cron
+- S-REM-31 Only circles the chain lists the wallet as a member of are watched or can be switched on; switching off never needs the check; RPC trouble leaves it to the cron; a circle not indexed yet counts when the factory registry lists it, a look-alike never does
 - S-REM-40 Browser support: ready, unsupported, and iPhone/iPad outside the Home Screen
 - S-REM-41 The app's kind bitmask matches the Worker's
 - S-REM-42 The app's signed message is standard SIWE with the site, action, device and a 5-minute expiry, word for word what the Worker expects

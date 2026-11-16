@@ -262,6 +262,18 @@ describe("membership check", () => {
       (await s.call("/v1/push/circle", { endpoint: ENDPOINT, token, circle: OTHER, kinds: 0 }))
         .status,
     ).toBe(200);
+    // A circle created a moment ago, not indexed yet: the factory registry vouches for it.
+    const FRESH = "0xc1c1000000000000000000000000000000000003";
+    s.push.isCircle = async (cs) => cs.map((c) => c === FRESH);
+    s.push.isMember = async (cs) => cs.map((c) => c !== OTHER);
+    expect(
+      (await s.call("/v1/push/circle", { endpoint: ENDPOINT, token, circle: FRESH, kinds: 1 }))
+        .status,
+    ).toBe(200);
+    expect(
+      (await s.call("/v1/push/circle", { endpoint: ENDPOINT, token, circle: FAKE, kinds: 1 }))
+        .status,
+    ).toBe(404);
     s.push.isMember = async () => {
       throw new Error("rpc down");
     };

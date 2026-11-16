@@ -41,6 +41,11 @@ export interface PushConfig {
    * (tests), every known circle passes.
    */
   isMember?: (circles: string[], member: string) => Promise<boolean[]>;
+  /**
+   * Asks the factory's `isCircle` registry (RT-01) about circles the index hasn't reached yet,
+   * e.g. one created a moment ago. Without it, only indexed circles count.
+   */
+  isCircle?: (circles: string[]) => Promise<boolean[]>;
 }
 
 /** Circles accepted in one subscribe call. */
@@ -115,7 +120,7 @@ export async function handlePush(
       token_hash: hash,
       created_at: now,
     });
-    const known = await knownCircles(db, circleList(body.circles, MAX_CIRCLES_PER_CALL));
+    const known = await knownCircles(db, cfg, circleList(body.circles, MAX_CIRCLES_PER_CALL));
     const circles = await membersOnly(cfg, known, address);
     await addWatches(db, address, circles, ALL_KINDS, now);
     return json({ token, address, circles: await settingsOf(db, address) });
@@ -158,7 +163,7 @@ export async function handlePush(
     if (!ADDRESS.test(circle)) return json({ error: "That isn't a circle address." }, 400);
     if (!isKinds(body.kinds)) return json({ error: "Unknown reminder settings." }, 400);
     const c = circle.toLowerCase();
-    if (!(await isKnownCircle(db, c))) {
+    if ((await knownCircles(db, cfg, [c])).length === 0) {
       return json({ error: "That circle isn't known yet. Try again in a minute." }, 404);
     }
     if (body.kinds !== 0 && (await membersOnly(cfg, [c], row.address)).length === 0) {
@@ -245,10 +250,20 @@ async function tokenMatches(row: SubRow, token: string): Promise<boolean> {
   return sameHex(await sha256Hex(token), row.token_hash);
 }
 
-async function knownCircles(db: Db, circles: string[]): Promise<string[]> {
-  const out: string[] = [];
-  for (const c of circles) if (await isKnownCircle(db, c)) out.push(c);
-  return out;
+/** Factory circles only: from the index, else from the factory registry by RPC. */
+async function knownCircles(db: Db, cfg: PushConfig, circles: string[]): Promise<string[]> {
+  const known: string[] = [];
+  const unknown: string[] = [];
+  for (const c of circles) ((await isKnownCircle(db, c)) ? known : unknown).push(c);
+  if (unknown.length > 0 && cfg.isCircle) {
+    try {
+      const ok = await cfg.isCircle(unknown);
+      known.push(...unknown.filter((_, i) => ok[i] === true));
+    } catch {
+      // RPC trouble: only indexed circles this time.
+    }
+  }
+  return known;
 }
 
 /** Keeps circles the chain says `address` is a member of. RPC trouble keeps them all. */

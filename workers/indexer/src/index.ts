@@ -3,7 +3,7 @@ import { viemMonitor, viemReader } from "./chain";
 import { type Config, indexStep } from "./indexer";
 import { checkCircles, notify } from "./monitor";
 import type { PushConfig } from "./push/api";
-import { viemMembership, viemReminderReader } from "./push/reader";
+import { viemCircleRegistry, viemMembership, viemReminderReader } from "./push/reader";
 import type { Vapid } from "./push/send";
 import { reminderStep } from "./push/step";
 import { isFull } from "./store";
@@ -77,6 +77,7 @@ function pushConfig(env: Env): PushConfig {
       /^http:\/\/(127\.0\.0\.1|localhost):/.test(o),
     ),
     isMember: viemMembership(env.RPC_URL),
+    isCircle: viemCircleRegistry(env.RPC_URL, env.FACTORY),
   };
 }
 

@@ -20,8 +20,8 @@ export function DeviceRemindersCard({
   circles,
 }: {
   reminders: ReturnType<typeof useReminders>;
-  /** Circles to switch on when turning reminders on here (all of this wallet's circles). */
-  circles: string[];
+  /** Reads the circles to switch on, at the moment reminders are turned on here. */
+  circles: () => Promise<string[]>;
 }) {
   return (
     <section
@@ -48,7 +48,7 @@ export function DeviceRemindersCard({
         <ReminderGate
           status={r.status}
           otherWallet={r.device?.address}
-          onTurnOn={() => r.turnOn(circles)}
+          onTurnOn={async () => r.turnOn(await circles())}
         />
       ) : (
         <div className="grid gap-6">
