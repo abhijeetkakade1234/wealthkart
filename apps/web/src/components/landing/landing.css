@@ -37,6 +37,27 @@
   transform-origin: center;
 }
 
+/* ---------- section bands: a quiet change of paper between sections ----------
+ * Founder ask (2026-11-16): not white everywhere, "just a bit" of variety. Tints stay
+ * near-white so text contrast and the calm Gallery look (ADR 0025) hold. The band reaches
+ * the screen edges from inside the centred wrapper: a spread shadow paints the sides and
+ * clip-path keeps it from spilling up or down, so there is no horizontal scroll. */
+.land-band {
+  --band: var(--background);
+  background: var(--band);
+  box-shadow: 0 0 0 100vmax var(--band);
+  clip-path: inset(0 -100vmax);
+}
+.land-band[data-tone="paper"] {
+  --band: #f3f1ea;
+}
+.land-band[data-tone="cobalt"] {
+  --band: #eef1fa;
+}
+.land-band[data-tone="sand"] {
+  --band: #f7f1e6;
+}
+
 /* ---------- buttons and cards: small, calm feedback (docs/ui.md §8) ---------- */
 .land-press {
   transition:
