@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN, SUPPORTED_CHAINS } from "@wealthkart/sdk";
+import { chainForNetwork } from "@wealthkart/sdk";
 import { createConfig, http, injected } from "wagmi";
 
 /**
@@ -8,18 +8,17 @@ import { createConfig, http, injected } from "wagmi";
 export const CORE_CONNECTOR_ID = "app.core.extension";
 export const CORE_DOWNLOAD_URL = "https://core.app/";
 
+/** The one chain this build talks to: `NEXT_PUBLIC_NETWORK` = fuji (default) or mainnet (ADR 0051). */
+export const TARGET_CHAIN = chainForNetwork(process.env.NEXT_PUBLIC_NETWORK);
+
 export const wagmiConfig = createConfig({
-  chains: SUPPORTED_CHAINS,
+  chains: [TARGET_CHAIN],
   multiInjectedProviderDiscovery: true,
   connectors: [injected({ shimDisconnect: true })],
   // NEXT_PUBLIC_RPC_URL points reads at a custom node (E2E uses a local anvil chain).
-  transports: Object.fromEntries(
-    SUPPORTED_CHAINS.map((c) => [c.id, http(process.env.NEXT_PUBLIC_RPC_URL || undefined)]),
-  ),
+  transports: { [TARGET_CHAIN.id]: http(process.env.NEXT_PUBLIC_RPC_URL || undefined) },
   ssr: false,
 });
-
-export const TARGET_CHAIN = DEFAULT_CHAIN;
 
 declare module "wagmi" {
   interface Register {

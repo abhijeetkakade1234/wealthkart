@@ -130,12 +130,16 @@ How to use this file:
 
 ## Phase 3: Audit and mainnet beta
 
-- [ ] Full analytics, XIRR, projections, CSV export
-- [ ] Reputation SBT
+- [x] Full analytics, XIRR, projections, CSV export
+- [x] Reputation SBT
+- [x] Member cap 3 to 50 (ADR 0045)
+- [x] Circles in AVAX or USDT, fixed at creation; USDT reviews fixed (ADR 0046, 0048, 0050)
+- [x] Network chosen by the environment: `main` Production, `dev` Preview on Fuji, local anvil (ADR 0051)
+- [x] Indexer D1 free-tier guard (ADR 0047)
 - [ ] Testnet bug bounty
 - [ ] External audit + fixes
 - [ ] Mainnet deploy with deposit caps; contract verification on Snowtrace
-- [ ] Monitoring and alerts on contracts
+- [x] Monitoring and alerts on contracts (USDT-aware)
 - [ ] **Milestone:** G1 live on mainnet
 
 ## Phase 4: Growth

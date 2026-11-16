@@ -1,9 +1,11 @@
 name: Deploy indexer
 
-# Manual only, with environment approval (docs/engineering.md §6, ADR 0036). Needs, in the
-# `fuji` environment: CLOUDFLARE_API_TOKEN (Workers + D1 edit) and CLOUDFLARE_ACCOUNT_ID.
-# Before the first run, create the D1 database (`wrangler d1 create wealthkart-indexer`), put
-# its id and the deployed factory address in workers/indexer/wrangler.toml, and commit.
+# Manual only, with environment approval (docs/engineering.md §6, ADR 0036). The network is
+# an input (ADR 0051): fuji uses the top of wrangler.toml, mainnet its [env.mainnet] section.
+# Needs, in the chosen environment: CLOUDFLARE_API_TOKEN (Workers + D1 edit) and
+# CLOUDFLARE_ACCOUNT_ID. Before the first run, create the D1 database
+# (`wrangler d1 create wealthkart-indexer`, or `wealthkart-indexer-mainnet`), put its id and
+# the deployed factory address in that network's part of wrangler.toml, and commit.
 on:
   workflow_dispatch:
     inputs:
@@ -12,7 +14,7 @@ on:
         required: true
         default: fuji
         type: choice
-        options: [fuji]
+        options: [fuji, mainnet]
 
 permissions:
   contents: read
@@ -22,6 +24,10 @@ jobs:
     name: Deploy indexer for ${{ inputs.network }}
     runs-on: ubuntu-24.04
     environment: ${{ inputs.network }}
+    env:
+      # Empty for fuji (top of wrangler.toml), "--env mainnet" for mainnet.
+      WRANGLER_ENV: ${{ inputs.network == 'mainnet' && '--env mainnet' || '' }}
+      NETWORK: ${{ inputs.network }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,9 +41,14 @@ jobs:
       - name: Refuse placeholder settings
         working-directory: workers/indexer
         run: |
-          # Only the production settings (everything before the first [env.*] section).
-          top=$(sed '/^\[env\./,$d' wrangler.toml)
-          if echo "$top" | grep -q '00000000-0000-0000-0000-000000000000'             || echo "$top" | grep -q '^FACTORY = "0x0000000000000000000000000000000000000000"'; then
+          # Only the chosen network's settings.
+          if [ "$NETWORK" = "mainnet" ]; then
+            top=$(sed -n '/^\[env\.mainnet/,/^\[env\.e2e/p' wrangler.toml)
+          else
+            top=$(sed '/^\[env\./,$d' wrangler.toml)
+          fi
+          if echo "$top" | grep -q '00000000-0000-0000-0000-000000000000' \
+            || echo "$top" | grep -q '^FACTORY = "0x0000000000000000000000000000000000000000"'; then
             echo "Set the D1 database id and the factory address in wrangler.toml first." >&2
             exit 1
           fi
@@ -46,14 +57,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler d1 migrations apply DB --remote
+        run: pnpm exec wrangler d1 migrations apply DB --remote $WRANGLER_ENV
       - name: Deploy the Worker
         working-directory: workers/indexer
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm exec wrangler deploy
+        run: pnpm exec wrangler deploy $WRANGLER_ENV
       - name: Summary
         run: |
-          echo "### Indexer deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Indexer deployed for $NETWORK" >> "$GITHUB_STEP_SUMMARY"
           echo "Set NEXT_PUBLIC_INDEXER_URL in the web build to the Worker URL shown above." >> "$GITHUB_STEP_SUMMARY"

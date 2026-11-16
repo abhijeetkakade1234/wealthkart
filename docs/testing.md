@@ -263,6 +263,7 @@ Known gaps:
 - S-IDX-05 RPC down: answers from what is already indexed
 - S-IDX-06 App client: revives bigints, pages through, ignores logs past the first page's cursor, ignores an indexer on another chain
 - S-IDX-07 D1 soft size limit: the indexer stops storing new events and its cursor, `/v1/health` reports `full` and the size; no limit keeps indexing
+- S-NET-01 the network comes from the environment: empty or `fuji` is Fuji, `mainnet` is Avalanche, any other value fails the build (ADR 0051)
 
 ### Frontend / E2E (S-WEB)
 

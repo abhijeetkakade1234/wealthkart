@@ -2,13 +2,29 @@ import { avalanche, avalancheFuji } from "viem/chains";
 import type { Address, Chain } from "viem";
 
 import fuji from "./deployments/43113.json";
+import mainnet from "./deployments/43114.json";
 
 /**
- * Supported chains. Fuji (testnet) only until the audit. The contracts themselves no
- * longer refuse mainnet; the network is chosen at deploy time (ADR 0050).
+ * Chains the app can target. Each build targets exactly one, picked from the environment
+ * with `chainForNetwork` (ADR 0051). Fuji is the default until the audit.
  */
-export const SUPPORTED_CHAINS: readonly [Chain, ...Chain[]] = [avalancheFuji];
+export const SUPPORTED_CHAINS: readonly [Chain, ...Chain[]] = [avalancheFuji, avalanche];
 export const DEFAULT_CHAIN: Chain = avalancheFuji;
+
+/** Network names accepted in the environment (`NEXT_PUBLIC_NETWORK`, deploy inputs). */
+export type Network = "fuji" | "mainnet";
+
+/**
+ * The chain for a network name from the environment (ADR 0051). Empty means Fuji. Anything
+ * other than `fuji` or `mainnet` throws, so a typo fails the build instead of silently
+ * pointing the app at the wrong network.
+ */
+export function chainForNetwork(network: string | undefined): Chain {
+  const n = (network ?? "").trim().toLowerCase();
+  if (n === "" || n === "fuji") return avalancheFuji;
+  if (n === "mainnet") return avalanche;
+  throw new Error(`Unknown network "${network}". Use fuji or mainnet.`);
+}
 
 export const ALL_KNOWN_CHAINS: { readonly fuji: Chain; readonly avalanche: Chain } = {
   fuji: avalancheFuji,
@@ -35,11 +51,11 @@ function toDeployment(file: DeploymentFile): Deployment {
 
 /**
  * Deployed addresses per chain id, written by `script/DeployFactory.s.sol` into
- * `src/deployments/<chainId>.json`. Mainnet stays empty until the audited release.
+ * `src/deployments/<chainId>.json`. `null` means not deployed on that chain yet.
  */
 export const DEPLOYMENTS: Record<number, Deployment> = {
   [avalancheFuji.id]: toDeployment(fuji as DeploymentFile),
-  [avalanche.id]: { circleFactory: null, fromBlock: null },
+  [avalanche.id]: toDeployment(mainnet as DeploymentFile),
 };
 
 export function isSupportedChain(chainId: number | undefined): boolean {

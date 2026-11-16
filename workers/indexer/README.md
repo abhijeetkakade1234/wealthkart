@@ -22,4 +22,6 @@
 
 **Commands:** `pnpm test`, `pnpm typecheck`, `pnpm dev` (needs a local D1: `pnpm migrate:local` first). E2E starts it for you (`apps/web/e2e/indexer.mjs`).
 
+**Networks (ADR 0051):** the top of `wrangler.toml` is Fuji; `[env.mainnet]` is mainnet with its own D1 database. The **Deploy indexer** workflow takes the network as an input.
+
 **Deploy (owner action, after the Fuji deploy):** `wrangler d1 create wealthkart-indexer`, put the id and the factory address in `wrangler.toml`, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` to the `fuji` environment, run the **Deploy indexer** workflow, then set `NEXT_PUBLIC_INDEXER_URL` for the web build.

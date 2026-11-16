@@ -1,4 +1,4 @@
-import { ALL_KNOWN_CHAINS, DEPLOYMENTS, explorerAddressUrl } from "@wealthkart/sdk";
+import { chainForNetwork, DEPLOYMENTS, explorerAddressUrl } from "@wealthkart/sdk";
 
 /**
  * Content for the public pages. One source feeds the HTML pages, their `.md` twins,
@@ -44,18 +44,20 @@ export interface PublicPage {
 
 const UPDATED = "2026-11-14";
 
-const FUJI_ID = ALL_KNOWN_CHAINS.fuji.id;
+/** The network this build targets (ADR 0051). */
+const CHAIN_ID = chainForNetwork(process.env.NEXT_PUBLIC_NETWORK).id;
+const NETWORK_NAME = CHAIN_ID === 43114 ? "Avalanche mainnet" : "the Avalanche Fuji testnet";
 
 /** Contract addresses come from the SDK deployments file, so the page never goes stale. */
 function addressesSection(): Section {
-  const factory = DEPLOYMENTS[FUJI_ID]?.circleFactory ?? null;
-  const url = factory ? explorerAddressUrl(FUJI_ID, factory) : null;
+  const factory = DEPLOYMENTS[CHAIN_ID]?.circleFactory ?? null;
+  const url = factory ? explorerAddressUrl(CHAIN_ID, factory) : null;
   return {
     id: "addresses",
     heading: "Where are the contracts?",
     answer: factory
-      ? "On the Avalanche Fuji testnet. Each circle's vault is created by the circle factory below; anyone can read the code on Snowtrace."
-      : "The circle factory is not deployed to the Fuji testnet yet. Its address will be listed here, with a Snowtrace link, as soon as it is.",
+      ? `On ${NETWORK_NAME}. Each circle's vault is created by the circle factory below; anyone can read the code on Snowtrace.`
+      : `The circle factory is not deployed to ${NETWORK_NAME} yet. Its address will be listed here, with a Snowtrace link, as soon as it is.`,
     blocks: factory
       ? [
           {

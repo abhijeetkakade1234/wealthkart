@@ -42,6 +42,9 @@ Done:
 - Contract monitoring: the indexer checks every circle's money adds up and raises alerts
 - Security policy, testnet bug bounty terms and the audit pack (`docs/audit/`)
 - Reputation: a soulbound record per wallet that circles write on every payment, repayment and default, and a public repayment record page
+- Circles of 3 to 50 members, in AVAX or USDT (chosen once, never changed), with two independent reviews of the USDT code and their fixes
+- Fuji or mainnet chosen by the environment: `main` deploys to Cloudflare Production (Fuji now, mainnet after the audit), `dev` to Preview on Fuji, `abhijeet` nowhere
+- Indexer stays inside D1's 500 MB free tier, with an alert before it fills
 
 Left:
 

@@ -22,6 +22,6 @@
 - `messages.ts`: plain-language message catalogue, `toFriendlyError`
 - `use-tx.ts`: confirm, sending, confirmed or failed for one transaction (keeps the failure code for retries)
 - `safe-call.ts`, `toast.ts`, `utils.ts`: safe async wrapper, toasts, `cn()`
-- `wagmi.ts`: Core-only wallet config; `NEXT_PUBLIC_RPC_URL` override for local chains
+- `wagmi.ts`: Core-only wallet config; `TARGET_CHAIN` from `NEXT_PUBLIC_NETWORK` (`fuji` default, or `mainnet`, ADR 0051); `NEXT_PUBLIC_RPC_URL` override for local chains
 - `seo/`: metadata, JSON-LD, llms and OG helpers (own README)
 - `__tests__/`: unit tests

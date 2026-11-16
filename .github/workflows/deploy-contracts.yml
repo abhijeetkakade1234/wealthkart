@@ -1,7 +1,8 @@
 name: Deploy contracts
 
-# Manual only, with environment approval (docs/engineering.md §6). Fuji only until the
-# audit. A mainnet run would also need CONFIRM_MAINNET=yes and C-Chain USDt (ADR 0050).
+# Manual only, with environment approval (docs/engineering.md §6). The network is an input
+# (ADR 0051). Mainnet also needs the `confirm_mainnet` input typed as "yes", the `mainnet`
+# environment's approval, and uses C-Chain USDt; the script refuses anything else (ADR 0050).
 on:
   workflow_dispatch:
     inputs:
@@ -10,7 +11,11 @@ on:
         required: true
         default: fuji
         type: choice
-        options: [fuji]
+        options: [fuji, mainnet]
+      confirm_mainnet:
+        description: Type yes to deploy to Avalanche mainnet (ignored on Fuji)
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -34,24 +39,38 @@ jobs:
       - name: Deploy and verify on Snowtrace (Routescan)
         env:
           DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          NETWORK: ${{ inputs.network }}
+          CONFIRM_MAINNET: ${{ inputs.confirm_mainnet }}
           FUJI_RPC_URL: ${{ secrets.FUJI_RPC_URL || 'https://api.avax-test.network/ext/bc/C/rpc' }}
+          MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc' }}
         run: |
+          if [ "$NETWORK" = "mainnet" ]; then
+            RPC_URL="$MAINNET_RPC_URL"
+            export USDT_ADDRESS=0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7
+            VERIFIER_URL="https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan"
+          else
+            RPC_URL="$FUJI_RPC_URL"
+            export DEPLOY_MOCK_USDT=true
+            VERIFIER_URL="https://api.routescan.io/v2/network/testnet/evm/43113/etherscan"
+          fi
           forge script script/DeployFactory.s.sol \
-            --rpc-url "$FUJI_RPC_URL" \
+            --rpc-url "$RPC_URL" \
             --private-key "$DEPLOYER_PRIVATE_KEY" \
             --broadcast \
             --verify \
             --verifier etherscan \
-            --verifier-url "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan" \
+            --verifier-url "$VERIFIER_URL" \
             --etherscan-api-key "verifyContract"
       - name: Summary
+        env:
+          CHAIN_ID: ${{ inputs.network == 'mainnet' && '43114' || '43113' }}
         run: |
           echo "### CircleFactory deployed" >> "$GITHUB_STEP_SUMMARY"
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
-          cat ../sdk/src/deployments/43113.json >> "$GITHUB_STEP_SUMMARY"
+          cat "../sdk/src/deployments/$CHAIN_ID.json" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "Commit this file to \`abhijeet\`: packages/sdk/src/deployments/43113.json" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit this file to \`abhijeet\`: packages/sdk/src/deployments/$CHAIN_ID.json" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: deployments-${{ inputs.network }}
-          path: packages/sdk/src/deployments/43113.json
+          path: packages/sdk/src/deployments/*.json
