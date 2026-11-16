@@ -61,7 +61,7 @@ export async function sendPush(
         },
       },
       {
-        endpoint: device.endpoint,
+        endpoint: headerEndpoint(device.endpoint),
         expirationTime: null,
         keys: { p256dh: device.p256dh, auth: device.auth },
       },
@@ -86,6 +86,16 @@ export async function sendPush(
     // Network trouble: try again on a later run.
     return "failed";
   }
+}
+
+/**
+ * The library builds the VAPID audience only from https endpoints. A local fake push service
+ * (E2E only; `validate.ts` never accepts http otherwise) is signed as its https twin.
+ */
+function headerEndpoint(endpoint: string): string {
+  return /^http:\/\/(127\.0\.0\.1|localhost):/.test(endpoint)
+    ? endpoint.replace(/^http:/, "https:")
+    : endpoint;
 }
 
 /** True when `p256dh` is a real P-256 point, so encryption will work later. */

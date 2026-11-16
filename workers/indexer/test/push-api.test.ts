@@ -331,6 +331,12 @@ describe("Web Push sending (RFC 8291/8292)", () => {
       throw new Error("network");
     };
     expect(await sendPush(d, data, vapid, throwing)).toBe("failed");
+    // A local fake push service (E2E) gets pushes too; the request still goes to http.
+    const local = fakePushService();
+    expect(
+      await sendPush({ ...d, endpoint: "http://127.0.0.1:9/push/1" }, data, vapid, local.fetcher),
+    ).toBe("sent");
+    expect(local.calls[0]!.url).toBe("http://127.0.0.1:9/push/1");
     // A broken VAPID key on our side never reports devices as gone.
     expect(
       await sendPush(d, data, { ...vapid, privateKey: "AAAA" }, fakePushService().fetcher),
