@@ -19,6 +19,8 @@ export const LANDING_HERO = {
   h1: "Save together. Borrow by vote.",
   lead: "A shared money pot for you and your friends. Everyone puts in the same amount each month. When someone needs money, the group votes and the pot lends it. No one, not even us, can take the money out.",
   note: "Free to use. Sign in with Core wallet. No name, phone or email.",
+  /** Link to the onboarding guide (ADR 0054), after the note. */
+  startLink: "New to crypto? Start here",
 } as const;
 
 export interface LandingStep {
@@ -158,6 +160,7 @@ export const LANDING_FAQ = {
 export const LANDING_CTA = {
   heading: "Start a circle with your friends",
   text: "It takes a few minutes and one transaction. You'll need Core, Avalanche's free wallet app.",
+  startLink: "New to crypto? Start here",
 };
 
 /** The landing page as Markdown, for `/llms-full.txt` (ADR 0024). */

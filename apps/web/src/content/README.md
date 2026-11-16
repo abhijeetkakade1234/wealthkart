@@ -1,7 +1,7 @@
 # src/content
 
 **What's here:** the words on the public pages, as typed data (ADR 0027). One source feeds the HTML pages, their `.md` twins, `/llms.txt`, `/llms-full.txt`, the sitemap and JSON-LD.
-**Open this when:** editing copy on `/` (landing), `/how-it-works`, `/rules`, `/security` or `/faq`, or changing the site URL or crawler list.
+**Open this when:** editing copy on `/` (landing), `/how-it-works`, `/rules`, `/security`, `/faq` or `/start` (network-aware onboarding, ADR 0054), or changing the site URL or crawler list.
 
 | File         | Purpose                                                                                          |
 | ------------ | ------------------------------------------------------------------------------------------------ |

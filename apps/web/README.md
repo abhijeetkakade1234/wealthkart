@@ -9,7 +9,7 @@
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
 | `src/app/globals.css`          | "Gallery" theme tokens for Tailwind v4 + shadcn (ADR 0025), z-index scale                      |
 | `src/app/layout.tsx`           | Fonts, metadata, app error boundary, Toaster, global error handlers                            |
-| `src/app/(public)/`            | Indexed pages: landing (ADR 0049), how-it-works, rules, security, faq                          |
+| `src/app/(public)/`            | Indexed pages: landing (ADR 0049), how-it-works, rules, security, faq, start (ADR 0054)        |
 | `src/app/robots.ts` etc.       | Build-time `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, llms, OG, icons                |
 | `src/content/`                 | Public page copy as typed data (ADR 0027); feeds pages, llms.txt, JSON-LD                      |
 | `src/lib/seo/`                 | Metadata, JSON-LD, Markdown/llms output, OG and icon renderers                                 |

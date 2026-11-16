@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   ArrowLeftRight,
+  ArrowRight,
   Download,
   KeyRound,
   RefreshCw,
@@ -83,6 +84,22 @@ export function LoginScreen() {
           <div className="mt-10 grid gap-4 [@media(max-height:640px)]:mt-6">
             <SignInAction status={w.status} />
           </div>
+
+          <Link
+            href="/start/"
+            className="group mt-6 inline-flex items-center gap-1.5 self-start text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
+            data-testid="login-start-link"
+          >
+            New to wallets?
+            <span className="font-medium text-brand underline-offset-4 group-hover:underline">
+              Start here
+            </span>
+            <ArrowRight
+              className="size-3.5 text-brand transition-transform group-hover:translate-x-0.5"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+          </Link>
 
           {/* On very short screens the notes give way, so the page still never scrolls. */}
           <ul className="mt-10 grid gap-4 border-t border-line-soft pt-8 text-[13.5px] text-muted-foreground [@media(max-height:720px)]:hidden">

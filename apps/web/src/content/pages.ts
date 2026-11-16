@@ -12,7 +12,11 @@ export type Block =
   | { kind: "p"; text: string }
   | { kind: "list"; items: string[] }
   | { kind: "steps"; items: { title: string; text: string }[] }
-  | { kind: "table"; head: string[]; rows: string[][] };
+  | { kind: "table"; head: string[]; rows: string[][] }
+  /** A warning that must not be skimmed past (shown boxed, with an icon). */
+  | { kind: "warn"; title: string; text: string }
+  /** Outbound or in-site links, each with a short note. */
+  | { kind: "links"; items: { label: string; href: string; note: string }[] };
 
 export interface Section {
   /** Stable anchor id: keep it unchanged so answer engines can deep-link. */
@@ -459,8 +463,222 @@ export const SECURITY: PublicPage = {
   ],
 };
 
+const IS_MAINNET = CHAIN_ID === 43114;
+const CORE_URL = "https://core.app/";
+const FUJI_FAUCET_URL = "https://core.app/tools/testnet-faucet/";
+
+/**
+ * The onboarding guide (ADR 0054) for someone who has never used crypto. Network-aware:
+ * Fuji builds point at the free test faucet, mainnet builds say to buy AVAX on an exchange
+ * without naming one (ADR 0024: no endorsements, no returns).
+ */
+export const START: PublicPage = {
+  slug: "start",
+  path: "/start/",
+  title: "Get started with WealthKart, step by step",
+  description: IS_MAINNET
+    ? "New to crypto? Install Core wallet, back up your recovery phrase, get a little AVAX for fees and join your friends' circle. Plain steps, no jargon."
+    : "New to crypto? Install Core wallet, back up your recovery phrase, get free test AVAX and join your friends' circle. Plain steps, no jargon.",
+  eyebrow: "Get started",
+  h1: "New to crypto? Start here",
+  intro: IS_MAINNET
+    ? "To join a circle you need a wallet app on your phone or computer and a little AVAX to pay network fees. This page walks you through both, one step at a time. Set aside about 20 minutes."
+    : "To join a circle you need a wallet app on your phone or computer and a little AVAX to pay network fees. WealthKart runs on the Fuji test network for now, so the coins are free and worth nothing. It's a safe place to learn. Set aside about 15 minutes.",
+  updated: "2026-11-16",
+  schema: "HowTo",
+  sections: [
+    {
+      id: "install-core",
+      heading: "Step 1: Install Core wallet",
+      answer:
+        "Core is a free wallet app made by Ava Labs, the team behind Avalanche. It holds your coins and is your login to WealthKart, so you never make an account or share an email.",
+      blocks: [
+        {
+          kind: "list",
+          items: [
+            "On a computer: add the Core extension to Chrome, Brave or Edge.",
+            "On a phone: install the Core app from the App Store or Google Play.",
+            "Download it only from core.app or your phone's official app store. Fake wallet apps exist, and they steal money.",
+          ],
+        },
+        {
+          kind: "links",
+          items: [
+            {
+              label: "core.app",
+              href: CORE_URL,
+              note: "Official download links for the extension and the phone app",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "create-wallet",
+      heading: "Step 2: Create a wallet and write down the recovery phrase",
+      answer:
+        "Open Core and choose to create a new wallet. Core shows you a list of secret words, called the recovery phrase. Write them on paper, in order, and keep the paper somewhere safe.",
+      blocks: [
+        {
+          kind: "warn",
+          title: "Lose the phrase and the money is gone",
+          text: "The recovery phrase is the only way back into your wallet if your phone breaks or you forget your password. Nobody can reset it: not Core, not WealthKart, not your circle. Anyone who sees the words can take everything in the wallet. Never type them into a website, never send a photo of them, and never share them with anyone. WealthKart will never ask for your recovery phrase.",
+        },
+        {
+          kind: "steps",
+          items: [
+            {
+              title: "Write it on paper",
+              text: "Two copies, kept in two different safe places. A screenshot or a notes app is easy to lose or hack.",
+            },
+            {
+              title: "Check it",
+              text: "Core asks you to confirm a few of the words. That's the moment to make sure your copy is right.",
+            },
+            {
+              title: "Set a password",
+              text: "It unlocks Core on this device. It isn't the recovery phrase and can't replace it.",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "backup-wallet",
+      heading: "Step 3: Pick a backup wallet (your nominee)",
+      answer:
+        "Decide who should get your savings if you can never reach them again, and note that person's wallet address next to your recovery phrase backup. It can be a family member's wallet or a second wallet of your own.",
+      blocks: [
+        {
+          kind: "p",
+          text: "WealthKart can't recover a lost wallet. Circles are getting a nominee setting: you name one backup wallet, and if you go quiet for months, it can claim your share after a member vote and a notice period. Until that setting arrives, keep the address ready. Your circle can already vote to pause the payments of a member who lost their wallet, and the savings stay theirs.",
+        },
+      ],
+    },
+    {
+      id: "get-avax",
+      heading: IS_MAINNET
+        ? "Step 4: Get a little AVAX for network fees"
+        : "Step 4: Get free test AVAX for network fees",
+      answer: IS_MAINNET
+        ? "Every payment, vote or loan request costs a small network fee in AVAX, usually a tiny fraction of one AVAX. Buy a little on a crypto exchange and send it to your Core wallet."
+        : "Every payment, vote or loan request costs a small network fee in AVAX. On the test network the AVAX is free: ask the Fuji faucet to send some to your Core wallet.",
+      blocks: IS_MAINNET
+        ? [
+            {
+              kind: "steps",
+              items: [
+                {
+                  title: "Pick an exchange you trust",
+                  text: "Use a licensed exchange that works in your country. WealthKart doesn't recommend or partner with any exchange.",
+                },
+                {
+                  title: "Buy a small amount of AVAX",
+                  text: "Enough for fees, plus your monthly installment if your circle saves in AVAX.",
+                },
+                {
+                  title: "Withdraw to your Core address",
+                  text: "Copy your address from Core and choose the Avalanche C-Chain network when you withdraw. Send a small test amount first.",
+                },
+              ],
+            },
+          ]
+        : [
+            {
+              kind: "steps",
+              items: [
+                {
+                  title: "Copy your address",
+                  text: "In Core, switch on testnet mode in the settings, then copy your C-Chain address. It starts with 0x.",
+                },
+                {
+                  title: "Open the faucet",
+                  text: "Paste the address and ask for Fuji C-Chain AVAX. It usually arrives within a minute or two.",
+                },
+                {
+                  title: "If the faucet says no",
+                  text: "Faucets sometimes ask for a coupon code or a small mainnet balance. Ask the friend who invited you to send you a little test AVAX instead.",
+                },
+              ],
+            },
+            {
+              kind: "links",
+              items: [
+                {
+                  label: "Fuji faucet",
+                  href: FUJI_FAUCET_URL,
+                  note: "Free test AVAX from the Avalanche team, worth nothing",
+                },
+              ],
+            },
+          ],
+    },
+    {
+      id: "get-usdt",
+      heading: "Step 5: Get USDT, if your circle saves in USDT",
+      answer: IS_MAINNET
+        ? "Some circles save in USDT, a digital dollar, instead of AVAX. If yours does, buy USDT on an exchange and withdraw it to your Core address on the Avalanche C-Chain. You still need a little AVAX for fees."
+        : "Some circles save in USDT, a digital dollar, instead of AVAX. On the test network, WealthKart gives out test USDT for free: look for the Get test USDT button in the app. You still need a little AVAX for fees.",
+      blocks: [
+        {
+          kind: "list",
+          items: IS_MAINNET
+            ? [
+                "Choose the Avalanche C-Chain network when you withdraw. USDT sent over another network, like Ethereum or Tron, may not arrive and can be lost.",
+                "Your circle's page shows whether it saves in AVAX or USDT. That never changes.",
+              ]
+            : [
+                "Test USDT has no value and only works in WealthKart's test circles.",
+                "Your circle's page shows whether it saves in AVAX or USDT. That never changes.",
+              ],
+        },
+      ],
+    },
+    {
+      id: "join",
+      heading: "Step 6: Open the app and join your circle",
+      answer:
+        "Open the invite link your friend sent you, connect Core, and ask to join. The members vote, and once enough say yes, you're in.",
+      blocks: [
+        {
+          kind: "steps",
+          items: [
+            {
+              title: "Open the invite link",
+              text: "On a computer, open it in the browser that has Core. On a phone, open it in the Core app's browser.",
+            },
+            {
+              title: "Connect Core",
+              text: "Your wallet address is your login. Pick a display name for the circle: a nickname, not your real name.",
+            },
+            {
+              title: "Wait for the vote",
+              text: "Members have a couple of days to vote. The app shows how many have voted so far.",
+            },
+            {
+              title: "Or start your own circle",
+              text: "Pick a starting point (Friends, Family or Office), check the rules and invite your friends.",
+            },
+          ],
+        },
+        {
+          kind: "links",
+          items: [
+            { label: "Open the app", href: "/app/", note: "Connect Core and see your circles" },
+            {
+              label: "How a circle works",
+              href: "/how-it-works/",
+              note: "Payments, loans and leaving, in plain words",
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 /** Public help pages, in nav and llms.txt order. */
-export const PUBLIC_PAGES: readonly PublicPage[] = [HOW_IT_WORKS, RULES, SECURITY, FAQ];
+export const PUBLIC_PAGES: readonly PublicPage[] = [HOW_IT_WORKS, RULES, SECURITY, FAQ, START];
 
 export function pageBySlug(slug: string): PublicPage | undefined {
   return PUBLIC_PAGES.find((p) => p.slug === slug);

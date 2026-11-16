@@ -133,7 +133,14 @@ export function Hero() {
           <SecondaryCta href="#how-it-works">How it works</SecondaryCta>
         </div>
         <p className="land-rise mt-7 text-[13.5px] text-faint" style={{ animationDelay: "420ms" }}>
-          {LANDING_HERO.note}
+          {LANDING_HERO.note}{" "}
+          <Link
+            href="/start/"
+            className="font-medium text-brand underline-offset-4 hover:underline"
+            data-testid="hero-start-link"
+          >
+            {LANDING_HERO.startLink}
+          </Link>
         </p>
       </div>
       <HeroArt className="mx-auto h-auto w-full max-w-[560px]" />
@@ -439,6 +446,7 @@ export function FinalCta() {
         <p className={cn(LEAD, "mt-7 max-w-[44ch]")}>{LANDING_CTA.text}</p>
         <div className="mt-11 flex flex-wrap justify-center gap-3">
           <PrimaryCta />
+          <SecondaryCta href="/start/">{LANDING_CTA.startLink}</SecondaryCta>
           <SecondaryCta href="/rules/">Read the rules</SecondaryCta>
         </div>
       </div>

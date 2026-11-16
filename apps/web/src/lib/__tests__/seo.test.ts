@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import manifest from "@/app/manifest";
 import robots from "@/app/robots";
@@ -16,7 +16,7 @@ describe("S-WEB-18 sitemap and robots expose public pages only", () => {
   it("sitemap lists home + every public page and nothing private", () => {
     const urls = sitemap().map((e) => e.url);
     expect(urls).toContain(`${SITE_URL}/`);
-    for (const p of ["/how-it-works/", "/rules/", "/security/", "/faq/"]) {
+    for (const p of ["/how-it-works/", "/rules/", "/security/", "/faq/", "/start/"]) {
       expect(urls).toContain(`${SITE_URL}${p}`);
     }
     expect(urls.some((u) => u.includes("/app") || u.includes("/kit"))).toBe(false);
@@ -150,5 +150,40 @@ describe("S-LAND-07 landing copy (ADR 0049)", () => {
   it("puts the landing copy in llms-full.txt", () => {
     expect(llmsFullTxt()).toContain(md.trim().split("\n")[0]);
     expect(llmsFullTxt()).toContain("## Watch the pot at work");
+  });
+});
+
+describe("S-ONB-03 the /start guide is indexable, network-aware and never endorses", () => {
+  const load = async (network: string) => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_NETWORK", network);
+    const mod = await import("@/content/pages");
+    vi.unstubAllEnvs();
+    return mod.START;
+  };
+
+  it("is in llms.txt, has a HowTo with every step, and warns about the recovery phrase", () => {
+    const start = PUBLIC_PAGES.find((p) => p.slug === "start")!;
+    expect(llmsTxt()).toContain(`${SITE_URL}/start.md`);
+    const ld = pageLd(start) as { "@type": string; step: unknown[] };
+    expect(ld["@type"]).toBe("HowTo");
+    expect(ld.step).toHaveLength(start.sections.length);
+    const md = pageToMarkdown(start);
+    expect(md).toContain("> **Lose the phrase and the money is gone.**");
+    expect(md).toContain("WealthKart will never ask for your recovery phrase");
+    expect(md).toMatch(/\[Open the app\]\(https?:\/\/[^)]+\/app\/\)/);
+  });
+
+  it("points Fuji builds at the faucet and mainnet builds at an exchange, naming none", async () => {
+    const fuji = pageToMarkdown(await load("fuji"));
+    expect(fuji).toContain("https://core.app/tools/testnet-faucet/");
+    expect(fuji).toContain("Get test USDT");
+    const main = pageToMarkdown(await load("mainnet"));
+    expect(main).not.toContain("faucet");
+    expect(main).toContain("doesn't recommend or partner with any exchange");
+    for (const name of ["binance", "coinbase", "kraken", "okx", "bybit", "wazirx", "coindcx"]) {
+      expect(main.toLowerCase(), name).not.toContain(name);
+      expect(fuji.toLowerCase(), name).not.toContain(name);
+    }
   });
 });

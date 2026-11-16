@@ -22,7 +22,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           WealthKart
         </Link>
         <nav aria-label="Site" className="flex items-center gap-8">
-          <ul className="hidden items-center gap-8 text-[14.5px] md:flex">
+          <ul className="hidden items-center gap-8 text-[14.5px] lg:flex">
             {NAV.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className={linkCls}>

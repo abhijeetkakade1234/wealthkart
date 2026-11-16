@@ -1,9 +1,11 @@
+import { ArrowUpRight, ShieldAlert } from "lucide-react";
+
 import type { Block, PublicPage } from "@/content/pages";
 import { pageLd } from "@/lib/seo/json-ld";
 
 import { JsonLd } from "./json-ld";
 
-function formatDate(iso: string) {
+export function formatDate(iso: string) {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -12,8 +14,48 @@ function formatDate(iso: string) {
   });
 }
 
-function BlockView({ block }: { block: Block }) {
+export function BlockView({ block }: { block: Block }) {
   switch (block.kind) {
+    case "warn":
+      return (
+        <div
+          role="note"
+          className="flex gap-4 rounded-[14px] border border-warn/30 bg-warn-soft px-6 py-6"
+        >
+          <ShieldAlert className="mt-0.5 size-5 shrink-0 text-warn" strokeWidth={1.5} aria-hidden />
+          <div>
+            <p className="text-[16px] font-semibold text-foreground">{block.title}</p>
+            <p className="mt-2 text-[15.5px] leading-[1.7] text-foreground/80">{block.text}</p>
+          </div>
+        </div>
+      );
+    case "links":
+      return (
+        <ul className="flex flex-col gap-3">
+          {block.items.map((l) => {
+            const external = !l.href.startsWith("/");
+            return (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  className="group inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[15.5px]"
+                >
+                  <span className="inline-flex items-center gap-1.5 font-medium text-brand underline-offset-4 group-hover:underline">
+                    {l.label}
+                    <ArrowUpRight
+                      className="size-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
+                  </span>
+                  <span className="text-[14px] text-muted-foreground">{l.note}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      );
     case "p":
       return <p className="text-[16px] leading-[1.75] text-muted-foreground">{block.text}</p>;
     case "list":
