@@ -63,12 +63,14 @@ On `main`: the same, plus a production deploy of `apps/web` to Cloudflare Pages.
 
 **Which branch runs where (founder setting, 2026-11-16; ADR 0051).** Cloudflare Pages builds only `main` and `dev`:
 
-| Branch     | Cloudflare              | `NEXT_PUBLIC_NETWORK`                                                                                                      |
-| ---------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `main`     | Production              | `fuji` for now; `mainnet` after the audit                                                                                  |
-| `dev`      | Preview (branch deploy) | `fuji`                                                                                                                     |
-| `abhijeet` | not deployed            | n/a                                                                                                                        |
-| your PC    | `pnpm dev`              | local anvil: `NEXT_PUBLIC_RPC_URL` + `NEXT_PUBLIC_FACTORY_OVERRIDE` in `apps/web/.env.local` (see `apps/web/.env.example`) |
+| Branch     | Cloudflare              | `NEXT_PUBLIC_NETWORK`                                                                                                       |
+| ---------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `main`     | Production              | `fuji` for now; `mainnet` after the audit                                                                                   |
+| `dev`      | Preview (branch deploy) | `fuji`                                                                                                                      |
+| `abhijeet` | not deployed            | n/a                                                                                                                         |
+| your PC    | `pnpm dev:local`        | `fuji` against a local anvil (chain id 43113): the script deploys the contracts and writes `apps/web/.env.local` (ADR 0053) |
+
+`pnpm dev:local` (root) starts anvil, deploys the factory, libraries and faucet test USDT like the E2E setup, gives the anvil test wallets test USDT, writes `apps/web/.env.local` and runs `next dev`; add `--indexer` for the indexer Worker and `--fund 0x...` for your own wallet. Ctrl+C stops everything and removes the generated `.env.local`. Details in `apps/web/README.md`.
 
 Set the variable per environment in the Pages project (Settings, Environment variables: Production and Preview). Going live is changing Production to `mainnet` and redeploying `main`.
 Nightly: deep invariant runs, Fuji fork tests, dependency audit.
