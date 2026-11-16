@@ -273,7 +273,7 @@ export function LoansList({
         />
       ) : (
         <div className="overflow-hidden rounded-[14px] border border-border bg-card">
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table
               aria-label={t("loans.list.tableAria")}
               className="w-full min-w-[720px] text-[14px]"

@@ -6,6 +6,7 @@
 **Key files**
 
 - `app-shell.tsx`, `page-header.tsx`, `circle-switcher.tsx`, `circle-not-found.tsx`: layout and circle navigation
+- `language-switcher.tsx`: `LanguageMenu` (header and sign-in, a native select) and `LanguageSwitcher` (Settings), ADR 0057
 - `pagination.tsx`: URL-state pagination (`?page=`, or another param for a second list)
 - `first-run-checklist.tsx`: "Before you start" on the home screen for a new wallet; links to `/start` steps, dismissible per wallet (ADR 0054)
 - `countdown-utc.tsx`, `deadline.tsx`: due dates and any on-chain moment in UTC plus local time, with time left (`pastText` once it has passed)

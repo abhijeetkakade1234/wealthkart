@@ -78,7 +78,7 @@ export function CircleAnalytics({
   const histories = memberHistories(events);
 
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-1 gap-5">
       {partial && <InlineAlert tone="info">{t("analytics.partialHistory")}</InlineAlert>}
       <p className="text-[13.5px] text-muted-foreground" data-testid="analytics-summary">
         {sum.payments === 0
@@ -89,7 +89,7 @@ export function CircleAnalytics({
             })}
       </p>
       {sum.payments > 0 && (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <ErrorBoundary preset="widget" name={t("analytics.widgetValue")}>
             <div className="lg:col-span-2">
               <ValueChart points={points} asset={asset} />

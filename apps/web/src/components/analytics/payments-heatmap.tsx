@@ -88,7 +88,7 @@ export function PaymentsHeatmap({
   }
 
   return (
-    <section className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8">
+    <section className="grid grid-cols-1 gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid gap-1.5">
           <h3 className="font-display text-[24px] leading-none tracking-tight">
@@ -130,7 +130,7 @@ export function PaymentsHeatmap({
         </div>
       ) : (
         <TooltipProvider delayDuration={120}>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[640px] border-separate border-spacing-y-1.5 text-[13px]">
               <caption className="sr-only">{t("analytics.heatmapCaption", { year })}</caption>
               <thead>

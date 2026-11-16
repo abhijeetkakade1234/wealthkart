@@ -85,7 +85,7 @@ export function PayButton({
       onClick={onClick}
       data-testid={testId}
     >
-      {amount > 0n ? `${label} ${shown}` : label}
+      {amount > 0n ? t("pay.buttonWithAmount", { label, amount: shown }) : label}
     </Button>
   );
 }

@@ -17,6 +17,8 @@ export const pay = {
   usdtSteps:
     "Paying in USDT takes two steps in your wallet: approve, then pay. You approve up to the installment plus both late fees, so a fee starting mid-way can't stop the payment; the circle only takes what's due.",
   payVerb: "Pay",
+  /** A pay button: the action, then the amount ("Pay 0.50 AVAX"). */
+  buttonWithAmount: "{label} {amount}",
   addTokenFirst: "Add {symbol} to your wallet first",
   addAvaxFirst: "Add AVAX to your wallet first",
   saving: "Saving…",

@@ -391,7 +391,7 @@ function MembersTable({
           <StateView state="error" onRetry={() => m.refetch()} />
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table aria-label={t("circle.table.label")} className="w-full min-w-[640px] text-[14px]">
             <thead>
               <tr className="border-b border-line-soft text-left text-[12.5px] text-muted-foreground">
