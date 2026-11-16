@@ -3,16 +3,16 @@
 **What's here:** the landing page at `/` (ADR 0049): its sections, the cut-paper hero, the line diagrams and the GSAP motion layer.
 **Open this when:** changing the landing page. Copy lives in `src/content/landing.ts`, not here.
 
-| File                 | Purpose                                                                                             |
-| -------------------- | --------------------------------------------------------------------------------------------------- |
-| `sections.tsx`       | Server components for every section: hero, steps, one month, features, safety, audience, FAQ, CTA   |
-| `hero-art.tsx`       | Placeholder cut-paper hero (until the illustrator's piece); layers carry `data-depth` for the drift |
-| `pot-diagram.tsx`    | "One month in a circle" line diagram, rendered in its end state                                     |
-| `geometry.ts`        | Positions shared by the diagram and the timeline (no imports, keeps the motion chunk small)         |
-| `diagrams.tsx`       | Small card drawings: months, vote tally, notice timeline, ring of friends                           |
-| `landing-motion.tsx` | Client component: after idle, dynamically imports GSAP + ScrollTrigger; skipped with reduced motion |
-| `motion.ts`          | Reveals, hairlines, stroke tracing, hero drift and the scrubbed month scene; `revert()` undoes all  |
-| `landing.css`        | Hero entrance keyframes, micro-interactions, sticky track styles under `[data-motion="on"]`         |
+| File                 | Purpose                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sections.tsx`       | Server components for every section: hero, steps, one month, features, safety, audience, FAQ, CTA                                             |
+| `hero-art.tsx`       | Placeholder cut-paper hero (until the illustrator's piece); layers carry `data-depth` for the drift                                           |
+| `pot-diagram.tsx`    | "One month in a circle" line diagram, rendered in its end state                                                                               |
+| `geometry.ts`        | Positions shared by the diagram and the timeline (no imports, keeps the motion chunk small)                                                   |
+| `diagrams.tsx`       | Small card drawings: months, vote tally, notice timeline, ring of friends                                                                     |
+| `landing-motion.tsx` | Client component: after idle, dynamically imports GSAP + ScrollTrigger; skipped with reduced motion                                           |
+| `motion.ts`          | Reveals, hairlines, stroke tracing, hero drift and the scrubbed month scene; `revert()` undoes all                                            |
+| `landing.css`        | Hero entrance keyframes, tinted section bands (`land-band` + `data-tone`), micro-interactions, sticky track styles under `[data-motion="on"]` |
 
 **Rules**
 
