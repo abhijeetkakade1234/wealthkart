@@ -37,6 +37,8 @@ Last updated: 2026-11-16
 ## Next: Phase 4 (growth)
 
 - [x] Landing page with the "one month" scroll scene (ADR 0049)
+- [x] Legal pages (draft): privacy, terms and risks (ADR 0055)
+- [ ] Lawyer review of privacy/terms/risks (checklist in `docs/legal/README.md`)
 - [ ] Reminders (Web Push, keyed by wallet)
 - [ ] Circle templates (friends, family, office)
 - [ ] Hindi and Marathi

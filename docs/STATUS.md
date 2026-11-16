@@ -88,7 +88,7 @@ How to use this file:
 ### Other
 
 - [ ] Figma: portfolio, create, join, pay, loans, votes, members
-- [ ] Lawyer review booked (pre-mainnet)
+- [ ] Lawyer review booked (pre-mainnet); brief and checklist in `docs/legal/README.md`
 
 ---
 
@@ -145,6 +145,8 @@ How to use this file:
 ## Phase 4: Growth
 
 - [x] Landing page: plain-language sections, cut-paper hero, GSAP scroll scene (ADR 0049)
+- [x] Legal pages (draft): `/privacy`, `/terms`, `/risks` in plain words with a "Draft, pending legal review" note; footer Legal row, sign-in agreement line, sitemap, llms.txt; privacy page tested against what the code stores (ADR 0055, S-LEGAL-01..08, `docs/legal/README.md`)
+- [ ] Lawyer review of privacy, terms and risks (checklist in `docs/legal/README.md`), then remove the draft notes
 - [ ] Reminders (Web Push, wallet-keyed)
 - [ ] Circle templates (friends / family / office)
 - [ ] Hindi + Marathi

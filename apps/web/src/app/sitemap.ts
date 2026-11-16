@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { LEGAL_PAGES } from "@/content/legal";
 import { PUBLIC_PAGES } from "@/content/pages";
 import { absoluteUrl } from "@/content/site";
 
@@ -14,6 +15,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: p.updated,
       changeFrequency: "monthly" as const,
       priority: 0.8,
+    })),
+    // Legal pages (ADR 0055).
+    ...LEGAL_PAGES.map((p) => ({
+      url: absoluteUrl(p.path),
+      lastModified: p.updated,
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
     })),
   ];
 }
