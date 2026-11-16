@@ -96,7 +96,7 @@ export const messages = {
     "Approve the USDT payment in your wallet first, then pay. If the amount changed, approve again.",
   tokenBalanceTooLow: () => "Your wallet doesn't have enough USDT for this payment.",
   tokenAmountMismatch: () =>
-    "The circle received a different amount of USDT than was sent, so the payment was refused.",
+    "The USDT token took a bigger fee than the circle accepts (1%), so the payment was refused. Nothing was taken.",
   tokenTransferFailed: () =>
     "The USDT transfer didn't go through. Check your USDT balance and approval, then try again.",
   usdtNotAvailable: () =>
@@ -481,6 +481,7 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
   if (hasName("PeriodAlreadyPaid")) {
     return friendlyError("month-already-paid", messages.monthAlreadyPaid(), details);
   }
+  // Vaults before ADR 0050 refused mainnet; current ones don't. Kept for those old builds.
   if (hasName("MainnetNotSupported")) {
     return friendlyError("not-available", messages.notAvailableYet(), details);
   }

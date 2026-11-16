@@ -1,7 +1,7 @@
 name: Deploy contracts
 
 # Manual only, with environment approval (docs/engineering.md §6). Fuji only until the
-# audited release with exits; CircleVault refuses to deploy on mainnet.
+# audit. A mainnet run would also need CONFIRM_MAINNET=yes and C-Chain USDt (ADR 0050).
 on:
   workflow_dispatch:
     inputs:

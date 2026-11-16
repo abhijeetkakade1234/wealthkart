@@ -4,8 +4,8 @@ import type { Address, Chain } from "viem";
 import fuji from "./deployments/43113.json";
 
 /**
- * Supported chains. Fuji (testnet) first; mainnet stays disabled until contracts
- * with exits are audited (CircleVault refuses to deploy on mainnet until then).
+ * Supported chains. Fuji (testnet) only until the audit. The contracts themselves no
+ * longer refuse mainnet; the network is chosen at deploy time (ADR 0050).
  */
 export const SUPPORTED_CHAINS: readonly [Chain, ...Chain[]] = [avalancheFuji];
 export const DEFAULT_CHAIN: Chain = avalancheFuji;

@@ -213,19 +213,6 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
-    name: "AVALANCHE_MAINNET_CHAIN_ID",
-    inputs: [],
-    outputs: [
-      {
-        name: "",
-        type: "uint256",
-        internalType: "uint256",
-      },
-    ],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
     name: "DORMANT_PASS_PCT",
     inputs: [],
     outputs: [
@@ -3288,6 +3275,31 @@ export const circleVaultAbi = [
   },
   {
     type: "event",
+    name: "TokenFeeAbsorbed",
+    inputs: [
+      {
+        name: "payer",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "expected",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "received",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "VotingRightsGranted",
     inputs: [
       {
@@ -3414,11 +3426,6 @@ export const circleVaultAbi = [
         internalType: "uint8",
       },
     ],
-  },
-  {
-    type: "error",
-    name: "MainnetNotSupported",
-    inputs: [],
   },
   {
     type: "error",

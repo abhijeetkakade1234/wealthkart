@@ -396,13 +396,14 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         factory.createCircle(c, one);
     }
 
-    // ---------------------------------------------------------------- funds-stuck guard
+    // ---------------------------------------------------------------- network (ADR 0050)
 
-    /// This version has no exits; deploying on Avalanche mainnet would lock funds forever.
-    function test_cannotDeployOnAvalancheMainnet() public {
+    /// Exits exist now, so the vault no longer refuses mainnet; the network is chosen at deploy
+    /// time (`CONFIRM_MAINNET=yes` in DeployFactory.s.sol), not in the contract.
+    function test_circleCanBeCreatedOnAvalancheMainnet() public {
         vm.chainId(43_114);
-        vm.expectRevert(CircleVault.MainnetNotSupported.selector);
-        factory.createCircle(_cfg(), members);
+        CircleVault v = _createCircle(_cfg(), members);
+        assertTrue(v.isMember(members[0]));
     }
 
     // ---------------------------------------------------------------- scale (ADR 0015)

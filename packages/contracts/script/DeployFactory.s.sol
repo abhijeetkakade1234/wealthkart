@@ -10,7 +10,9 @@ import {CircleVault} from "../src/CircleVault.sol";
 import {MockUSDT} from "./MockUSDT.sol";
 
 /// @notice Deploys CircleFactory and records the address for the SDK.
-/// @dev Fuji only for now (CircleVault refuses mainnet until the audited release).
+/// @dev The network is chosen here, not in the contracts (ADR 0050). Fuji (43113) and anvil need
+///      nothing extra. Avalanche mainnet (43114) reverts unless `CONFIRM_MAINNET=yes` is set and
+///      `USDT_ADDRESS` is the C-Chain USDt below or unset (AVAX-only factory).
 ///      Usage (from packages/contracts):
 ///        forge script script/DeployFactory.s.sol --rpc-url fuji --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 ///      Writes ../sdk/src/deployments/<chainId>.json, which the app reads.
@@ -27,11 +29,21 @@ contract DeployFactory is Script {
     address internal constant MAINNET_USDT = 0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7;
 
     error MockUsdtOnMainnet();
+    /// @notice Mainnet needs `CONFIRM_MAINNET=yes` in the environment.
+    error MainnetNotConfirmed();
+    /// @notice On mainnet the factory's USDT must be C-Chain USDt (or none).
+    error WrongMainnetUsdt(address usdt);
 
     function run() external returns (CircleFactory factory) {
         address usdt = vm.envOr("USDT_ADDRESS", address(0));
         bool mock = vm.envOr("DEPLOY_MOCK_USDT", false);
-        if (mock && block.chainid == AVALANCHE_MAINNET_CHAIN_ID) revert MockUsdtOnMainnet();
+        if (block.chainid == AVALANCHE_MAINNET_CHAIN_ID) {
+            if (mock) revert MockUsdtOnMainnet();
+            if (keccak256(bytes(vm.envOr("CONFIRM_MAINNET", string("")))) != keccak256("yes")) {
+                revert MainnetNotConfirmed();
+            }
+            if (usdt != address(0) && usdt != MAINNET_USDT) revert WrongMainnetUsdt(usdt);
+        }
 
         vm.startBroadcast();
         if (usdt == address(0) && mock) usdt = address(new MockUSDT());
@@ -49,9 +61,6 @@ contract DeployFactory is Script {
 
         console2.log("CircleFactory deployed at", address(factory));
         console2.log("USDT (0 = AVAX only)", usdt);
-        if (block.chainid == AVALANCHE_MAINNET_CHAIN_ID && usdt != MAINNET_USDT) {
-            console2.log("WARNING: USDT is not the Avalanche C-Chain USDt address");
-        }
         console2.log("Chain id", block.chainid);
         console2.log("Wrote", path);
     }
