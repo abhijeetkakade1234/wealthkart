@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Check, ExternalLink, LoaderCircle, X } from "lucide-react";
 
+import { useT } from "@/i18n/react";
 import { messages } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -50,11 +51,12 @@ export function TxTracker({
   explorerUrl,
   className,
 }: TxTrackerProps) {
+  const { t } = useT();
   return (
     <div className={cn("space-y-5", className)} data-status={status}>
       <ol
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3"
-        aria-label="Transaction progress"
+        aria-label={t("kit.txProgress")}
       >
         {STEPS.map((step, index) => {
           const s = stepState(step.key, status, failedAt);
@@ -105,7 +107,7 @@ export function TxTracker({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 rounded-full text-[13.5px] font-medium text-brand underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-brand/35"
         >
-          View on explorer
+          {t("kit.viewOnExplorer")}
           <ExternalLink size={14} strokeWidth={1.5} aria-hidden />
         </a>
       )}

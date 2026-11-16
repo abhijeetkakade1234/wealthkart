@@ -5,6 +5,9 @@
  */
 import { isAddress } from "viem";
 
+import { t } from "@/i18n/runtime";
+import "@/i18n/en/nominee";
+
 /** Same as Exits.MIN_CLAIM_NOTICE: a passed claim waits at least this long. */
 export const MIN_CLAIM_NOTICE_DAYS = 30;
 
@@ -17,18 +20,12 @@ const ZERO = "0x0000000000000000000000000000000000000000";
  */
 export function nomineeProblem(input: string, me?: string, circle?: string): string | null {
   const v = input.trim();
-  if (v.length === 0) return "Paste the backup wallet's address.";
-  if (!isAddress(v, { strict: false })) {
-    return "That isn't a wallet address. It starts with 0x and has 42 characters.";
-  }
+  if (v.length === 0) return t("nominee.addrEmpty");
+  if (!isAddress(v, { strict: false })) return t("nominee.addrInvalid");
   const lower = v.toLowerCase();
-  if (lower === ZERO) return "That address can't receive anything. Use a real wallet.";
-  if (me && lower === me.toLowerCase()) {
-    return "That's your own wallet. Pick someone you trust, or a second wallet of yours.";
-  }
-  if (circle && lower === circle.toLowerCase()) {
-    return "That's the circle's own address. Use a person's wallet.";
-  }
+  if (lower === ZERO) return t("nominee.addrZero");
+  if (me && lower === me.toLowerCase()) return t("nominee.addrSelf");
+  if (circle && lower === circle.toLowerCase()) return t("nominee.addrCircle");
   return null;
 }
 

@@ -2,7 +2,7 @@
 
 What's open right now. Phase-level progress is in [PHASES.md](PHASES.md); the full checklist is in [docs/STATUS.md](docs/STATUS.md).
 
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
 ## Done in Phase 1
 
@@ -41,7 +41,8 @@ Last updated: 2026-11-16
 - [ ] Lawyer review of privacy/terms/risks (checklist in `docs/legal/README.md`)
 - [x] Reminders (Web Push, keyed by wallet, ADR 0052)
 - [x] Circle templates: Friends, Family, Office, Custom pre-fill the create form (ADR 0054)
-- [ ] Hindi and Marathi
+- [x] Hindi and Marathi: the whole app, sign-in, and `/hi/` `/mr/` landing, start and how-it-works pages (ADR 0057)
+- [ ] Native-speaker review of the Hindi and Marathi copy before mainnet (glossary in `docs/i18n.md`)
 - [x] Onboarding guide at `/start` and a first-run checklist on the home screen (ADR 0054)
 - [x] Nominee (backup) wallet in the contracts and app; the checklist reads it from the chain (ADR 0056)
 - [x] Free space in the vault (now 23,103 B after the nominee wallet, 1,473 B left under 24 KB)

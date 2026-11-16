@@ -16,6 +16,7 @@ import { RequestCard } from "@/components/membership/request-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useT } from "@/i18n/react";
 import { type CircleGov, PROPOSALS_PAGE_SIZE, useCircleGov, useProposals } from "@/lib/gov-hooks";
 import { LOAN_REQUESTS_PAGE_SIZE, useOpenLoanRequests } from "@/lib/loan-hooks";
 import {
@@ -26,6 +27,7 @@ import {
   useJoinRequests,
 } from "@/lib/circle";
 import type { Address } from "viem";
+import "@/i18n/en/votes";
 
 export default function VotesPage() {
   return (
@@ -43,13 +45,14 @@ function Votes() {
   const g = useCircleGov(id);
   const chainNow = useChainNow();
   const { address } = useCoreWallet();
+  const { t, tn } = useT();
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
   if (c.isPending || !c.data) {
     return (
       <StateView
         state="loading"
-        label="Loading votes"
+        label={t("votes.page.loading")}
         skeleton={<Skeleton className="h-64 max-w-[760px] rounded-[14px]" />}
       />
     );
@@ -67,8 +70,12 @@ function Votes() {
   return (
     <div className="max-w-[760px]">
       <PageHeader
-        title="Votes"
-        subtitle={`${d.name} · proposals, loans, people asking to join, members the circle may mark dormant, and backup wallet claims. At least ${d.quorumPct}% of members must vote, and each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
+        title={t("votes.page.title")}
+        subtitle={t("votes.page.subtitle", {
+          name: d.name,
+          pct: d.quorumPct,
+          window: hours >= 48 ? tn("time.days", Math.round(hours / 24)) : tn("time.hours", hours),
+        })}
         actions={
           gov?.rules && !gov.dissolved ? (
             <NewProposalButton
@@ -101,9 +108,9 @@ function Votes() {
           id="proposals-heading"
           className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground"
         >
-          Circle proposals
+          {t("votes.page.proposalsHeading")}
         </h2>
-        <ErrorBoundary preset="widget" name="Proposals">
+        <ErrorBoundary preset="widget" name={t("votes.page.proposalsWidget")}>
           <ProposalList
             id={id}
             gov={gov}
@@ -118,9 +125,9 @@ function Votes() {
           id="loans-heading"
           className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground"
         >
-          Loans
+          {t("votes.page.loansHeading")}
         </h2>
-        <ErrorBoundary preset="widget" name="Loan votes">
+        <ErrorBoundary preset="widget" name={t("votes.page.loanVotesWidget")}>
           <LoanRequestList
             id={id}
             passPct={gov?.rules?.passPct ?? 50}
@@ -135,9 +142,9 @@ function Votes() {
           id="requests-heading"
           className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground"
         >
-          Joining, dormant members and backup wallets
+          {t("votes.page.requestsHeading")}
         </h2>
-        <ErrorBoundary preset="widget" name="Open votes">
+        <ErrorBoundary preset="widget" name={t("votes.page.openVotesWidget")}>
           <RequestList
             id={id}
             quorumPct={d.quorumPct}
@@ -166,24 +173,20 @@ function ProposalList({
   const page = usePageParam("ppage");
   const q = useProposals(id, page);
   const { address } = useCoreWallet();
+  const { t } = useT();
 
   if (q.isPending) {
     return (
       <StateView
         state="loading"
-        label="Loading proposals"
+        label={t("votes.page.loadingProposals")}
         skeleton={<Skeleton className="h-52 rounded-[14px]" />}
       />
     );
   }
   if (q.isError) return <StateView state="error" onRetry={q.refetch} />;
   if (q.proposals.length === 0) {
-    return (
-      <StateView
-        state="empty"
-        message="No proposals open. Use New proposal to suggest a rule change, a fee waiver, closing the circle or switching off the guardian."
-      />
-    );
+    return <StateView state="empty" message={t("votes.page.noProposals")} />;
   }
   return (
     <div className="grid gap-8">
@@ -208,7 +211,7 @@ function ProposalList({
         page={page}
         pageSize={PROPOSALS_PAGE_SIZE}
         total={q.total}
-        noun="proposals"
+        noun={t("votes.page.nounProposals")}
         param="ppage"
       />
     </div>
@@ -232,12 +235,13 @@ function LoanRequestList({
   const page = usePageParam("lpage");
   const q = useOpenLoanRequests(id, page);
   const { address } = useCoreWallet();
+  const { t } = useT();
 
   if (q.isPending) {
     return (
       <StateView
         state="loading"
-        label="Loading loan votes"
+        label={t("votes.page.loadingLoanVotes")}
         skeleton={<Skeleton className="h-52 rounded-[14px]" />}
       />
     );
@@ -247,9 +251,9 @@ function LoanRequestList({
     return (
       <StateView
         state="empty"
-        message="No loans to vote on. When a member asks for a loan, or the circle needs to settle one, it shows up here."
+        message={t("votes.page.noLoanVotes")}
         action={{
-          label: "Go to Loans",
+          label: t("votes.page.goToLoans"),
           onAction: () => router.push(`/app/circle/loans/?id=${id}`),
         }}
       />
@@ -278,7 +282,7 @@ function LoanRequestList({
         page={page}
         pageSize={LOAN_REQUESTS_PAGE_SIZE}
         total={q.total}
-        noun="loan votes"
+        noun={t("votes.page.nounLoanVotes")}
         param="lpage"
       />
     </div>
@@ -300,12 +304,13 @@ function RequestList({
   const page = usePageParam();
   const q = useJoinRequests(id, page);
   const chainNow = useChainNow();
+  const { t } = useT();
 
   if (q.isPending) {
     return (
       <StateView
         state="loading"
-        label="Loading votes"
+        label={t("votes.page.loading")}
         skeleton={
           <div className="grid gap-6">
             {[0, 1].map((i) => (
@@ -321,8 +326,11 @@ function RequestList({
     return (
       <StateView
         state="empty"
-        message="Nothing to vote on right now. Share your invite link from the circle page to bring a friend in."
-        action={{ label: "Go to the circle", onAction: () => router.push(`/app/circle/?id=${id}`) }}
+        message={t("votes.page.nothingToVote")}
+        action={{
+          label: t("votes.page.goToCircle"),
+          onAction: () => router.push(`/app/circle/?id=${id}`),
+        }}
       />
     );
   }
@@ -344,7 +352,12 @@ function RequestList({
           />
         ))}
       </div>
-      <Pagination page={page} pageSize={REQUESTS_PAGE_SIZE} total={q.total ?? 0} noun="votes" />
+      <Pagination
+        page={page}
+        pageSize={REQUESTS_PAGE_SIZE}
+        total={q.total ?? 0}
+        noun={t("votes.page.nounVotes")}
+      />
     </div>
   );
 }

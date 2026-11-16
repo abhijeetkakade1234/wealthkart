@@ -18,6 +18,7 @@ import { MyLoanPanel } from "@/components/loans/my-loan";
 import { SectionLabel } from "@/components/loans/parts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
+import { useT } from "@/i18n/react";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { money, useCircleAsset } from "@/lib/asset";
 import { parseCircleId, useChainNow, useCircle } from "@/lib/circle";
@@ -26,6 +27,7 @@ import { useCircleGov } from "@/lib/gov-hooks";
 import { isAhead } from "@/lib/governance";
 import { useMemberName, useMyLoan, useOpenLoanRequests } from "@/lib/loan-hooks";
 import { askBlocker, loanTies, loansFromLogs } from "@/lib/loans";
+import "@/i18n/en/loans";
 
 export default function LoansPage() {
   return (
@@ -45,6 +47,7 @@ function Loans() {
   const open = useOpenLoanRequests(id);
   const chainNow = useChainNow();
   const { address } = useCoreWallet();
+  const { t } = useT();
   const guarantorName = useMemberName(id, my.data?.loan?.guarantor);
   const events = useCircleEvents(id);
   const ties = useMemo(
@@ -57,7 +60,7 @@ function Loans() {
     return (
       <StateView
         state="loading"
-        label="Loading loans"
+        label={t("loans.page.loading")}
         skeleton={
           <div className="grid max-w-[960px] gap-8">
             <Skeleton className="h-12 w-60 rounded-lg" />
@@ -81,6 +84,7 @@ function Loans() {
     void events.refetch();
     open.refetch();
   };
+  const loadingShort = t("loans.page.loadingShort");
   const blocked =
     my.data && rules && gov
       ? askBlocker({
@@ -96,7 +100,7 @@ function Loans() {
           exiting: my.data.exiting,
           guaranteeing: Boolean(address && ties.guarantors.has(address.toLowerCase())),
         })
-      : "Loading…";
+      : loadingShort;
   const lower = address?.toLowerCase();
   const asked = open.all.filter(
     (r) =>
@@ -110,8 +114,8 @@ function Loans() {
   return (
     <div className="max-w-[960px]">
       <PageHeader
-        title="Loans"
-        subtitle={`${d.name} · borrow from the circle when you need to. Members vote, and the money goes out on its own.`}
+        title={t("loans.page.title")}
+        subtitle={t("loans.page.subtitle", { name: d.name })}
         actions={
           rules && my.data && address ? (
             <AskLoanButton
@@ -145,7 +149,11 @@ function Loans() {
       {asked.length > 0 && (
         <div className="mb-12 grid gap-5">
           {asked.map((r) => (
-            <ErrorBoundary key={String(r.id)} preset="widget" name="Guarantor request">
+            <ErrorBoundary
+              key={String(r.id)}
+              preset="widget"
+              name={t("loans.page.guarantorRequest")}
+            >
               <GuarantorNotice circle={id} request={r} onChanged={refetchAll} />
             </ErrorBoundary>
           ))}
@@ -153,12 +161,12 @@ function Loans() {
       )}
 
       <section aria-labelledby="mine-heading" className="mb-16 grid gap-6">
-        <SectionLabel id="mine-heading">Yours</SectionLabel>
-        <ErrorBoundary preset="widget" name="Your loan">
+        <SectionLabel id="mine-heading">{t("loans.page.yours")}</SectionLabel>
+        <ErrorBoundary preset="widget" name={t("loans.page.yourLoan")}>
           {my.isPending || !rules ? (
             <StateView
               state="loading"
-              label="Loading your loan"
+              label={t("loans.page.loadingYourLoan")}
               skeleton={<Skeleton className="h-72 rounded-[14px]" />}
             />
           ) : my.isError || !my.data ? (
@@ -176,7 +184,7 @@ function Loans() {
                 guarantorName={guarantorName}
                 onChanged={refetchAll}
               />
-              {blocked && !my.data.loan && my.data.pendingId === 0n && blocked !== "Loading…" && (
+              {blocked && !my.data.loan && my.data.pendingId === 0n && blocked !== loadingShort && (
                 <p className="text-[13px] text-muted-foreground" data-testid="ask-blocked">
                   {blocked}
                 </p>
@@ -188,8 +196,8 @@ function Loans() {
       </section>
 
       <section aria-labelledby="all-heading" className="grid gap-6">
-        <SectionLabel id="all-heading">All loans</SectionLabel>
-        <ErrorBoundary preset="widget" name="All loans">
+        <SectionLabel id="all-heading">{t("loans.page.allLoans")}</SectionLabel>
+        <ErrorBoundary preset="widget" name={t("loans.page.allLoans")}>
           {rules ? (
             <LoansList
               circle={id}
@@ -203,7 +211,7 @@ function Loans() {
           ) : (
             <StateView
               state="loading"
-              label="Loading loans"
+              label={t("loans.page.loading")}
               skeleton={<Skeleton className="h-52 rounded-[14px]" />}
             />
           )}
@@ -253,14 +261,14 @@ function BackingLine({
 }) {
   const name = useMemberName(circle, borrower) || shortAddress(borrower);
   const { asset } = useCircleAsset(circle);
+  const { t } = useT();
   return defaulted ? (
-    <InlineAlert tone="bad" title={`${name}'s loan is in default`}>
-      You back it, so you&apos;re frozen too until it&apos;s paid: no leaving and no new loans. If
-      it isn&apos;t paid, the circle can vote to use your share after theirs.
+    <InlineAlert tone="bad" title={t("loans.page.backingDefaultTitle", { name })}>
+      {t("loans.page.backingDefaultBody")}
     </InlineAlert>
   ) : (
-    <InlineAlert tone="info" title={`You're backing ${name}'s loan`}>
-      {money(outstanding, asset)} is still owed. You can leave the circle once it&apos;s repaid.
+    <InlineAlert tone="info" title={t("loans.page.backingTitle", { name })}>
+      {t("loans.page.backingBody", { amount: money(outstanding, asset) })}
     </InlineAlert>
   );
 }

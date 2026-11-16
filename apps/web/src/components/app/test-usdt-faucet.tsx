@@ -3,6 +3,7 @@
 import { Droplets } from "lucide-react";
 
 import { Button } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { fmt } from "@/lib/asset";
 import { messages } from "@/lib/messages";
 import { notify } from "@/lib/toast";
@@ -24,6 +25,7 @@ export function TestUsdtFaucet({
   className?: string;
 }) {
   const f = useTestUsdtFaucet();
+  const { t } = useT();
   if (!f.visible) return null;
   const shown = `${fmt(f.amount, USDT)} USDT`;
   const working = f.tx.status === "confirm" || f.tx.status === "sending";
@@ -44,7 +46,7 @@ export function TestUsdtFaucet({
         variant="secondary"
         icon={Droplets}
         iconAnimation="lift"
-        workingLabel="Adding…"
+        workingLabel={t("kit.addingTestUsdt")}
         state={working ? "working" : undefined}
         onClick={async () => {
           const ok = await f.mint();
@@ -54,7 +56,7 @@ export function TestUsdtFaucet({
           }
         }}
       >
-        Get test USDT
+        {t("kit.getTestUsdt")}
       </Button>
       {f.tx.status === "failed" && f.tx.failedMessage && (
         <p role="alert" className="basis-full text-[13px] text-bad">

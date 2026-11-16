@@ -1,3 +1,7 @@
+import { t, tn } from "@/i18n/runtime";
+import type { PlainKey } from "@/i18n/types";
+import "@/i18n/en/votes";
+
 /**
  * Pure helpers that mirror the Governance (ADR 0040) and Exits (ADR 0039) libraries, so the
  * UI can explain a proposal, a vote or a pending exit before anything is sent.
@@ -15,26 +19,29 @@ export function proposalKind(kind: number): ProposalKind {
 export function proposalTitle(kind: ProposalKind): string {
   switch (kind) {
     case "rule-change":
-      return "Change the rules";
+      return t("votes.kind.ruleChange");
     case "fee-waiver":
-      return "Waive late fees";
+      return t("votes.kind.feeWaiver");
     case "dissolve":
-      return "Close the circle";
+      return t("votes.kind.dissolve");
     case "guardian-off":
-      return "Switch off the guardian";
+      return t("votes.kind.guardianOff");
   }
 }
 
-/** Governance.Reason order. A fixed list, never free text (PLAN.md D5). */
-export const WAIVER_REASONS = [
-  { value: 0, label: "Medical" },
-  { value: 1, label: "Bereavement" },
-  { value: 2, label: "Bank problem" },
-  { value: 3, label: "Something else" },
-] as const;
+/**
+ * Governance.Reason order. A fixed list, never free text (PLAN.md D5). `label` is a translation
+ * key; `reasonLabel` gives the words.
+ */
+export const WAIVER_REASONS: ReadonlyArray<{ value: number; label: PlainKey }> = [
+  { value: 0, label: "votes.reason.medical" },
+  { value: 1, label: "votes.reason.bereavement" },
+  { value: 2, label: "votes.reason.bank" },
+  { value: 3, label: "votes.reason.other" },
+];
 
 export function reasonLabel(reason: number): string {
-  return WAIVER_REASONS.find((r) => r.value === reason)?.label ?? "Something else";
+  return t(WAIVER_REASONS.find((r) => r.value === reason)?.label ?? "votes.reason.other");
 }
 
 export type ProposalOutcome = "open" | "approved" | "rejected" | "expired";
@@ -57,8 +64,8 @@ export function passesMark(yes: number, total: number, pct: number): boolean {
 }
 
 /** Same decision as Governance._outcome. */
-export function proposalOutcome(t: ProposalTally, ended: boolean): ProposalOutcome {
-  const { eligible: e, yes, no, passPct: pct, quorumPct } = t;
+export function proposalOutcome(tally: ProposalTally, ended: boolean): ProposalOutcome {
+  const { eligible: e, yes, no, passPct: pct, quorumPct } = tally;
   const quorum = (yes + no) * 100 >= quorumPct * e;
   if (quorum && passesMark(yes, e, pct)) return "approved";
   if (!passesMark(e - no, e, pct)) return "rejected";
@@ -68,22 +75,23 @@ export function proposalOutcome(t: ProposalTally, ended: boolean): ProposalOutco
 }
 
 /** "1 of 2 votes needed · 1 yes, 0 no · needs more than half yes" */
-export function proposalTallyLine(t: ProposalTally): string {
-  const need = Math.ceil((t.quorumPct * t.eligible) / 100);
-  const cast = t.yes + t.no;
-  const mark = t.passPct === 50 ? "needs more than half yes" : `needs ${t.passPct}% yes`;
-  return `${cast} of ${need} ${need === 1 ? "vote" : "votes"} needed · ${t.yes} yes, ${t.no} no · ${mark}`;
+export function proposalTallyLine(tally: ProposalTally): string {
+  const need = Math.ceil((tally.quorumPct * tally.eligible) / 100);
+  const cast = tally.yes + tally.no;
+  const mark =
+    tally.passPct === 50 ? t("votes.markHalf") : t("votes.markPct", { pct: tally.passPct });
+  return tn("votes.tally", need, { cast, yes: tally.yes, no: tally.no, mark });
 }
 
 /** What voters read once a proposal's result is certain but not yet recorded. */
 export function proposalSettledLine(outcome: ProposalOutcome): string {
   switch (outcome) {
     case "approved":
-      return "Enough members voted yes. Anyone can record the result.";
+      return t("votes.settled.approved");
     case "rejected":
-      return "There aren't enough yes votes for this to pass. Anyone can record the result.";
+      return t("votes.settled.rejected");
     case "expired":
-      return "Voting time ran out before enough members voted. Anyone can record the result.";
+      return t("votes.settled.expired");
     default:
       return "";
   }
@@ -133,8 +141,8 @@ export function effectiveNoticeDays(
 
 /** Notice in plain words: "30 days", "no notice". */
 export function noticeText(days: number): string {
-  if (days === 0) return "no notice";
-  return `${days} ${days === 1 ? "day" : "days"}`;
+  if (days === 0) return t("votes.noNotice");
+  return tn("time.days", days);
 }
 
 /** Guardian pause limits (Exits.PAUSE_LENGTH, Exits.PAUSE_COOLDOWN). */

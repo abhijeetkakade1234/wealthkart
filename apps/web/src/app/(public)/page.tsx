@@ -1,29 +1,17 @@
 import type { Metadata } from "next";
 
-import { LandingMotion } from "@/components/landing/landing-motion";
-import {
-  Audience,
-  FaqTeaser,
-  Features,
-  FinalCta,
-  Hero,
-  OneMonth,
-  Safety,
-  Steps,
-} from "@/components/landing/sections";
-import { JsonLd } from "@/components/public/json-ld";
+import { LandingPage } from "@/components/landing/landing-page";
 import { LANDING_DESCRIPTION } from "@/content/landing";
+import { languageAlternates } from "@/content/localized";
 import { SITE_SUMMARY } from "@/content/site";
-import { softwareApplicationLd } from "@/lib/seo/json-ld";
 import { ogImagePath } from "@/lib/seo/metadata";
-
-import "@/components/landing/landing.css";
 
 const OG = { url: ogImagePath("home"), width: 1200, height: 630, alt: "WealthKart" };
 
 export const metadata: Metadata = {
   description: LANDING_DESCRIPTION,
-  alternates: { canonical: "/" },
+  // hreflang links to `/hi/` and `/mr/` (ADR 0057).
+  alternates: { canonical: "/", languages: languageAlternates("/") },
   openGraph: {
     type: "website",
     siteName: "WealthKart",
@@ -37,21 +25,7 @@ export const metadata: Metadata = {
 /**
  * Landing page (ADR 0049): plain words, generous space, one signature scroll moment.
  * Copy lives in `src/content/landing.ts`; sections in `src/components/landing/`.
- * Static HTML first; GSAP loads after idle, only here, and never with reduced motion.
  */
 export default function Home() {
-  return (
-    <main data-landing>
-      <JsonLd data={softwareApplicationLd()} />
-      <Hero />
-      <Steps />
-      <OneMonth />
-      <Features />
-      <Safety />
-      <Audience />
-      <FaqTeaser />
-      <FinalCta />
-      <LandingMotion />
-    </main>
-  );
+  return <LandingPage locale="en" />;
 }

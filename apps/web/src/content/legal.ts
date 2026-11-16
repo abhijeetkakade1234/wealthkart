@@ -13,7 +13,7 @@ import type { PublicPage } from "./pages";
  * storage key, a third-party request or a new indexer table, update PRIVACY in the same PR.
  */
 
-const UPDATED = "2026-11-16";
+const UPDATED = "2026-11-17";
 
 /** Shown at the top of every legal page until the lawyer review is done. */
 export const DRAFT_NOTE =
@@ -82,6 +82,7 @@ export const PRIVACY: PublicPage = {
             "wk:join:<circle>:<wallet> (session storage): the number of your join request, so you can see the result after a reload. It goes away when you close the tab.",
             'wk:first-run:<wallet> (local storage): which "Before you start" checklist items you ticked or hid on this device, so the list remembers them.',
             "wk:reminders (local storage), only if you turn on reminders: this device's push address, a device token, your wallet address and the network.",
+            "wk.locale (local storage), only if you pick a language or open a Hindi or Marathi page: the language code (en, hi or mr), so the app opens in that language next time.",
             "App files (the service worker's cache): copies of the app's pages, code and fonts, so it opens without a connection. They hold no personal data.",
           ],
         },

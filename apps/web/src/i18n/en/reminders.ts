@@ -1,0 +1,44 @@
+import { registerEn } from "../registry";
+
+/** Reminders (ADR 0052): cards, the permission flow and the switch labels. */
+export const reminders = {
+  circleTitle: "Reminders for this circle",
+  circleIntro: "A quiet nudge on this device before money is due or a vote closes. Nothing else.",
+  loadingSettings: "Loading reminder settings",
+  allOff: "All off for this circle.",
+  allOn: "All on for this circle.",
+  someOn: "Some on for this circle.",
+  allSettings: "All reminder settings",
+  deviceTitle: "Reminders on this device",
+  deviceIntro:
+    "We send a short note when an installment is due, a late fee is close, loan interest is due, a vote needs you, or money is ready to collect. Deadlines are in UTC, with your own time added on the device. We keep only your wallet address and this device's push address; no name, email or phone number.",
+  whatWeKeep: "What we keep and why",
+  on: "On",
+  forWallet: "for wallet",
+  sending: "Sending…",
+  sent: "Sent",
+  sendTest: "Send a test",
+  turningOff: "Turning off…",
+  turnOff: "Turn off on this device",
+  turnOn: "Turn on reminders",
+  loading: "Loading reminders",
+  iosTitle: "Add WealthKart to your Home Screen",
+  deniedTitle: "Notifications are blocked",
+  waitingForCore: "Waiting for Core…",
+  remindersOn: "Reminders on",
+  useThisWallet: "Use this wallet instead",
+  signExplain:
+    "Your browser asks first, then Core asks you to sign a short message. Signing is free and moves no money; it proves the reminders are for your wallet.",
+  kindDue: "Installment due",
+  kindDueHint: "3 days before, the day before, and on the due day",
+  kindLate: "Late fee coming",
+  kindLateHint: "A few hours before a late fee starts",
+  kindInterest: "Loan interest",
+  kindInterestHint: "When interest is due soon, or late",
+  kindVote: "Votes waiting for you",
+  kindVoteHint: "When a vote needs you, and on its last day",
+  kindCollect: "Money to collect",
+  kindCollectHint: "When your exit payout or a refused payment is ready",
+} as const;
+
+registerEn("reminders", reminders);

@@ -4,8 +4,10 @@ import { AssetBadge } from "@/components/app/asset-pay";
 import { StatCard } from "@/components/app/stat-card";
 import { StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n/react";
 import { fmt } from "@/lib/asset";
 import { PORTFOLIO_MAX, usePortfolio } from "@/lib/circle";
+import "@/i18n/en/analytics";
 
 /** Percent with one decimal from basis points. */
 const pct = (bps: number) => `${(bps / 100).toFixed(bps > 0 && bps < 100 ? 1 : 0)}%`;
@@ -18,12 +20,13 @@ const pct = (bps: number) => `${(bps / 100).toFixed(bps > 0 && bps < 100 ? 1 : 0
  */
 export function PortfolioSummary() {
   const p = usePortfolio();
+  const { t, tn } = useT();
 
   if (p.isPending) {
     return (
       <StateView
         state="loading"
-        label="Adding up your circles"
+        label={t("analytics.addingUp")}
         skeleton={
           <div className="grid gap-5 sm:grid-cols-3">
             {[0, 1, 2].map((i) => (
@@ -49,36 +52,36 @@ export function PortfolioSummary() {
   const maxOf = (symbol: string) => sorted.find((r) => r.asset.symbol === symbol)?.stake ?? 0n;
 
   return (
-    <section className="grid gap-5" aria-label="Your portfolio">
-      {p.totals.map((t) => {
-        const n = p.rows.filter((r) => r.asset.symbol === t.asset.symbol).length;
+    <section className="grid gap-5" aria-label={t("analytics.portfolio")}>
+      {p.totals.map((total) => {
+        const n = p.rows.filter((r) => r.asset.symbol === total.asset.symbol).length;
         return (
           <div
-            key={t.asset.symbol}
+            key={total.asset.symbol}
             className="grid gap-5 sm:grid-cols-3"
-            data-testid={`portfolio-${t.asset.symbol}`}
+            data-testid={`portfolio-${total.asset.symbol}`}
           >
             <StatCard
               label={
                 p.totals.length > 1
-                  ? `Your money in ${t.asset.symbol} circles`
-                  : "Your money in circles"
+                  ? t("analytics.moneyInAssetCircles", { symbol: total.asset.symbol })
+                  : t("analytics.moneyInCircles")
               }
-              value={fmt(t.value, t.asset)}
-              unit={t.asset.symbol}
-              meta={`Across ${n} ${n === 1 ? "circle" : "circles"}`}
+              value={fmt(total.value, total.asset)}
+              unit={total.asset.symbol}
+              meta={tn("analytics.acrossCircles", n)}
             />
             <StatCard
-              label="Installments you paid"
-              value={fmt(t.paidIn, t.asset)}
-              unit={t.asset.symbol}
-              meta="Late fees not included"
+              label={t("analytics.installmentsPaid")}
+              value={fmt(total.paidIn, total.asset)}
+              unit={total.asset.symbol}
+              meta={t("analytics.feesNotIncluded")}
             />
             <StatCard
-              label="Gain so far"
-              value={`${t.gain >= 0n ? "+" : ""}${fmt(t.gain, t.asset)}`}
-              unit={t.asset.symbol}
-              meta="Your share of fees and loan interest"
+              label={t("analytics.gainSoFar")}
+              value={`${total.gain >= 0n ? "+" : ""}${fmt(total.gain, total.asset)}`}
+              unit={total.asset.symbol}
+              meta={t("analytics.gainMeta")}
             />
           </div>
         );
@@ -87,7 +90,7 @@ export function PortfolioSummary() {
       {sorted.length > 1 && (
         <div className="rounded-[14px] border border-border bg-card p-[26px] sm:p-8">
           <h3 className="font-display text-[24px] leading-none tracking-tight">
-            Where your money is
+            {t("analytics.whereYourMoneyIs")}
           </h3>
           <ul className="mt-6 grid gap-4" data-testid="portfolio-split">
             {sorted.map((r) => {
@@ -102,7 +105,7 @@ export function PortfolioSummary() {
                     </span>
                     <span className="shrink-0 tabular text-muted-foreground">
                       <span className="text-foreground">{fmt(r.stake, r.asset)}</span>{" "}
-                      {r.asset.symbol} · you own {pct(r.shareBps)} of it
+                      {r.asset.symbol} · {t("analytics.youOwn", { pct: pct(r.shareBps) })}
                     </span>
                   </div>
                   <div className="h-2 rounded-full bg-secondary">
@@ -120,7 +123,7 @@ export function PortfolioSummary() {
 
       {p.truncated && (
         <p className="text-[13px] text-muted-foreground">
-          Totals cover your first {PORTFOLIO_MAX} circles.
+          {t("analytics.totalsCover", { max: PORTFOLIO_MAX })}
         </p>
       )}
     </section>

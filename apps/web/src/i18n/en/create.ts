@@ -1,0 +1,149 @@
+import { registerEn } from "../registry";
+
+/** Start a circle: the form (/app/new), its checks (circle-form.ts) and templates (templates.ts). */
+export const create = {
+  title: "Start a circle",
+  subtitle: "Set the rules once. After that, changes need a vote from the members.",
+  notLive: "WealthKart isn't live on this network yet. Check back soon.",
+  section: {
+    template: "1. Pick a starting point",
+    basics: "2. The basics",
+    asset: "3. Money the circle holds",
+    installment: "4. Monthly installment",
+    loans: "5. Loans, votes and leaving",
+    members: "6. Members",
+  },
+  field: {
+    name: "Circle name",
+    nameHint:
+      "Shown to members. Letters, numbers and spaces; no web addresses. It's public on the blockchain, so don't use personal details.",
+    namePlaceholder: "College Gang",
+    amount: "Amount each month ({unit})",
+    dueDay: "Due day of the month",
+    dueDayHint: "Payments are due by 23:59 UTC on this day.",
+    fee1: "Late fee after the due day ({unit})",
+    fee2: "Second late fee ({unit})",
+    secondFeeDay: "Second fee starts after day",
+    holidays: "Payment holidays per year",
+    holidaysHint: "A holiday delays one month's payment with no late fee.",
+    dormantAfter: "Missed months before a dormant vote",
+    dormantAfterHint:
+      "If someone loses their wallet, the circle can vote to pause their payments after this many missed months. Their savings stay theirs.",
+    minPaidToVote: "Payments before a new member can vote",
+    minPaidToVoteHint:
+      "Friends you start with vote straight away. Someone voted in later votes after paying this many months, so nobody can stack the circle with spare wallets.",
+    interestPct: "Loan interest per month (%)",
+    interestPctHint: "0 to 5. Later loan terms never charge less than this.",
+    kMultiplier: "Loan limit vs savings",
+    kMultiplierHint: "A loan can be this many times your savings plus your guarantor's, 1 to 10.",
+    quorumPct: "Voters who must take part (%)",
+    quorumPctHint: "{min} to {max}. A vote only counts once this share of voters has voted.",
+    passPct: "Yes votes needed (%)",
+    passPctHint: "50 to 100, for loans and rule changes. 50 means more than half.",
+    exitNoticeDays: "Notice to leave (days)",
+    exitNoticeDaysHint: "0 to 90. A member who leaves is paid out after this many days.",
+    guarantor: "Every loan needs a guarantor",
+    guarantorHint:
+      "Another member backs the loan with their savings. Members can change any of these rules later by vote.",
+    maxMembers: "Most members the circle can have",
+    maxMembersHint:
+      "{min} to {max}. It can't be raised later. The starting point only suggests a number; pick what suits your circle.",
+    bigCircle:
+      "Bigger circles mean slower votes: every loan, new member and rule change needs enough of them to take part. Most friend circles work best with 20 or fewer.",
+    founders: "Friends' wallet addresses",
+    foundersHint:
+      "One per line. You join straight away; each friend gets an invite and becomes a member once they accept it in the app.",
+    foundersCount_one: "{count} member · each pays {amount} {unit} a month",
+    foundersCount_other: "{count} members · each pays {amount} {unit} a month",
+  },
+  usdtWarningTitle: "Before you pick USDT",
+  usdtWarning:
+    "Tether, the company behind USDT, can freeze any wallet. If it froze this circle's, nobody could get the money out. If it froze a member's, their payout waits in the circle until Tether lets it through. If Tether ever adds a transfer fee, the circle covers small fees (up to 1%) so payments keep working. Network fees are still paid in AVAX, so every member needs a little AVAX too.",
+  testnetNote:
+    "This runs on the Fuji test network, so use test money only. A circle's money and member limit can't be changed after it's created.",
+  mainnetNote:
+    "This uses real money on Avalanche. A circle's money and member limit can't be changed after it's created.",
+  submit: "Create circle",
+  submitting: "Creating…",
+  fixFields: "Fix the fields marked above",
+  picker: {
+    legend: "Pick a starting point",
+    intro:
+      "Each one fills in the rules below. You can change any of them before you create the circle.",
+  },
+  summary: {
+    custom: "Your own rules",
+    means: "What {name} means",
+    changed_one: "You changed {count} setting",
+    changed_other: "You changed {count} settings",
+    customBody: "The fields start at the usual rules. Set each one the way your circle wants it.",
+  },
+  assetChoice: {
+    legend: "Money the circle holds",
+    avax: "Avalanche's own coin. Its price moves, so savings can rise or fall in value.",
+    usdt: "A digital dollar from Tether. Stays close to 1 US dollar.",
+    usdtUnavailable: "Not available on this network yet.",
+    fixed: "Fixed forever. Members pay, borrow and get paid out in this; it can never be switched.",
+  },
+  tpl: {
+    friends: "Friends",
+    friendsBlurb: "The usual rules. Small late fees, loans up to twice your savings.",
+    family: "Family",
+    familyBlurb: "Gentler. Tiny late fees, more payment holidays, a longer notice to leave.",
+    office: "Office",
+    officeBlurb:
+      "Stricter, for colleagues. Every loan needs a guarantor and more people must vote.",
+    custom: "Custom",
+    customBlurb: "Start from the usual rules and set every field yourself.",
+    amount: "Suggested monthly amount: {amount} {symbol}, due by {due} of each month.",
+    feeShare: " ({share} of the monthly amount)",
+    feeSame:
+      "Late fee after the due day: {fee} {symbol}{share}, and the same again after day {day}.",
+    feeThen:
+      "Late fee after the due day: {fee} {symbol}{share}, then {fee2} {symbol} after day {day}.",
+    holidays_one: "{count} payment holiday a year, to pay a month late with no fee.",
+    holidays_other: "{count} payment holidays a year, to pay a month late with no fee.",
+    loans: "Loans at {rate}% a month, up to {limit} plus your guarantor's. {guarantor}",
+    limitSavings: "your savings",
+    limitTimes: "{k} times your savings",
+    guarantorNeeded: "Every loan needs a guarantor.",
+    guarantorOptional: "A guarantor is optional.",
+    votes:
+      "A vote counts once at least {quorum} of the voters take part. Loans and rule changes pass with {pass} saying yes.",
+    quorumHalf: "half",
+    pct: "{pct}%",
+    passMoreThanHalf: "more than half",
+    passAtLeast: "at least {pct}%",
+    notice: "{days} notice to leave. New members vote after {payments}.",
+    noticeDays_one: "{count} day's",
+    noticeDays_other: "{count} days'",
+    payments_one: "{count} payment",
+    payments_other: "{count} payments",
+    size: "Suggested size: up to {max} members.",
+  },
+  error: {
+    capWhole: "Pick a whole number from {min} to {max}.",
+    capMin: "A circle needs room for at least {min} members.",
+    capMax: "A circle can have at most {max} members.",
+    nameEmpty: "Give the circle a name.",
+    nameLink:
+      "Circle names can't contain web addresses or dots, so nobody can use one as a fake link.",
+    nameChars: "Use only letters, numbers, spaces and _ - ' &.",
+    nameShort: "Use at least 3 characters.",
+    nameLong: "Keep the name to 48 characters or fewer.",
+    nameSpaces: "Use single spaces between words.",
+    installmentUsdt: "Enter an amount above 0, like 50. USDT has at most 6 decimals.",
+    installmentAvax: "Enter an amount above 0, like 0.5.",
+    fee: "Enter a fee, or 0 for none.",
+    feeHalf: "Keep each late fee at or below half the monthly amount.",
+    dueDay: "Pick a day from 1 to 28.",
+    secondFeeDay: "Must be after the due day and no later than the 28th.",
+    range: "Pick {min} to {max}.",
+    notAddress: '"{start}…" isn\'t a wallet address.',
+    tooManyFounders: "A circle can start with at most {max} members.",
+    overCap:
+      "That's {count} members with you, more than the limit of {max}. Raise the limit or invite fewer friends.",
+  },
+} as const;
+
+registerEn("create", create);

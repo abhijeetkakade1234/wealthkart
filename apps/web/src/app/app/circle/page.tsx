@@ -1,6 +1,6 @@
 "use client";
 
-import { explorerAddressUrl, periodLabel, shortAddress } from "@wealthkart/sdk";
+import { explorerAddressUrl, shortAddress } from "@wealthkart/sdk";
 import { HandCoins } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -34,8 +34,10 @@ import { CircleRemindersCard } from "@/components/reminders/circle-reminders-car
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useT } from "@/i18n/react";
 import {
   MEMBERS_PAGE_SIZE,
+  monthLabel,
   parseCircleId,
   useChainNow,
   useCircle,
@@ -45,6 +47,7 @@ import { type CircleAsset, fmt } from "@/lib/asset";
 import { useCircleGov } from "@/lib/gov-hooks";
 import { votingRightsNote } from "@/lib/membership";
 import type { Address } from "viem";
+import "@/i18n/en/circle";
 
 export default function CirclePage() {
   return (
@@ -63,6 +66,7 @@ function CircleOverview() {
   const c = useCircle(id);
   const g = useCircleGov(id);
   const chainNow = useChainNow();
+  const { t, tn } = useT();
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
 
@@ -70,7 +74,7 @@ function CircleOverview() {
     return (
       <StateView
         state="loading"
-        label="Loading circle"
+        label={t("circle.loading")}
         skeleton={
           <div className="grid gap-8">
             <Skeleton className="h-12 w-72 rounded-lg" />
@@ -105,8 +109,12 @@ function CircleOverview() {
         title={d.name}
         subtitle={
           <>
-            {String(d.memberCount)} members · {fmt(d.installment, asset)} {asset.symbol} a month ·
-            due on day {d.dueDay}
+            {t("circle.subtitle", {
+              count: String(d.memberCount),
+              amount: fmt(d.installment, asset),
+              symbol: asset.symbol,
+              day: d.dueDay,
+            })}
             {explorer && (
               <>
                 {" · "}
@@ -116,7 +124,7 @@ function CircleOverview() {
                   rel="noreferrer"
                   className="underline-offset-4 hover:underline"
                 >
-                  View contract
+                  {t("circle.viewContract")}
                 </a>
               </>
             )}
@@ -126,7 +134,7 @@ function CircleOverview() {
         actions={
           d.isMember && d.due?.payable ? (
             <Button icon={HandCoins} onClick={() => router.push(`/app/circle/pay/?id=${id}`)}>
-              Pay {fmt(d.due.amount, asset)} {asset.symbol}
+              {t("circle.payAmount", { amount: fmt(d.due.amount, asset), symbol: asset.symbol })}
             </Button>
           ) : undefined
         }
@@ -134,7 +142,7 @@ function CircleOverview() {
 
       {gov && (
         <div className="mb-10 grid gap-5 empty:hidden">
-          <ErrorBoundary preset="widget" name="Circle notices">
+          <ErrorBoundary preset="widget" name={t("circle.widget.notices")}>
             <PauseBanner circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
             <DissolvedNotice
               circle={id}
@@ -151,7 +159,7 @@ function CircleOverview() {
 
       {d.isMember && (
         <div className="mb-10 grid gap-5 empty:hidden">
-          <ErrorBoundary preset="widget" name="Backup wallet claim">
+          <ErrorBoundary preset="widget" name={t("circle.widget.backupClaim")}>
             <NomineeClaimAlert circle={id} chainNow={chainNow} onChanged={refetchAll} />
           </ErrorBoundary>
         </div>
@@ -159,14 +167,14 @@ function CircleOverview() {
 
       {d.iAmDormant && (
         <div className="mb-10">
-          <ErrorBoundary preset="widget" name="Dormant">
+          <ErrorBoundary preset="widget" name={t("circle.widget.dormant")}>
             <DormantNotice circle={id} onWoke={() => void c.refetch()} />
           </ErrorBoundary>
         </div>
       )}
 
       <div className="mb-10 grid gap-5 empty:hidden">
-        <ErrorBoundary preset="widget" name="Backup wallet for">
+        <ErrorBoundary preset="widget" name={t("circle.widget.backupFor")}>
           <BackupForCards
             circle={id}
             asset={asset}
@@ -179,23 +187,21 @@ function CircleOverview() {
 
       <div className="grid gap-5 sm:grid-cols-3">
         <StatCard
-          label="Circle value"
+          label={t("circle.stat.value")}
           value={fmt(d.totalAssets, asset)}
           unit={asset.symbol}
-          meta="Everything members have put in, plus fees"
+          meta={t("circle.stat.valueMeta")}
         />
         <StatCard
-          label="My stake"
+          label={t("circle.stat.stake")}
           value={d.isMember ? fmt(d.stake, asset) : "–"}
           unit={d.isMember ? asset.symbol : undefined}
-          meta={
-            d.isMember ? "Your share of the circle right now" : "You're not a member of this circle"
-          }
+          meta={d.isMember ? t("circle.stat.stakeMeta") : t("circle.stat.notMember")}
         />
         {d.isMember && d.due ? (
           d.due.payable ? (
             <StatCard
-              label={`You owe for ${periodLabel(d.due.period)}`}
+              label={t("circle.stat.owe", { month: monthLabel(d.due.period) })}
               value={fmt(d.due.amount, asset)}
               unit={asset.symbol}
               tone="due"
@@ -203,30 +209,37 @@ function CircleOverview() {
               <CountdownUTC period={Number(d.due.period)} dueDay={d.dueDay} />
               {d.due.fees > 0n && (
                 <span className="text-[12.5px] text-warn">
-                  Includes {fmt(d.due.fees, asset)} {asset.symbol} in late fees
+                  {t("circle.stat.includesFees", {
+                    amount: fmt(d.due.fees, asset),
+                    symbol: asset.symbol,
+                  })}
                 </span>
               )}
             </StatCard>
           ) : (
             <StatCard
-              label="This month"
-              value="Paid"
-              meta={`Next due: ${periodLabel(d.due.period)}`}
+              label={t("circle.stat.thisMonth")}
+              value={t("circle.stat.paid")}
+              meta={t("circle.stat.nextDue", { month: monthLabel(d.due.period) })}
             />
           )
         ) : (
           <StatCard
-            label="Late fees"
+            label={t("circle.stat.lateFees")}
             value={fmt(d.fee1, asset)}
             unit={asset.symbol}
-            meta={`After day ${d.dueDay}, plus ${fmt(d.fee2, asset)} after day ${d.secondFeeDay}`}
+            meta={t("circle.stat.lateFeesMeta", {
+              day: d.dueDay,
+              fee2: fmt(d.fee2, asset),
+              day2: d.secondFeeDay,
+            })}
           />
         )}
       </div>
 
       {d.isMember && address && (
         <section className="mt-16 grid gap-5 lg:grid-cols-2">
-          <ErrorBoundary preset="widget" name="Your name">
+          <ErrorBoundary preset="widget" name={t("circle.widget.name")}>
             <NameCard
               circle={id}
               me={address}
@@ -236,15 +249,15 @@ function CircleOverview() {
               onSaved={() => void c.refetch()}
             />
           </ErrorBoundary>
-          <ErrorBoundary preset="widget" name="Invite">
+          <ErrorBoundary preset="widget" name={t("circle.widget.invite")}>
             <InviteCard circle={id} me={address} />
           </ErrorBoundary>
           <div id="reminders" className="scroll-mt-24">
-            <ErrorBoundary preset="widget" name="Reminders">
+            <ErrorBoundary preset="widget" name={t("circle.widget.reminders")}>
               <CircleRemindersCard circle={id} />
             </ErrorBoundary>
           </div>
-          <ErrorBoundary preset="widget" name="Backup wallet">
+          <ErrorBoundary preset="widget" name={t("circle.widget.backup")}>
             <BackupWalletCard
               circle={id}
               me={address}
@@ -257,16 +270,16 @@ function CircleOverview() {
 
       {gov?.rules && (
         <section className="mt-16 grid gap-5 lg:grid-cols-2">
-          <ErrorBoundary preset="widget" name="Circle rules">
+          <ErrorBoundary preset="widget" name={t("circle.widget.rules")}>
             <RulesCard circle={id} rules={gov.rules} />
           </ErrorBoundary>
           {d.isMember && !gov.dissolved && !gov.claimQueued && (
-            <ErrorBoundary preset="widget" name="Leaving">
+            <ErrorBoundary preset="widget" name={t("circle.widget.leaving")}>
               <LeaveCard circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
             </ErrorBoundary>
           )}
           {d.isMember && (
-            <ErrorBoundary preset="widget" name="Guardian">
+            <ErrorBoundary preset="widget" name={t("circle.widget.guardian")}>
               <GuardianPause circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
             </ErrorBoundary>
           )}
@@ -276,14 +289,12 @@ function CircleOverview() {
       {d.isMember && d.openRequestCount > 0 && (
         <div className="mt-10">
           <InlineAlert tone="info">
-            {d.openRequestCount === 1
-              ? "1 vote is open. "
-              : `${d.openRequestCount} votes are open. `}
+            {tn("circle.openVotes", d.openRequestCount)}{" "}
             <Link
               href={`/app/circle/votes/?id=${id}`}
               className="font-semibold underline underline-offset-4"
             >
-              Go to Votes
+              {t("circle.goToVotes")}
             </Link>
           </InlineAlert>
         </div>
@@ -291,9 +302,9 @@ function CircleOverview() {
 
       <section className="mt-16">
         <h2 className="mb-6 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          How the circle is doing
+          {t("circle.howDoing")}
         </h2>
-        <ErrorBoundary preset="widget" name="Circle history">
+        <ErrorBoundary preset="widget" name={t("circle.widget.history")}>
           <CircleAnalytics
             id={id}
             memberListLength={Number(d.memberListLength)}
@@ -326,9 +337,9 @@ function CircleOverview() {
 
       <section className="mt-16">
         <h2 className="mb-6 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          Members
+          {t("circle.membersHeading")}
         </h2>
-        <ErrorBoundary preset="widget" name="Members">
+        <ErrorBoundary preset="widget" name={t("circle.widget.members")}>
           <MembersTable
             asset={asset}
             id={id}
@@ -365,6 +376,7 @@ function MembersTable({
   const page = usePageParam();
   const m = useCircleMembers(id, page);
   const { address } = useCoreWallet();
+  const { t, tn } = useT();
 
   return (
     <div className="overflow-hidden rounded-[14px] border border-border bg-card">
@@ -379,15 +391,17 @@ function MembersTable({
           <StateView state="error" onRetry={() => m.refetch()} />
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table aria-label="Members" className="w-full min-w-[640px] text-[14px]">
+        <div className="relative overflow-x-auto">
+          <table aria-label={t("circle.table.label")} className="w-full min-w-[640px] text-[14px]">
             <thead>
               <tr className="border-b border-line-soft text-left text-[12.5px] text-muted-foreground">
-                <th className="px-6 py-3.5 font-medium">Member</th>
-                <th className="px-6 py-3.5 text-right font-medium">Stake ({asset.symbol})</th>
-                <th className="px-6 py-3.5 font-medium">Paid up to</th>
+                <th className="px-6 py-3.5 font-medium">{t("circle.table.member")}</th>
+                <th className="px-6 py-3.5 text-right font-medium">
+                  {t("circle.table.stake", { symbol: asset.symbol })}
+                </th>
+                <th className="px-6 py-3.5 font-medium">{t("circle.table.paidUpTo")}</th>
                 <th className="px-6 py-3.5 font-medium">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("circle.table.actions")}</span>
                 </th>
               </tr>
             </thead>
@@ -408,7 +422,7 @@ function MembersTable({
                       <span className="inline-flex items-center gap-3 align-middle">
                         <Avatar address={r.address} size={30} />
                         <span className="grid gap-0.5">
-                          <span className="font-medium">{r.name || "No name yet"}</span>
+                          <span className="font-medium">{r.name || t("circle.table.noName")}</span>
                           <span className="font-mono text-[12px] text-muted-foreground">
                             {shortAddress(r.address)}
                           </span>
@@ -416,30 +430,34 @@ function MembersTable({
                       </span>
                       {isMe && (
                         <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-[11.5px] text-brand">
-                          You
+                          {t("circle.table.you")}
                         </span>
                       )}
                     </td>
                     <td className="px-6 py-[18px] text-right tabular">{fmt(r.stake, asset)}</td>
                     <td className="px-6 py-[18px]">
                       {!r.active ? (
-                        <span className="text-[12.5px] text-muted-foreground">Left</span>
+                        <span className="text-[12.5px] text-muted-foreground">
+                          {t("circle.table.left")}
+                        </span>
                       ) : r.dormant ? (
                         <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12.5px]">
-                          Dormant, payments paused
+                          {t("circle.table.dormant")}
                         </span>
                       ) : r.nextPeriod === null ? (
                         "–"
                       ) : r.shares === 0n ? (
                         <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[12.5px]">
-                          Nothing paid yet
+                          {t("circle.table.nothingPaid")}
                         </span>
                       ) : (
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12.5px] ${behind ? "bg-bad-soft text-bad" : "bg-good-soft text-good"}`}
                         >
                           <span className="size-1.5 rounded-full bg-current" aria-hidden />
-                          {r.nextPeriod === 0n ? "Not started" : periodLabel(r.nextPeriod - 1n)}
+                          {r.nextPeriod === 0n
+                            ? t("circle.table.notStarted")
+                            : monthLabel(r.nextPeriod - 1n)}
                         </span>
                       )}
                       {r.active && !r.dormant && !r.voter && (
@@ -449,7 +467,7 @@ function MembersTable({
                       )}
                       {behind && !r.dormant && (
                         <span className="mt-1 block text-[12px] text-muted-foreground">
-                          Missed {r.overdue} {r.overdue === 1 ? "month" : "months"}
+                          {tn("circle.table.missed", r.overdue)}
                         </span>
                       )}
                     </td>
@@ -469,7 +487,7 @@ function MembersTable({
                           href={`/app/circle/votes/?id=${id}`}
                           className="text-[13px] font-medium text-brand underline-offset-4 hover:underline"
                         >
-                          Vote open
+                          {t("circle.table.voteOpen")}
                         </Link>
                       ) : null}
                     </td>
@@ -480,7 +498,12 @@ function MembersTable({
           </table>
         </div>
       )}
-      <Pagination page={page} pageSize={MEMBERS_PAGE_SIZE} total={total} noun="members" />
+      <Pagination
+        page={page}
+        pageSize={MEMBERS_PAGE_SIZE}
+        total={total}
+        noun={t("circle.table.noun")}
+      />
     </div>
   );
 }

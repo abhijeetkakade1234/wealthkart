@@ -1,6 +1,6 @@
 "use client";
 
-import { formatAvax, periodLabel } from "@wealthkart/sdk";
+import { formatAvax } from "@wealthkart/sdk";
 import {
   Area,
   AreaChart,
@@ -21,18 +21,14 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { MonthPoint } from "@/lib/analytics";
+import { useT } from "@/i18n/react";
+import { type MonthPoint, periodName, periodShort } from "@/lib/analytics";
 import { type CircleAsset, fmt, toNumber } from "@/lib/asset";
 
 import { ChartFrame } from "./chart-frame";
+import "@/i18n/en/analytics";
 
 /** Phase 1 circle charts (PLAN.md D7): value, money in per month, value of one share. */
-
-/** Axis label like "Dec '26" (periodLabel gives "December 2026"). */
-const short = (p: number) => {
-  const label = periodLabel(p);
-  return `${label.slice(0, 3)} '${label.slice(-2)}`;
-};
 
 const axis = {
   tickLine: false,
@@ -42,19 +38,22 @@ const axis = {
   stroke: "var(--faint)",
 } as const;
 
-const valueConfig = {
-  value: { label: "Circle value", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
 export function ValueChart({ points, asset }: { points: MonthPoint[]; asset: CircleAsset }) {
-  const data = points.map((p) => ({ month: short(p.period), value: toNumber(p.value, asset) }));
+  const { t, formatNumber } = useT();
+  const valueConfig = {
+    value: { label: t("analytics.valueTitle"), color: "var(--chart-1)" },
+  } satisfies ChartConfig;
+  const data = points.map((p) => ({
+    month: periodShort(p.period),
+    value: toNumber(p.value, asset),
+  }));
   return (
     <ChartFrame
-      title="Circle value"
-      subtitle={`Everything paid in so far, month by month (${asset.symbol}).`}
+      title={t("analytics.valueTitle")}
+      subtitle={t("analytics.valueSubtitle", { symbol: asset.symbol })}
       table={{
-        columns: ["Month", `Value (${asset.symbol})`],
-        rows: points.map((p) => [periodLabel(p.period), fmt(p.value, asset)]),
+        columns: [t("analytics.month"), t("analytics.valueColumn", { symbol: asset.symbol })],
+        rows: points.map((p) => [periodName(p.period), fmt(p.value, asset)]),
       }}
     >
       <ChartContainer config={valueConfig} className="aspect-auto h-[240px] w-full">
@@ -67,7 +66,7 @@ export function ValueChart({ points, asset }: { points: MonthPoint[]; asset: Cir
           </defs>
           <CartesianGrid vertical={false} stroke="var(--line-soft)" />
           <XAxis dataKey="month" {...axis} minTickGap={24} />
-          <YAxis {...axis} width={44} tickFormatter={(v: number) => v.toLocaleString()} />
+          <YAxis {...axis} width={44} tickFormatter={(v: number) => formatNumber(v)} />
           <ChartTooltip cursor={{ stroke: "var(--border)" }} content={<ChartTooltipContent />} />
           <Area
             dataKey="value"
@@ -83,25 +82,25 @@ export function ValueChart({ points, asset }: { points: MonthPoint[]; asset: Cir
   );
 }
 
-const inflowConfig = {
-  installments: { label: "Installments", color: "var(--chart-1)" },
-  fees: { label: "Late fees", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
 export function InflowChart({ points, asset }: { points: MonthPoint[]; asset: CircleAsset }) {
+  const { t, formatNumber } = useT();
+  const inflowConfig = {
+    installments: { label: t("analytics.installments"), color: "var(--chart-1)" },
+    fees: { label: t("analytics.lateFees"), color: "var(--chart-2)" },
+  } satisfies ChartConfig;
   const data = points.map((p) => ({
-    month: short(p.period),
+    month: periodShort(p.period),
     installments: toNumber(p.installments, asset),
     fees: toNumber(p.fees, asset),
   }));
   return (
     <ChartFrame
-      title="Money in each month"
-      subtitle={`Installments and late fees, by the month they're for (${asset.symbol}).`}
+      title={t("analytics.inflowTitle")}
+      subtitle={t("analytics.inflowSubtitle", { symbol: asset.symbol })}
       table={{
-        columns: ["Month", "Installments", "Late fees"],
+        columns: [t("analytics.month"), t("analytics.installments"), t("analytics.lateFees")],
         rows: points.map((p) => [
-          periodLabel(p.period),
+          periodName(p.period),
           fmt(p.installments, asset),
           fmt(p.fees, asset),
         ]),
@@ -111,7 +110,7 @@ export function InflowChart({ points, asset }: { points: MonthPoint[]; asset: Ci
         <BarChart data={data} margin={{ left: 4, right: 8, top: 8 }}>
           <CartesianGrid vertical={false} stroke="var(--line-soft)" />
           <XAxis dataKey="month" {...axis} minTickGap={16} />
-          <YAxis {...axis} width={44} tickFormatter={(v: number) => v.toLocaleString()} />
+          <YAxis {...axis} width={44} tickFormatter={(v: number) => formatNumber(v)} />
           <ChartTooltip cursor={{ fill: "var(--secondary)" }} content={<ChartTooltipContent />} />
           <ChartLegend content={<ChartLegendContent />} />
           {/* 2px surface gap between stacked segments; rounded data end only on top. */}
@@ -138,21 +137,21 @@ export function InflowChart({ points, asset }: { points: MonthPoint[]; asset: Ci
   );
 }
 
-const navConfig = {
-  nav: { label: "One share", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
 export function NavChart({ points, asset }: { points: MonthPoint[]; asset: CircleAsset }) {
+  const { t } = useT();
+  const navConfig = {
+    nav: { label: t("analytics.navSeries"), color: "var(--chart-1)" },
+  } satisfies ChartConfig;
   const withNav = points.filter((p) => p.navE18 !== null);
   // navE18 is an index scaled by 1e18 whatever the asset (1.00 = what was paid in).
-  const data = withNav.map((p) => ({ month: short(p.period), nav: toNumber(p.navE18!) }));
+  const data = withNav.map((p) => ({ month: periodShort(p.period), nav: toNumber(p.navE18!) }));
   return (
     <ChartFrame
-      title="Value of one share"
-      subtitle={`What 1 ${asset.symbol} paid in at the start is worth now. Late fees and loan interest lift it for everyone.`}
+      title={t("analytics.navTitle")}
+      subtitle={t("analytics.navSubtitle", { symbol: asset.symbol })}
       table={{
-        columns: ["Month", `Worth of 1 ${asset.symbol}`],
-        rows: withNav.map((p) => [periodLabel(p.period), formatAvax(p.navE18!)]),
+        columns: [t("analytics.month"), t("analytics.navColumn", { symbol: asset.symbol })],
+        rows: withNav.map((p) => [periodName(p.period), formatAvax(p.navE18!)]),
       }}
     >
       <ChartContainer config={navConfig} className="aspect-auto h-[240px] w-full">

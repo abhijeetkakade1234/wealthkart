@@ -39,7 +39,11 @@ function Coin({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
   );
 }
 
-export function HeroArt({ className }: { className?: string }) {
+const HERO_LABEL =
+  "Cut-paper illustration: two friends' hands dropping coins into a shared clay pot, with leaves, a tulip, a bird and snowy mountains around it";
+
+/** `label` is the translated description on `/hi/` and `/mr/` (ADR 0057). */
+export function HeroArt({ className, label = HERO_LABEL }: { className?: string; label?: string }) {
   return (
     <svg
       viewBox="0 0 560 460"
@@ -47,7 +51,7 @@ export function HeroArt({ className }: { className?: string }) {
       height="460"
       className={className}
       role="img"
-      aria-label="Cut-paper illustration: two friends' hands dropping coins into a shared clay pot, with leaves, a tulip, a bird and snowy mountains around it"
+      aria-label={label}
       data-testid="hero-art"
     >
       {/* far: leaves, mountains, confetti */}

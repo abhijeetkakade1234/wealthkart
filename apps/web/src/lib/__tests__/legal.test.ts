@@ -107,6 +107,7 @@ describe("S-LEGAL-04 the privacy policy matches what the code stores", () => {
       "wk:join:",
       "wk:first-run:",
       "wk:reminders",
+      "wk.locale",
     ]) {
       expect(privacy, key).toContain(key);
     }
@@ -114,7 +115,15 @@ describe("S-LEGAL-04 the privacy policy matches what the code stores", () => {
 
   it("knows every file that touches browser storage or cookies", () => {
     // Adding a file here means adding its keys to PRIVACY ("browser" section) first.
-    const known = new Set(["app/app/join/page.tsx", "lib/first-run.ts", "lib/push.ts"]);
+    const known = new Set([
+      "app/app/join/page.tsx",
+      "lib/first-run.ts",
+      "lib/push.ts",
+      // The chosen language, wk.locale (ADR 0057).
+      "i18n/config.ts",
+      "i18n/react.tsx",
+      "components/public/locale-effects.tsx",
+    ]);
     const users = files
       .filter((f) =>
         /\b(localStorage|sessionStorage|indexedDB|document\.cookie)\b/.test(

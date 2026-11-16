@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { InlineAlert, StateView } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { messages } from "@/lib/messages";
 
 /**
@@ -11,17 +12,14 @@ import { messages } from "@/lib/messages";
  */
 export function CircleNotFound({ notACircle = false }: { notACircle?: boolean }) {
   const router = useRouter();
+  const { t } = useT();
   return (
     <div className="grid max-w-[640px] gap-6">
       {notACircle && <InlineAlert tone="bad">{messages.notACircle()}</InlineAlert>}
       <StateView
         state="empty"
-        message={
-          notACircle
-            ? "Only open circles from links your friends send you inside WealthKart."
-            : "We couldn't find this circle. Check the link, or make sure your wallet is on the right network."
-        }
-        action={{ label: "Go to your circles", onAction: () => router.push("/app/") }}
+        message={notACircle ? t("kit.notACircleHint") : t("kit.circleNotFound")}
+        action={{ label: t("kit.goToCircles"), onAction: () => router.push("/app/") }}
       />
     </div>
   );

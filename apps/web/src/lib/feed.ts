@@ -1,8 +1,12 @@
-import { periodLabel, shortAddress } from "@wealthkart/sdk";
+import { shortAddress } from "@wealthkart/sdk";
 
+import { t } from "@/i18n/runtime";
+import type { PlainKey } from "@/i18n/types";
+import { periodName } from "@/lib/analytics";
 import { AVAX, type CircleAsset, fmt, money } from "@/lib/asset";
 
 import type { DecodedLog } from "@/lib/events";
+import "@/i18n/en/activity";
 
 /**
  * Activity feed (PLAN.md D7): every circle event as one plain sentence, newest first, with
@@ -41,6 +45,16 @@ const LOAN_STATUS = [
 /** Membership.Status order. */
 const STATUS = ["none", "open", "approved", "rejected", "expired", "cancelled", "full"] as const;
 
+const STATUS_KEY: Record<(typeof STATUS)[number], PlainKey> = {
+  none: "activity.statusNone",
+  open: "activity.statusOpen",
+  approved: "activity.statusApproved",
+  rejected: "activity.statusRejected",
+  expired: "activity.statusExpired",
+  cancelled: "activity.statusCancelled",
+  full: "activity.statusFull",
+};
+
 const str = (v: unknown) => String(v ?? "");
 const num = (v: unknown) => Number(v as bigint);
 
@@ -76,56 +90,60 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
       case "Contributed": {
         const fees = a.lateFees as bigint;
         const m = str(a.member);
-        push("payment", [m], (n) =>
-          fees > 0n
-            ? `${n(m)} paid ${periodLabel(num(a.period))}: ${fmt(a.installment as bigint, asset)} ${asset.symbol} plus ${fmt(fees, asset)} ${asset.symbol} in late fees.`
-            : `${n(m)} paid ${periodLabel(num(a.period))}: ${fmt(a.installment as bigint, asset)} ${asset.symbol}, on time.`,
-        );
+        push("payment", [m], (n) => {
+          const p = {
+            name: n(m),
+            month: periodName(num(a.period)),
+            amount: fmt(a.installment as bigint, asset),
+            symbol: asset.symbol,
+          };
+          return fees > 0n
+            ? t("activity.paidLate", { ...p, fees: fmt(fees, asset) })
+            : t("activity.paidOnTime", p);
+        });
         break;
       }
       case "HolidayDeclared": {
         const m = str(a.member);
-        push(
-          "payment",
-          [m],
-          (n) => `${n(m)} took a payment holiday for ${periodLabel(num(a.period))}.`,
+        push("payment", [m], (n) =>
+          t("activity.holiday", { name: n(m), month: periodName(num(a.period)) }),
         );
         break;
       }
       case "MemberAdded": {
         const m = str(a.member);
-        push("member", [m], (n) => `${n(m)} joined the circle.`);
+        push("member", [m], (n) => t("activity.joined", { name: n(m) }));
         break;
       }
       case "FounderInvited": {
         const m = str(a.account);
-        push("member", [m], (n) => `${n(m)} was invited as a founder.`);
+        push("member", [m], (n) => t("activity.founderInvited", { name: n(m) }));
         break;
       }
       case "FounderInviteDeclined": {
         const m = str(a.account);
-        push("member", [m], (n) => `${n(m)} turned down the founder invite.`);
+        push("member", [m], (n) => t("activity.founderDeclined", { name: n(m) }));
         break;
       }
       case "DisplayNameSet": {
         const m = str(a.member);
         const name = str(a.displayName);
-        push("member", [m], () => `${shortAddress(m)} is now called ${name}.`);
+        push("member", [m], () => t("activity.renamed", { address: shortAddress(m), name }));
         break;
       }
       case "VotingRightsGranted": {
         const m = str(a.member);
-        push("member", [m], (n) => `${n(m)} can vote now.`);
+        push("member", [m], (n) => t("activity.canVote", { name: n(m) }));
         break;
       }
       case "MemberDormant": {
         const m = str(a.member);
-        push("member", [m], (n) => `${n(m)} is dormant: payments paused, savings untouched.`);
+        push("member", [m], (n) => t("activity.dormant", { name: n(m) }));
         break;
       }
       case "MemberWoke": {
         const m = str(a.member);
-        push("member", [m], (n) => `${n(m)} is back and paying again.`);
+        push("member", [m], (n) => t("activity.woke", { name: n(m) }));
         break;
       }
       case "JoinRequested": {
@@ -133,11 +151,11 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         const name = str(a.displayName);
         const by = str(a.invitedBy);
         requests.set(num(a.requestId), { kind: "join", account: m, name });
-        const named = by !== "0x0000000000000000000000000000000000000000";
+        const named = by !== ZERO;
         push("vote", named ? [m, by] : [m], (n) =>
           named
-            ? `${name || shortAddress(m)} asked to join, invited by ${n(by)}.`
-            : `${name || shortAddress(m)} asked to join.`,
+            ? t("activity.askedToJoinInvited", { name: name || shortAddress(m), inviter: n(by) })
+            : t("activity.askedToJoin", { name: name || shortAddress(m) }),
         );
         break;
       }
@@ -145,24 +163,26 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         const m = str(a.member);
         const by = str(a.proposer);
         requests.set(num(a.requestId), { kind: "dormant", account: m, name: "" });
-        push(
-          "vote",
-          [by, m],
-          (n) => `${n(by)} asked the circle to pause ${n(m)}'s payments (marked dormant).`,
+        push("vote", [by, m], (n) =>
+          t("activity.dormantProposed", { proposer: n(by), name: n(m) }),
         );
         break;
       }
       case "Voted": {
         const v = str(a.voter);
         const r = requests.get(num(a.requestId));
-        const about = r ? (r.kind === "join" ? r.name || shortAddress(r.account) : r.account) : "";
+        const yes = Boolean(a.support);
         push("vote", r ? [v, r.account] : [v], (n) => {
-          const subject = !r
-            ? `request ${num(a.requestId)}`
-            : r.kind === "join"
-              ? `letting ${about} join`
-              : `pausing ${n(r.account)}`;
-          return `${n(v)} voted ${a.support ? "yes" : "no"} on ${subject}.`;
+          if (!r) {
+            const p = { voter: n(v), id: num(a.requestId) };
+            return yes ? t("activity.votedYesRequest", p) : t("activity.votedNoRequest", p);
+          }
+          if (r.kind === "join") {
+            const p = { voter: n(v), name: r.name || shortAddress(r.account) };
+            return yes ? t("activity.votedYesJoin", p) : t("activity.votedNoJoin", p);
+          }
+          const p = { voter: n(v), name: n(r.account) };
+          return yes ? t("activity.votedYesPause", p) : t("activity.votedNoPause", p);
         });
         break;
       }
@@ -172,41 +192,46 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         const amount = a.amount as bigint;
         loanRequests.set(num(a.requestId), { settle: false, borrower: b, amount });
         const backed = g !== "" && g !== ZERO;
-        const what = a.medical ? "a medical loan" : "a loan";
-        push("loan", backed ? [b, g] : [b], (n) =>
-          backed
-            ? `${n(b)} asked for ${what} of ${amt(amount)}, with ${n(g)} as guarantor.`
-            : `${n(b)} asked for ${what} of ${amt(amount)}.`,
-        );
+        const medical = Boolean(a.medical);
+        push("loan", backed ? [b, g] : [b], (n) => {
+          const p = { name: n(b), amount: amt(amount) };
+          if (backed) {
+            const q = { ...p, guarantor: n(g) };
+            return medical ? t("activity.medicalAskedBacked", q) : t("activity.loanAskedBacked", q);
+          }
+          return medical ? t("activity.medicalAsked", p) : t("activity.loanAsked", p);
+        });
         break;
       }
       case "GuaranteeAccepted": {
         const b = str(a.borrower);
         const g = str(a.guarantor);
-        push("loan", [g, b], (n) => `${n(g)} agreed to back ${n(b)}'s loan.`);
+        push("loan", [g, b], (n) =>
+          t("activity.guaranteeAccepted", { guarantor: n(g), name: n(b) }),
+        );
         break;
       }
       case "SettleProposed": {
         const b = str(a.borrower);
         const by = str(a.proposer);
         loanRequests.set(num(a.requestId), { settle: true, borrower: b, amount: 0n });
-        push(
-          "loan",
-          [by, b],
-          (n) => `${n(by)} asked the circle to settle ${n(b)}'s defaulted loan from their savings.`,
-        );
+        push("loan", [by, b], (n) => t("activity.settleProposed", { proposer: n(by), name: n(b) }));
         break;
       }
       case "LoanVoted": {
         const v = str(a.voter);
         const r = loanRequests.get(num(a.requestId));
+        const yes = Boolean(a.support);
         push("loan", r ? [v, r.borrower] : [v], (n) => {
-          const subject = !r
-            ? `loan request ${num(a.requestId)}`
-            : r.settle
-              ? `settling ${n(r.borrower)}'s loan`
-              : `${n(r.borrower)}'s loan`;
-          return `${n(v)} voted ${a.support ? "yes" : "no"} on ${subject}.`;
+          if (!r) {
+            const p = { voter: n(v), id: num(a.requestId) };
+            return yes ? t("activity.loanVotedYesRequest", p) : t("activity.loanVotedNoRequest", p);
+          }
+          const p = { voter: n(v), name: n(r.borrower) };
+          if (r.settle) {
+            return yes ? t("activity.loanVotedYesSettle", p) : t("activity.loanVotedNoSettle", p);
+          }
+          return yes ? t("activity.loanVotedYes", p) : t("activity.loanVotedNo", p);
         });
         break;
       }
@@ -216,21 +241,32 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         // An approved loan is told by LoanDisbursed, an approved settle by LoanSettled.
         if (status === "approved") break;
         push("loan", r ? [r.borrower] : [], (n) => {
-          const who = r ? `${n(r.borrower)}'s` : "A";
-          const thing = r?.settle ? "settle vote" : "loan request";
+          if (!r) {
+            switch (status) {
+              case "rejected":
+                return t("activity.loanRejectedAnon");
+              case "expired":
+                return t("activity.loanExpiredAnon");
+              case "cancelled":
+                return t("activity.loanCancelledAnon");
+              case "failed":
+                return t("activity.loanFailedAnon");
+              default:
+                return t("activity.loanClosedAnon");
+            }
+          }
+          const p = { name: n(r.borrower) };
           switch (status) {
             case "rejected":
-              return `${who} ${thing} didn't pass.`;
+              return r.settle ? t("activity.settleRejected", p) : t("activity.loanRejected", p);
             case "expired":
-              return `${who} ${thing} ran out of time before enough members voted.`;
+              return r.settle ? t("activity.settleExpired", p) : t("activity.loanExpired", p);
             case "cancelled":
-              return r?.settle
-                ? `${who} loan was paid up first, so the settle vote was called off.`
-                : `${who} loan request was withdrawn.`;
+              return r.settle ? t("activity.settleCancelled", p) : t("activity.loanCancelled", p);
             case "failed":
-              return `${who} loan request passed but couldn't be paid out (cash, limits or the guarantor).`;
+              return t("activity.loanFailed", p);
             default:
-              return `${who} ${thing} closed.`;
+              return r.settle ? t("activity.settleClosed", p) : t("activity.loanClosed", p);
           }
         });
         break;
@@ -238,7 +274,7 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
       case "LoanDisbursed": {
         const b = str(a.borrower);
         const amount = a.amount as bigint;
-        push("loan", [b], (n) => `${n(b)} received a loan of ${amt(amount)}.`);
+        push("loan", [b], (n) => t("activity.disbursed", { name: n(b), amount: amt(amount) }));
         break;
       }
       case "InterestPaid": {
@@ -247,8 +283,12 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         const interest = a.interest as bigint;
         push("loan", [b], (n) =>
           fees > 0n
-            ? `${n(b)} paid ${amt(interest)} of loan interest plus ${amt(fees)} in late fees.`
-            : `${n(b)} paid ${amt(interest)} of loan interest.`,
+            ? t("activity.interestPaidFees", {
+                name: n(b),
+                interest: amt(interest),
+                fees: amt(fees),
+              })
+            : t("activity.interestPaid", { name: n(b), interest: amt(interest) }),
         );
         break;
       }
@@ -260,9 +300,13 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         push("loan", [b], (n) =>
           remaining === 0n
             ? min > 0n
-              ? `${n(b)} repaid their loan in full: ${amt(part)} plus ${amt(min)} for the minimum month of interest.`
-              : `${n(b)} repaid their loan in full: ${amt(part)}.`
-            : `${n(b)} repaid ${amt(part)} of their loan. ${amt(remaining)} left.`,
+              ? t("activity.repaidFullMin", { name: n(b), amount: amt(part), min: amt(min) })
+              : t("activity.repaidFull", { name: n(b), amount: amt(part) })
+            : t("activity.repaidPart", {
+                name: n(b),
+                amount: amt(part),
+                remaining: amt(remaining),
+              }),
         );
         break;
       }
@@ -272,14 +316,14 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         const backed = g !== "" && g !== ZERO;
         push("loan", backed ? [b, g] : [b], (n) =>
           backed
-            ? `${n(b)}'s loan was marked as defaulted. ${n(b)} and guarantor ${n(g)} are frozen until it's paid.`
-            : `${n(b)}'s loan was marked as defaulted. ${n(b)} is frozen until it's paid.`,
+            ? t("activity.defaultedBacked", { name: n(b), guarantor: n(g) })
+            : t("activity.defaulted", { name: n(b) }),
         );
         break;
       }
       case "LoanCured": {
         const b = str(a.borrower);
-        push("loan", [b], (n) => `${n(b)} caught up on their loan, so the default is lifted.`);
+        push("loan", [b], (n) => t("activity.cured", { name: n(b) }));
         break;
       }
       case "LoanSettled": {
@@ -289,11 +333,17 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         const lost = a.writtenOff as bigint;
         const people = g !== "" && g !== ZERO ? [b, g] : [b];
         push("loan", people, (n) => {
-          let s = `${n(b)}'s defaulted loan was settled: ${amt(a.fromBorrower as bigint)} from their savings`;
-          if (fromG > 0n) s += ` and ${amt(fromG)} from ${n(g)}'s`;
-          s += ".";
-          if (lost > 0n) s += ` ${amt(lost)} couldn't be covered and is shared by everyone.`;
-          return s;
+          const fromBorrower = amt(a.fromBorrower as bigint);
+          const s =
+            fromG > 0n
+              ? t("activity.settledWithGuarantor", {
+                  name: n(b),
+                  fromBorrower,
+                  fromGuarantor: amt(fromG),
+                  guarantor: n(g),
+                })
+              : t("activity.settled", { name: n(b), fromBorrower });
+          return lost > 0n ? `${s} ${t("activity.settledLoss", { lost: amt(lost) })}` : s;
         });
         break;
       }
@@ -301,28 +351,33 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
         const r = requests.get(num(a.requestId));
         const status = STATUS[num(a.status)] ?? "none";
         push("vote", r ? [r.account] : [], (n) => {
-          if (!r) return `Vote ${num(a.requestId)} closed: ${status}.`;
-          const who = r.kind === "join" ? r.name || shortAddress(r.account) : n(r.account);
+          if (!r) {
+            return t("activity.voteClosedAnon", {
+              id: num(a.requestId),
+              status: t(STATUS_KEY[status]),
+            });
+          }
+          const name = r.kind === "join" ? r.name || shortAddress(r.account) : n(r.account);
           if (r.kind === "dormant") {
             return status === "approved"
-              ? `Vote closed: ${who}'s payments are paused.`
+              ? t("activity.dormantApproved", { name })
               : status === "cancelled"
-                ? `Vote closed: ${who} caught up, so nothing changed.`
-                : `Vote closed: ${who} stays active (${status}).`;
+                ? t("activity.dormantCancelled", { name })
+                : t("activity.dormantOther", { name, status: t(STATUS_KEY[status]) });
           }
           switch (status) {
             case "approved":
-              return `Vote closed: ${who} is in.`;
+              return t("activity.joinApproved", { name });
             case "rejected":
-              return `Vote closed: ${who} wasn't voted in.`;
+              return t("activity.joinRejected", { name });
             case "expired":
-              return `Vote closed: time ran out before enough members voted on ${who}.`;
+              return t("activity.joinExpired", { name });
             case "cancelled":
-              return `${who} withdrew their request to join.`;
+              return t("activity.joinCancelled", { name });
             case "full":
-              return `Vote closed: ${who} was voted in, but the circle was already full.`;
+              return t("activity.joinFull", { name });
             default:
-              return `Vote on ${who} closed.`;
+              return t("activity.joinOther", { name });
           }
         });
         break;
@@ -332,12 +387,13 @@ export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): 
   return items.reverse();
 }
 
-export const FEED_FILTERS: Array<{ value: FeedKind | "all"; label: string }> = [
-  { value: "all", label: "Everything" },
-  { value: "payment", label: "Payments" },
-  { value: "member", label: "Members" },
-  { value: "vote", label: "Votes" },
-  { value: "loan", label: "Loans" },
+/** Feed filters; `label` is a translation key (render with `t(label)`). */
+export const FEED_FILTERS: Array<{ value: FeedKind | "all"; label: PlainKey }> = [
+  { value: "all", label: "activity.filterAll" },
+  { value: "payment", label: "activity.filterPayment" },
+  { value: "member", label: "activity.filterMember" },
+  { value: "vote", label: "activity.filterVote" },
+  { value: "loan", label: "activity.filterLoan" },
 ];
 
 /** Type filter plus search over names, addresses and transaction hashes (case-insensitive). */

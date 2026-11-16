@@ -3,6 +3,9 @@
  * so the UI can explain a vote or a name before anything is sent.
  */
 
+import { t, tn } from "@/i18n/runtime";
+import "@/i18n/en/membership";
+
 export const NAME_MIN = 3;
 export const NAME_MAX = 24;
 /** Same as CircleVault.NAME_COOLDOWN. */
@@ -33,15 +36,13 @@ const ALLOWED = /^[A-Za-z0-9 _.-]+$/;
  * either end; no double spaces.
  */
 export function displayNameProblem(name: string): string | null {
-  if (name.length === 0) return "Pick a name.";
-  if (!ALLOWED.test(name)) {
-    return "Use only letters, numbers, spaces, dots, dashes and underscores.";
-  }
+  if (name.length === 0) return t("membership.nameEmpty");
+  if (!ALLOWED.test(name)) return t("membership.nameChars");
   // ALLOWED is ASCII-only, so string length equals byte length here.
-  if (name.length < NAME_MIN) return `Use at least ${NAME_MIN} characters.`;
-  if (name.length > NAME_MAX) return `Use at most ${NAME_MAX} characters.`;
-  if (name.startsWith(" ") || name.endsWith(" ")) return "Remove the space at the start or end.";
-  if (name.includes("  ")) return "Use single spaces between words.";
+  if (name.length < NAME_MIN) return t("membership.nameMin", { min: NAME_MIN });
+  if (name.length > NAME_MAX) return t("membership.nameMax", { max: NAME_MAX });
+  if (name.startsWith(" ") || name.endsWith(" ")) return t("membership.nameEdgeSpace");
+  if (name.includes("  ")) return t("membership.nameDoubleSpace");
   return null;
 }
 
@@ -91,14 +92,14 @@ export function voteOutcome(t: Tally, ended: boolean): VoteOutcome {
 }
 
 /** One line voters can read: "2 of 3 votes needed · 2 yes, 0 no · needs 66% yes". */
-export function tallyLine(t: Tally): string {
-  const need = quorumVotes(t.eligible, t.quorumPct);
-  const cast = t.yes + t.no;
+export function tallyLine(tally: Tally): string {
+  const need = quorumVotes(tally.eligible, tally.quorumPct);
+  const cast = tally.yes + tally.no;
   const mark =
-    t.kind === "dormant"
-      ? `needs more than ${DORMANT_PASS_PCT}% yes`
-      : `needs ${ADMISSION_PASS_PCT}% yes`;
-  return `${cast} of ${need} ${need === 1 ? "vote" : "votes"} needed · ${t.yes} yes, ${t.no} no · ${mark}`;
+    tally.kind === "dormant"
+      ? t("membership.tallyMarkDormant", { pct: DORMANT_PASS_PCT })
+      : t("membership.tallyMarkJoin", { pct: ADMISSION_PASS_PCT });
+  return tn("membership.tally", need, { cast, yes: tally.yes, no: tally.no, mark });
 }
 
 /** Membership.Status enum order. */
@@ -121,17 +122,17 @@ export function joinStatusName(status: number): JoinStatusName {
 export function joinResultMessage(status: JoinStatusName): string {
   switch (status) {
     case "approved":
-      return "You're in. The members voted you into the circle.";
+      return t("membership.resultApproved");
     case "rejected":
-      return "The members didn't vote you in this time.";
+      return t("membership.resultRejected");
     case "expired":
-      return "Voting time ran out before enough members voted. You can ask again.";
+      return t("membership.resultExpired");
     case "cancelled":
-      return "You cancelled your request.";
+      return t("membership.resultCancelled");
     case "full":
-      return "The vote passed, but the circle filled up first.";
+      return t("membership.resultFull");
     default:
-      return "Your request is waiting for votes.";
+      return t("membership.resultWaiting");
   }
 }
 
@@ -147,11 +148,11 @@ export function settledLine(outcome: VoteOutcome, kind: RequestKind = "join"): s
   if (kind === "claim") {
     switch (outcome) {
       case "approved":
-        return "Enough members voted yes. Once recorded, the notice starts and the share is paid to the backup wallet when it ends, unless the member cancels. Anyone can record the result.";
+        return t("membership.settledClaimApproved");
       case "rejected":
-        return "There aren't enough yes votes, so nothing is paid. Anyone can record the result.";
+        return t("membership.settledClaimRejected");
       case "expired":
-        return "Voting time ran out before enough members voted. Anyone can record the result.";
+        return t("membership.settledExpired");
       default:
         return "";
     }
@@ -159,22 +160,22 @@ export function settledLine(outcome: VoteOutcome, kind: RequestKind = "join"): s
   if (kind === "dormant") {
     switch (outcome) {
       case "approved":
-        return "Enough members voted yes, so their payments pause. Anyone can record the result.";
+        return t("membership.settledDormantApproved");
       case "rejected":
-        return "There aren't enough yes votes to pause their payments. Anyone can record the result.";
+        return t("membership.settledDormantRejected");
       case "expired":
-        return "Voting time ran out before enough members voted. Anyone can record the result.";
+        return t("membership.settledExpired");
       default:
         return "";
     }
   }
   switch (outcome) {
     case "approved":
-      return "Enough members voted yes, so they get in. Anyone can record the result.";
+      return t("membership.settledJoinApproved");
     case "rejected":
-      return "There aren't enough yes votes for them to get in. Anyone can record the result.";
+      return t("membership.settledJoinRejected");
     case "expired":
-      return "Voting time ran out before enough members voted. Anyone can record the result.";
+      return t("membership.settledExpired");
     default:
       return "";
   }
@@ -190,7 +191,7 @@ export function memberStatus(m: { dormant: boolean; overdue: number }): MemberSt
 /** What the members table says about someone the circle may vote dormant. */
 export function dormantHint(overdue: number, dormantAfter: number): string {
   if (overdue >= dormantAfter) {
-    return `Missed ${overdue} ${overdue === 1 ? "month" : "months"}. The circle can vote to pause their payments.`;
+    return tn("membership.dormantHint", overdue);
   }
   return "";
 }
@@ -200,11 +201,9 @@ export const MAX_OPEN_PER_MEMBER = 3;
 
 /** Inviter line on a join card: open invites and members already brought in (RT-03). */
 export function inviterStats(open: number, admitted: number): string {
-  const o = `${open} open ${open === 1 ? "invite" : "invites"} (max ${MAX_OPEN_PER_MEMBER})`;
+  const o = tn("membership.inviterOpen", open, { max: MAX_OPEN_PER_MEMBER });
   const a =
-    admitted === 0
-      ? "hasn't brought anyone in yet"
-      : `brought in ${admitted} ${admitted === 1 ? "member" : "members"} so far`;
+    admitted === 0 ? t("membership.inviterNone") : tn("membership.inviterAdmitted", admitted);
   return `${o} · ${a}`;
 }
 
@@ -216,5 +215,5 @@ export function invitedTooMany(admitted: number, memberCount: number): boolean {
 /** Members-table note for someone voted in who can't vote yet (ADR 0033). */
 export function votingRightsNote(paid: number, minPaidToVote: number): string {
   const left = Math.max(minPaidToVote - paid, 0);
-  return `New member · can vote after ${left} more ${left === 1 ? "payment" : "payments"}`;
+  return tn("membership.votingRights", left);
 }

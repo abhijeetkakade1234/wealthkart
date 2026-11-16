@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Hanken_Grotesk, Instrument_Serif } from "next/font/google";
+import {
+  Geist_Mono,
+  Hanken_Grotesk,
+  Instrument_Serif,
+  Noto_Sans_Devanagari,
+  Noto_Serif_Devanagari,
+} from "next/font/google";
 import { ErrorBoundary, GlobalErrorHandlers, Toaster } from "@/components/kit";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +33,25 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
+/*
+ * Devanagari for Hindi and Marathi (ADR 0057). Only the devanagari subset, never preloaded:
+ * globals.css adds these to the font stacks only when <html lang> is hi or mr, and the
+ * @font-face unicode-range means a browser downloads them only for Devanagari text.
+ */
+const notoSansDeva = Noto_Sans_Devanagari({
+  subsets: ["devanagari"],
+  variable: "--font-noto-sans-deva",
+  display: "swap",
+  preload: false,
+});
+
+const notoSerifDeva = Noto_Serif_Devanagari({
+  subsets: ["devanagari"],
+  variable: "--font-noto-serif-deva",
+  display: "swap",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -50,7 +75,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html
       lang="en"
-      className={`${hanken.variable} ${instrumentSerif.variable} ${geistMono.variable}`}
+      // `lang` follows the chosen language on the client (LocaleBoot) and is hi/mr in the
+      // static HTML of /hi/ and /mr/ pages (scripts/localize-html.mjs), so it may differ.
+      suppressHydrationWarning
+      className={`${hanken.variable} ${instrumentSerif.variable} ${geistMono.variable} ${notoSansDeva.variable} ${notoSerifDeva.variable}`}
     >
       <body>
         <TooltipProvider>

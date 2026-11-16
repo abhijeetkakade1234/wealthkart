@@ -1,17 +1,21 @@
 import { ArrowUpRight, FileText, ShieldAlert } from "lucide-react";
 
 import type { Block, PublicPage } from "@/content/pages";
+import type { Locale } from "@/i18n/config";
+import { formatDate as formatIntlDate } from "@/i18n/runtime";
+import { serverT } from "@/i18n/server";
 import { pageLd } from "@/lib/seo/json-ld";
 
 import { JsonLd } from "./json-ld";
+import "@/i18n/en/site";
 
-export function formatDate(iso: string) {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+/** "14 November 2026" in English; Hindi and Marathi use their own month names (ADR 0057). */
+export function formatDate(iso: string, locale: Locale = "en") {
+  return formatIntlDate(
+    new Date(`${iso}T00:00:00Z`),
+    { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" },
+    locale,
+  );
 }
 
 export function BlockView({ block }: { block: Block }) {
@@ -131,7 +135,8 @@ export function BlockView({ block }: { block: Block }) {
  * question-style h2s with a direct answer first (GEO, docs/seo.md §3), JSON-LD when the page
  * has a schema, a quiet draft note on legal pages (ADR 0055), and wide margins (ADR 0025).
  */
-export function PublicArticle({ page }: { page: PublicPage }) {
+export function PublicArticle({ page, locale = "en" }: { page: PublicPage; locale?: Locale }) {
+  const t = serverT(locale);
   return (
     <main className="mx-auto max-w-[1180px] px-4 sm:px-10">
       {page.schema && <JsonLd data={pageLd(page)} />}
@@ -141,7 +146,9 @@ export function PublicArticle({ page }: { page: PublicPage }) {
           {page.h1}
         </h1>
         <p className="mt-7 text-[17.5px] leading-relaxed text-muted-foreground">{page.intro}</p>
-        <p className="mt-6 text-[13px] text-muted-foreground">Updated {formatDate(page.updated)}</p>
+        <p className="mt-6 text-[13px] text-muted-foreground">
+          {t("site.updated", { date: formatDate(page.updated, locale) })}
+        </p>
         {page.draftNote && (
           <p
             role="note"

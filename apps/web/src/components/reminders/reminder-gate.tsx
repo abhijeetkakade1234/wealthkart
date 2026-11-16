@@ -5,10 +5,12 @@ import { Bell, BellOff, Share, Smartphone } from "lucide-react";
 
 import { Button, InlineAlert } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n/react";
 import { messages } from "@/lib/messages";
 import { displayAddress } from "@/lib/push";
 import { notify } from "@/lib/toast";
 import { reminderError, type ReminderStatus } from "@/lib/use-reminders";
+import "@/i18n/en/reminders";
 
 /**
  * Everything before reminders are on for this device (ADR 0052): loading, not set up on this
@@ -19,17 +21,19 @@ export function ReminderGate({
   status,
   otherWallet,
   onTurnOn,
-  turnOnLabel = "Turn on reminders",
+  turnOnLabel,
 }: {
   status: ReminderStatus;
   otherWallet?: string;
   onTurnOn: () => Promise<void>;
+  /** Defaults to "Turn on reminders". */
   turnOnLabel?: string;
 }) {
+  const { t } = useT();
   if (status === "on") return null;
   if (status === "loading") {
     return (
-      <div className="grid gap-3" aria-busy="true" aria-label="Loading reminders">
+      <div className="grid gap-3" aria-busy="true" aria-label={t("reminders.loading")}>
         <Skeleton className="h-5 w-2/3 rounded-md" />
         <Skeleton className="h-10 w-44 rounded-[10px]" />
       </div>
@@ -51,7 +55,7 @@ export function ReminderGate({
   }
   if (status === "ios-install") {
     return (
-      <InlineAlert tone="info" icon={Smartphone} title="Add WealthKart to your Home Screen">
+      <InlineAlert tone="info" icon={Smartphone} title={t("reminders.iosTitle")}>
         <span className="inline-flex flex-wrap items-center gap-1">
           {messages.remindersIosInstall()}
           <Share size={14} strokeWidth={1.5} aria-hidden className="ml-1" />
@@ -61,7 +65,7 @@ export function ReminderGate({
   }
   if (status === "denied") {
     return (
-      <InlineAlert tone="warn" icon={BellOff} title="Notifications are blocked">
+      <InlineAlert tone="warn" icon={BellOff} title={t("reminders.deniedTitle")}>
         {messages.remindersDenied()}
       </InlineAlert>
     );
@@ -71,13 +75,15 @@ export function ReminderGate({
     <Button
       icon={Bell}
       iconAnimation="lift"
-      workingLabel="Waiting for Core…"
-      doneLabel="Reminders on"
+      workingLabel={t("reminders.waitingForCore")}
+      doneLabel={t("reminders.remindersOn")}
       onAction={onTurnOn}
       onSuccess={() => notify.success(messages.remindersOn())}
       onError={(err) => notify.error(reminderError(err))}
     >
-      {status === "other-wallet" ? "Use this wallet instead" : turnOnLabel}
+      {status === "other-wallet"
+        ? t("reminders.useThisWallet")
+        : (turnOnLabel ?? t("reminders.turnOn"))}
     </Button>
   );
 
@@ -89,8 +95,7 @@ export function ReminderGate({
         </p>
       ) : (
         <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-          Your browser asks first, then Core asks you to sign a short message. Signing is free and
-          moves no money; it proves the reminders are for your wallet.
+          {t("reminders.signExplain")}
         </p>
       )}
       <div>{turnOn}</div>

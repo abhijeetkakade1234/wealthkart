@@ -16,6 +16,7 @@ import { ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useT } from "@/i18n/react";
 import { useCircleAsset } from "@/lib/asset";
 import { parseCircleId, useCircle } from "@/lib/circle";
 import { useCircleEvents } from "@/lib/events";
@@ -23,6 +24,7 @@ import { FEED_FILTERS, type FeedKind, filterFeed, toFeed } from "@/lib/feed";
 import { formatWhen, useBlockTimes } from "@/lib/use-block-times";
 import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
+import "@/i18n/en/activity";
 
 const PAGE_SIZE = 20;
 
@@ -41,13 +43,14 @@ export default function ActivityPage() {
 function Activity() {
   const id = parseCircleId(useSearchParams().get("id"));
   const c = useCircle(id);
+  const { t } = useT();
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
   if (c.isPending || !c.data) {
     return (
       <StateView
         state="loading"
-        label="Loading activity"
+        label={t("activity.loading")}
         skeleton={<Skeleton className="h-96 max-w-[760px] rounded-[14px]" />}
       />
     );
@@ -58,11 +61,11 @@ function Activity() {
   return (
     <div className="max-w-[760px]">
       <PageHeader
-        title="Activity"
-        subtitle={`${c.data.name} · every payment, loan, member change and vote, straight from the blockchain.`}
+        title={t("activity.title")}
+        subtitle={t("activity.subtitle", { circle: c.data.name })}
       />
       <CirclePauseBanner circle={id} />
-      <ErrorBoundary preset="widget" name="Activity">
+      <ErrorBoundary preset="widget" name={t("activity.title")}>
         <Feed id={id} />
       </ErrorBoundary>
     </div>
@@ -76,6 +79,7 @@ function Feed({ id }: { id: Address }) {
   const page = usePageParam();
   const { chainId } = useCoreWallet();
   const q = useCircleEvents(id);
+  const { t } = useT();
 
   const rawType = params.get("type");
   const kind: FeedKind | "all" = FEED_FILTERS.some((f) => f.value === rawType)
@@ -138,7 +142,11 @@ function Feed({ id }: { id: Address }) {
   return (
     <div className="grid gap-8">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-full bg-secondary p-1" role="group" aria-label="Show">
+        <div
+          className="flex gap-1 rounded-full bg-secondary p-1"
+          role="group"
+          aria-label={t("activity.show")}
+        >
           {FEED_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -152,12 +160,12 @@ function Feed({ id }: { id: Address }) {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {f.label}
+              {t(f.label)}
             </button>
           ))}
         </div>
         <label className="relative ml-auto min-w-[220px] flex-1 sm:max-w-[280px]">
-          <span className="sr-only">Search by name, address or transaction</span>
+          <span className="sr-only">{t("activity.searchLabel")}</span>
           <Search
             className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint"
             strokeWidth={1.75}
@@ -167,23 +175,18 @@ function Feed({ id }: { id: Address }) {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, address or tx"
+            placeholder={t("activity.searchPlaceholder")}
             className="h-10 w-full rounded-full border border-border bg-card pl-10 pr-4 text-[14px] outline-none transition-colors placeholder:text-faint focus:border-foreground/40"
           />
         </label>
       </div>
 
-      {q.data?.partial && (
-        <InlineAlert tone="info">
-          This circle is older than the history we can read quickly, so only recent activity is
-          shown. Full history arrives with the activity indexer.
-        </InlineAlert>
-      )}
+      {q.data?.partial && <InlineAlert tone="info">{t("activity.partial")}</InlineAlert>}
 
       {q.isPending ? (
         <StateView
           state="loading"
-          label="Reading the circle's history"
+          label={t("activity.reading")}
           skeleton={
             <div className="grid gap-3">
               {[0, 1, 2, 3].map((i) => (
@@ -198,11 +201,7 @@ function Feed({ id }: { id: Address }) {
         <StateView
           state="empty"
           illustration={<EmptyArt variant="activity" />}
-          message={
-            feed.length === 0
-              ? "Nothing has happened in this circle yet. Payments, new members and votes will show up here."
-              : "Nothing matches. Try another name, or show everything."
-          }
+          message={feed.length === 0 ? t("activity.emptyNone") : t("activity.emptyNoMatch")}
         />
       ) : (
         <>
@@ -233,9 +232,9 @@ function Feed({ id }: { id: Address }) {
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                      aria-label="View this transaction on Snowtrace"
+                      aria-label={t("activity.viewTx")}
                     >
-                      Snowtrace
+                      {t("activity.snowtrace")}
                       <ExternalLink className="size-3.5" strokeWidth={1.75} aria-hidden />
                     </a>
                   )}

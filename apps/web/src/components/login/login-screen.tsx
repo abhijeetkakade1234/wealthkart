@@ -14,13 +14,16 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
+import { LanguageMenu } from "@/components/app/language-switcher";
 import { Button } from "@/components/kit";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { rich, useT } from "@/i18n/react";
 import { notify } from "@/lib/toast";
 import { CORE_DOWNLOAD_URL } from "@/lib/wagmi";
 
 import { PaperCircle } from "./paper-circle";
 import { safeNext } from "./safe-next";
+import "@/i18n/en/login";
 
 const agreeLinkCls =
   "text-foreground underline decoration-foreground/30 underline-offset-2 transition-colors hover:decoration-foreground";
@@ -34,6 +37,7 @@ export function LoginScreen() {
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
   const w = useCoreWallet();
+  const { t } = useT();
 
   useEffect(() => {
     if (w.status === "ready") router.replace(next);
@@ -52,24 +56,26 @@ export function LoginScreen() {
         </div>
         <div className="login-rise max-w-[440px]" style={{ animationDelay: "500ms" }}>
           <p className="font-display text-[40px] leading-[1.08] tracking-tight text-foreground">
-            Save together.
+            {t("login.taglineSave")}
             <br />
-            Lend on trust.
+            {t("login.taglineLend")}
           </p>
           <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
-            A private circle for friends who already trust each other. Everyone puts in a little
-            each month, and the circle lends to whoever needs it, by vote.
+            {t("login.intro")}
           </p>
         </div>
       </aside>
 
       {/* Right: one job, sign in. */}
       <main className="flex min-h-0 flex-col overflow-hidden px-6 py-6 sm:px-12 sm:py-8 lg:px-20 lg:py-12">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <BackButton />
-          <Link href="/" className="font-display text-[22px] tracking-tight lg:hidden">
-            WealthKart
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="font-display text-[22px] tracking-tight lg:hidden">
+              WealthKart
+            </Link>
+            <LanguageMenu />
+          </div>
         </div>
 
         <div className="login-rise mx-auto flex min-h-0 w-full max-w-[400px] flex-1 flex-col justify-center py-6">
@@ -77,11 +83,10 @@ export function LoginScreen() {
             <KeyRound className="size-5" strokeWidth={1.5} aria-hidden />
           </span>
           <h1 className="mt-8 font-display text-[44px] leading-[1.05] tracking-tight">
-            Sign in with Core
+            {t("login.title")}
           </h1>
           <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
-            There&apos;s no account and no password. Your Core wallet is your login, and we never
-            ask for your name, email or phone number.
+            {t("login.noAccount")}
           </p>
 
           <div className="mt-10 grid gap-4 [@media(max-height:640px)]:mt-6">
@@ -93,9 +98,9 @@ export function LoginScreen() {
             className="group mt-6 inline-flex items-center gap-1.5 self-start text-[13.5px] text-muted-foreground transition-colors hover:text-foreground"
             data-testid="login-start-link"
           >
-            New to wallets?
+            {t("login.newToWallets")}
             <span className="font-medium text-brand underline-offset-4 group-hover:underline">
-              Start here
+              {t("login.startHere")}
             </span>
             <ArrowRight
               className="size-3.5 text-brand transition-transform group-hover:translate-x-0.5"
@@ -108,19 +113,23 @@ export function LoginScreen() {
             data-testid="login-agreement"
             className="mt-5 text-[12.5px] leading-relaxed text-muted-foreground"
           >
-            By connecting you agree to the{" "}
-            <Link href="/terms/" className={agreeLinkCls}>
-              Terms
-            </Link>{" "}
-            and have read the{" "}
-            <Link href="/risks/" className={agreeLinkCls}>
-              Risks
-            </Link>{" "}
-            and the{" "}
-            <Link href="/privacy/" className={agreeLinkCls}>
-              Privacy policy
-            </Link>
-            .
+            {rich(t("login.agreement"), {
+              terms: (c) => (
+                <Link href="/terms/" className={agreeLinkCls}>
+                  {c}
+                </Link>
+              ),
+              risks: (c) => (
+                <Link href="/risks/" className={agreeLinkCls}>
+                  {c}
+                </Link>
+              ),
+              privacy: (c) => (
+                <Link href="/privacy/" className={agreeLinkCls}>
+                  {c}
+                </Link>
+              ),
+            })}
           </p>
 
           {/* On very short screens the notes give way, so the page still never scrolls. */}
@@ -131,27 +140,26 @@ export function LoginScreen() {
                 strokeWidth={1.5}
                 aria-hidden
               />
-              WealthKart never holds your money or your keys. Every payment goes from your wallet to
-              your circle&apos;s contract.
+              {t("login.noteKeys")}
             </li>
             <li className="flex gap-3">
               <Wallet className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={1.5} aria-hidden />
-              Lost wallets can&apos;t be recovered, so keep your Core recovery phrase safe.
+              {t("login.noteLost")}
             </li>
           </ul>
         </div>
 
         <footer className="mx-auto flex w-full max-w-[400px] flex-wrap gap-x-6 gap-y-2 text-[13px] text-faint">
           <Link href="/how-it-works/" className="hover:text-foreground">
-            How it works
+            {t("login.howItWorks")}
           </Link>
           <Link href="/security/" className="hover:text-foreground">
-            Security
+            {t("login.security")}
           </Link>
           <Link href="/faq/" className="hover:text-foreground">
-            FAQ
+            {t("login.faq")}
           </Link>
-          <span className="ml-auto">Test network only for now</span>
+          <span className="ml-auto">{t("login.testOnly")}</span>
         </footer>
       </main>
     </div>
@@ -164,6 +172,7 @@ export function LoginScreen() {
  */
 function BackButton() {
   const router = useRouter();
+  const { t } = useT();
   function back() {
     const fromHere =
       typeof document !== "undefined" &&
@@ -183,13 +192,14 @@ function BackButton() {
         strokeWidth={1.75}
         aria-hidden
       />
-      Back
+      {t("login.back")}
     </button>
   );
 }
 
 function SignInAction({ status }: { status: ReturnType<typeof useCoreWallet>["status"] }) {
   const w = useCoreWallet();
+  const { t } = useT();
 
   if (status === "no-core") {
     return (
@@ -201,7 +211,7 @@ function SignInAction({ status }: { status: ReturnType<typeof useCoreWallet>["st
           className="inline-flex h-12 items-center justify-center gap-2.5 rounded-[12px] bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-transform active:scale-[0.98]"
         >
           <Download className="size-4" strokeWidth={1.75} aria-hidden />
-          Get Core wallet
+          {t("wallet.getCore")}
         </a>
         <button
           type="button"
@@ -209,7 +219,7 @@ function SignInAction({ status }: { status: ReturnType<typeof useCoreWallet>["st
           className="inline-flex items-center justify-center gap-2 text-[13.5px] text-muted-foreground hover:text-foreground"
         >
           <RefreshCw className="size-3.5" strokeWidth={1.75} aria-hidden />
-          I&apos;ve installed it, check again
+          {t("login.checkAgain")}
         </button>
       </>
     );
@@ -218,17 +228,15 @@ function SignInAction({ status }: { status: ReturnType<typeof useCoreWallet>["st
   if (status === "wrong-network") {
     return (
       <>
-        <p className="text-[14px] text-muted-foreground">
-          Your wallet is connected but on a different network.
-        </p>
+        <p className="text-[14px] text-muted-foreground">{t("login.wrongNetwork")}</p>
         <Button
           size="lg"
           icon={ArrowLeftRight}
-          workingLabel="Switching…"
+          workingLabel={t("wallet.switching")}
           onAction={w.switchToTarget}
           onError={(e) => notify.error(e)}
         >
-          Switch to {w.targetChain.name}
+          {t("wallet.switchTo", { network: w.targetChain.name })}
         </Button>
       </>
     );
@@ -238,12 +246,12 @@ function SignInAction({ status }: { status: ReturnType<typeof useCoreWallet>["st
     <Button
       size="lg"
       icon={Wallet}
-      workingLabel={status === "ready" ? "Opening your circles…" : "Connecting…"}
+      workingLabel={status === "ready" ? t("login.openingCircles") : t("wallet.connecting")}
       state={status === "connecting" || status === "ready" ? "working" : undefined}
       onAction={w.connect}
       onError={(e) => notify.error(e)}
     >
-      Connect Core
+      {t("wallet.connectCore")}
     </Button>
   );
 }

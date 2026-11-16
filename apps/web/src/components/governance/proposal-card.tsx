@@ -1,6 +1,6 @@
 "use client";
 
-import { periodLabel, shortAddress } from "@wealthkart/sdk";
+import { shortAddress } from "@wealthkart/sdk";
 import {
   Gavel,
   Landmark,
@@ -18,6 +18,8 @@ import { Deadline } from "@/components/app/deadline";
 import { TxFor } from "@/components/app/tx-for";
 import { Avatar } from "@/components/art";
 import { Button } from "@/components/kit";
+import { usePeriodText } from "@/components/loans/parts";
+import { useT } from "@/i18n/react";
 import type { ProposalView } from "@/lib/gov-hooks";
 import {
   type ProposalKind,
@@ -33,6 +35,8 @@ import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
 
 import { RuleDiffList } from "./rule-diff-list";
+import "@/i18n/en/loans";
+import "@/i18n/en/votes";
 
 const ICONS: Record<ProposalKind, LucideIcon> = {
   "rule-change": ScrollText,
@@ -61,6 +65,8 @@ export function ProposalCard({
   onChanged: () => void;
 }) {
   const voteA = useVaultAction(circle);
+  const { t } = useT();
+  const period = usePeriodText();
   const { asset } = useCircleAsset(circle);
   const settleA = useVaultAction(circle);
   const cancelA = useVaultAction(circle);
@@ -79,7 +85,7 @@ export function ProposalCard({
   async function vote(support: boolean) {
     const receipt = await voteA.send("voteProposal", [p.id, support]);
     if (receipt) {
-      notify.success(support ? "Vote counted: yes." : "Vote counted: no.");
+      notify.success(support ? t("loans.voteYesToast") : t("loans.voteNoToast"));
       onChanged();
     }
   }
@@ -89,10 +95,10 @@ export function ProposalCard({
     if (receipt) {
       notify.success(
         outcome === "approved"
-          ? "Settled: the proposal passed."
+          ? t("votes.card.settledPassed")
           : outcome === "expired"
-            ? "Settled: voting time ran out before enough members voted."
-            : "Settled: the proposal didn't pass.",
+            ? t("votes.card.settledExpired")
+            : t("votes.card.settledFailed"),
       );
       onChanged();
     }
@@ -101,23 +107,23 @@ export function ProposalCard({
   async function withdraw() {
     const receipt = await cancelA.send("cancelProposal", [p.id]);
     if (receipt) {
-      notify.success("Proposal withdrawn.");
+      notify.success(t("votes.card.withdrawnToast"));
       onChanged();
     }
   }
 
   const why = ended
-    ? "Voting time is over."
+    ? t("loans.whyEnded")
     : aboutMe
-      ? "This one is about you, so you can't vote on it."
+      ? t("votes.card.whyAboutMe")
       : mine && p.kind !== "fee-waiver"
-        ? "Your yes was counted when you proposed it."
-        : "You've voted on this one, or you can't vote on it: only members who could vote when it started, and are up to date, can.";
+        ? t("votes.card.whyMine")
+        : t("loans.whyOther");
 
   return (
     <article
       className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8"
-      aria-label={`Proposal: ${title}`}
+      aria-label={t("votes.card.aria", { title })}
       data-kind={p.kind}
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -129,7 +135,7 @@ export function ProposalCard({
           </span>
           <div className="grid gap-1">
             <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-              Proposal by {proposer}
+              {t("votes.card.by", { name: proposer })}
             </span>
             <h3 className="font-display text-[26px] leading-none tracking-tight">{title}</h3>
           </div>
@@ -143,12 +149,10 @@ export function ProposalCard({
             {rules && p.newRules ? (
               <RuleDiffList changes={ruleDiff(rules, p.newRules, asset)} />
             ) : (
-              <p className="text-muted-foreground">Loading the changes…</p>
+              <p className="text-muted-foreground">{t("votes.card.loadingChanges")}</p>
             )}
             <p className="text-muted-foreground">
-              If it passes, the new rules wait {rules?.ruleChangeDelayDays ?? 7} days and then start
-              on the 1st of the next month. Anyone who asks to leave before then is out under
-              today&apos;s rules.
+              {t("votes.card.ruleChangeNote", { days: rules?.ruleChangeDelayDays ?? 7 })}
             </p>
           </>
         )}
@@ -157,41 +161,33 @@ export function ProposalCard({
             <Avatar address={p.subject} size={36} />
             <dl className="grid gap-x-8 gap-y-1 sm:grid-cols-3">
               <div>
-                <dt className="text-[12px] text-muted-foreground">Member</dt>
+                <dt className="text-[12px] text-muted-foreground">{t("votes.card.member")}</dt>
                 <dd className="font-semibold" data-testid="waiver-member">
                   {subject}
                 </dd>
               </div>
               <div>
-                <dt className="text-[12px] text-muted-foreground">Month</dt>
-                <dd className="font-semibold">{periodLabel(p.period)}</dd>
+                <dt className="text-[12px] text-muted-foreground">{t("votes.card.month")}</dt>
+                <dd className="font-semibold">{period.long(p.period)}</dd>
               </div>
               <div>
-                <dt className="text-[12px] text-muted-foreground">Reason</dt>
+                <dt className="text-[12px] text-muted-foreground">{t("votes.card.reason")}</dt>
                 <dd className="font-semibold">{reasonLabel(p.reason)}</dd>
               </div>
             </dl>
             <p className="basis-full text-muted-foreground">
-              If it passes, the late fees for that month are cancelled and {subject} pays only the
-              installment. The member it&apos;s about can&apos;t vote.
+              {t("votes.card.waiverNote", { name: subject })}
             </p>
           </div>
         )}
         {p.kind === "dissolve" && (
           <div className="grid gap-2 rounded-[12px] border border-warn/20 bg-warn-soft px-5 py-4">
-            <p className="font-semibold text-foreground">This closes the circle for good.</p>
-            <p className="text-foreground/80">
-              If it passes, payments stop at once and no new loans start. Each member then claims
-              their share at its value on the day, as soon as every loan is repaid. Talk it over
-              with the group before you vote.
-            </p>
+            <p className="font-semibold text-foreground">{t("votes.card.dissolveTitle")}</p>
+            <p className="text-foreground/80">{t("votes.card.dissolveBody")}</p>
           </div>
         )}
         {p.kind === "guardian-off" && (
-          <p className="text-muted-foreground">
-            If it passes, the circle&apos;s creator can no longer pause new members and loans, and
-            any pause running now ends. This can&apos;t be undone.
-          </p>
+          <p className="text-muted-foreground">{t("votes.card.guardianBody")}</p>
         )}
         <p className="tabular" data-testid="tally">
           {proposalTallyLine(tally)}
@@ -204,11 +200,11 @@ export function ProposalCard({
           <div>
             <Button
               icon={Gavel}
-              workingLabel="Settling…"
+              workingLabel={t("loans.settling")}
               state={settleA.working ? "working" : undefined}
               onClick={settle}
             >
-              Settle the vote
+              {t("loans.settleVote")}
             </Button>
           </div>
         </div>
@@ -218,20 +214,20 @@ export function ProposalCard({
             <>
               <Button
                 icon={ThumbsUp}
-                workingLabel="Voting…"
+                workingLabel={t("loans.voting")}
                 state={voteA.working ? "working" : undefined}
                 onClick={() => vote(true)}
               >
-                Vote yes
+                {t("loans.voteYes")}
               </Button>
               <Button
                 variant="secondary"
                 icon={ThumbsDown}
-                workingLabel="Voting…"
+                workingLabel={t("loans.voting")}
                 state={voteA.working ? "working" : undefined}
                 onClick={() => vote(false)}
               >
-                Vote no
+                {t("loans.voteNo")}
               </Button>
             </>
           ) : (
@@ -241,11 +237,11 @@ export function ProposalCard({
             <Button
               variant="ghost"
               icon={Undo2}
-              workingLabel="Withdrawing…"
+              workingLabel={t("loans.withdrawing")}
               state={cancelA.working ? "working" : undefined}
               onClick={withdraw}
             >
-              Withdraw proposal
+              {t("votes.card.withdraw")}
             </Button>
           )}
         </div>

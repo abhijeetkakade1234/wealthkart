@@ -15,6 +15,7 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 | `/privacy`      | yes     | Privacy policy (ADR 0055); footer only, no page JSON-LD                   |
 | `/terms`        | yes     | Terms of use (ADR 0055); footer only, no page JSON-LD                     |
 | `/risks`        | yes     | Risk disclosure (ADR 0055); footer only, no page JSON-LD                  |
+| `/hi/`, `/mr/`  | yes     | Landing, `/start` and `/how-it-works` in Hindi and Marathi (ADR 0057)     |
 | `/blog/*`       | yes     | Later (Phase 4)                                                           |
 | `/app/*`        | **no**  | `noindex`, disallowed in robots, excluded from sitemap                    |
 
@@ -26,6 +27,15 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 - `sitemap.ts` → `/sitemap.xml` (public routes only); `robots.ts` → `/robots.txt`
 - `manifest.webmanifest` (PWA) with name, icons, theme colour
 - Performance budget in CI (Lighthouse on public pages): LCP < 2.5 s, CLS < 0.1, INP < 200 ms, JS on public pages kept small (wallet code loads only under `/app`)
+
+### Hindi and Marathi pages (ADR 0057)
+
+- Static routes `/hi/`, `/hi/start/`, `/hi/how-it-works/` and the same under `/mr/` (`src/app/[lang]/`, `generateStaticParams` with `dynamicParams = false`). Copy: `src/content/hi/`, `src/content/mr/` (same types and section ids as English, checked in `public-i18n.test.ts`); header, footer and small labels: the `site` namespace in `src/i18n/`.
+- Each of the three pages and its English twin carries `alternates.canonical` to itself and `alternates.languages` = `en`, `hi`, `mr`, `x-default` (English), so every version links every other with `hreflang`. Open Graph `locale` is `hi_IN` / `mr_IN`.
+- The sitemap lists the six localized URLs, and each localized page and its English twin get `<xhtml:link rel="alternate" hreflang>` entries.
+- `<html lang>`: the root layout can't see the URL in a static export, so `scripts/localize-html.mjs` (run by `pnpm build` after `next build`) sets `lang="hi"` / `lang="mr"` in `out/hi/**` and `out/mr/**`; `LocaleEffects` keeps it right on client navigation and remembers the language so "Open app" opens in it.
+- FAQ, rules, security and the legal pages stay English. Localized pages link to them with `hrefLang="en"`, and the localized footer says the English legal text is the one that counts. `llms.txt`, `.md` twins and OG images stay English; JSON-LD on the localized `/start` and `/how-it-works` is in their language.
+- The footer's language row links each language to the same page when it exists, else to that language's home.
 
 ## 3. GEO (answer engines)
 
@@ -89,4 +99,5 @@ Sitemap: https://<domain>/sitemap.xml
 - Never promise returns or show "earn X%" as marketing (ADR 0005). Showing a circle's own historical numbers inside the app is fine.
 - Legal pages follow the same rule, even in a denial: write "nobody promises that you will get back more than you put in", not "no returns" (S-LEGAL-02).
 - Say "private circles of friends", never "invest with us".
+- The same holds in Hindi and Marathi: `public-i18n.test.ts` (S-I18N-11) bans words like रिटर्न, मुनाफ़ा, कमाई, गारंटीड (hi) and परतावा, नफा, हमखास, खात्रीशीर (mr) in the localized public copy.
 - Plain language; write for someone who has never used crypto.

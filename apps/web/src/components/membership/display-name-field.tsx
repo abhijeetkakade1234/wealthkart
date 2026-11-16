@@ -5,9 +5,11 @@ import { Check, Loader2, X } from "lucide-react";
 import type { Address } from "viem";
 import { useReadContract } from "wagmi";
 
+import { useT } from "@/i18n/react";
 import { displayNameProblem, NAME_MAX } from "@/lib/membership";
 import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
+import "@/i18n/en/membership";
 
 export const inputCls =
   "w-full rounded-[10px] border border-border bg-card px-3.5 py-2.5 text-[15px] outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15";
@@ -54,7 +56,7 @@ export function DisplayNameField({
   value,
   onChange,
   check,
-  label = "Your name in this circle",
+  label,
 }: {
   id?: string;
   value: string;
@@ -62,24 +64,26 @@ export function DisplayNameField({
   check: { state: NameCheck; problem: string | null };
   label?: string;
 }) {
+  const { t } = useT();
   const { state, problem } = check;
+  // Re-check here so the rule text follows a language switch.
   const note =
     state === "invalid"
-      ? problem
+      ? (displayNameProblem(value) ?? problem)
       : state === "taken"
-        ? "Someone here already uses that name (letter case doesn't matter). Try another."
+        ? t("membership.nameTaken")
         : state === "available"
-          ? "That name is free."
+          ? t("membership.nameFree")
           : state === "checking"
-            ? "Checking the name…"
+            ? t("membership.nameChecking")
             : state === "unchanged"
-              ? "That's your current name."
-              : "Like a game tag. Anyone in the circle can see it, so it needn't be your real name.";
+              ? t("membership.nameUnchanged")
+              : t("membership.nameHint");
   const bad = state === "invalid" || state === "taken";
   return (
     <div className="grid gap-2">
       <label htmlFor={id} className="text-[14px] font-medium">
-        {label}
+        {label ?? t("membership.nameLabel")}
       </label>
       <div className="relative">
         <input

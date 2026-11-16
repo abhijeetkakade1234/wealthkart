@@ -6,7 +6,9 @@
 import { getAddress } from "viem";
 import { createSiweMessage, generateSiweNonce } from "viem/siwe";
 
+import type { PlainKey } from "@/i18n/types";
 import { INDEXER_URL } from "@/lib/events";
+import "@/i18n/en/reminders";
 
 /** Public VAPID key (base64url). Empty = reminders aren't set up for this build. */
 export const VAPID_PUBLIC_KEY = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "").trim();
@@ -19,24 +21,24 @@ export const KIND = { due: 1, late: 2, interest: 4, votes: 8, money: 16 } as con
 export type ReminderKind = keyof typeof KIND;
 export const ALL_KINDS = 31;
 
-/** The switches, in order, with plain labels (human-writing-style, no jargon). */
-export const KIND_ROWS: Array<{ kind: ReminderKind; label: string; hint: string }> = [
+/** The switches, in order, with plain labels (human-writing-style, no jargon) as i18n keys. */
+export const KIND_ROWS: Array<{ kind: ReminderKind; label: PlainKey; hint: PlainKey }> = [
   {
     kind: "due",
-    label: "Installment due",
-    hint: "3 days before, the day before, and on the due day",
+    label: "reminders.kindDue",
+    hint: "reminders.kindDueHint",
   },
-  { kind: "late", label: "Late fee coming", hint: "A few hours before a late fee starts" },
-  { kind: "interest", label: "Loan interest", hint: "When interest is due soon, or late" },
+  { kind: "late", label: "reminders.kindLate", hint: "reminders.kindLateHint" },
+  { kind: "interest", label: "reminders.kindInterest", hint: "reminders.kindInterestHint" },
   {
     kind: "votes",
-    label: "Votes waiting for you",
-    hint: "When a vote needs you, and on its last day",
+    label: "reminders.kindVote",
+    hint: "reminders.kindVoteHint",
   },
   {
     kind: "money",
-    label: "Money to collect",
-    hint: "When your exit payout or a refused payment is ready",
+    label: "reminders.kindCollect",
+    hint: "reminders.kindCollectHint",
   },
 ];
 

@@ -427,6 +427,22 @@ ADR 0054. Unit tests in `apps/web/src/lib/__tests__/first-run.test.ts` and `seo.
 - S-ONB-06 (E2E) No sideways scroll on `/start` at 360px wide
 - S-ONB-07 (E2E) A newly connected wallet sees "Before you start" with AVAX ticked from its balance; "I've done this" ticks the recovery phrase item and survives a reload; open items link to their guide step; hiding the list toasts and keeps it hidden after a reload
 
+### Languages: Hindi and Marathi (S-I18N, ADR 0057)
+
+- S-I18N-01 Every `messages` function returns non-empty, emoji-free, fully filled text in en, hi and mr; hi and mr differ from English; `toFriendlyError` keeps the same codes in every language with translated text; switching back gives the exact English text
+- S-I18N-02 hi and mr have exactly the English keys (typecheck) and the same `{params}` and `<tags>`; no value is empty, equal to its key or an emoji; plural keys come in `_one` / `_other` pairs; less than 3% of values are English copies
+- S-I18N-03 No language advertises returns: the banned list with Hindi and Marathi equivalents finds nothing in the onboarding and app namespaces
+- S-I18N-04 Runtime: browser language detection (first language we speak, else English), switching, params, plurals (Hindi counts 0 as one), lakh/crore grouping with Latin digits in hi and mr only
+- S-I18N-05 Every file that uses a non-core key imports its English namespace, and every lazy namespace registers itself (bundle budget)
+- S-I18N-10 Localized landing, `/start` and `/how-it-works` have the English structure and section ids, are translated, and keep titles and descriptions within search limits
+- S-I18N-11 Public copy in en, hi and mr has no banned "returns" words
+- S-I18N-12 Localized paths, hreflang metadata, and all six localized URLs in the sitemap with alternates
+- S-I18N-20 (E2E) Switching to Hindi on the app home sets `<html lang="hi">`, toasts in Hindi, and translates the heading, the nav and the empty state
+- S-I18N-21 (E2E) The language survives a reload; Settings shows it checked and switches back to English
+- S-I18N-22 (E2E) Start a circle and pay the installment entirely in Marathi
+- S-I18N-23 (E2E) The six localized public pages return 200 with the right `lang`, a self canonical and hreflang links for en, hi, mr and x-default; the English footer switches to Marathi and the language is saved for the app
+- S-I18N-24 (E2E) No sideways scroll at 360px in hi and mr on home, new circle, circle, pay, loans, votes, activity, settings, sign-in and the localized public pages (`I18N_SHOTS=<folder>` also saves 360px and 1440px screenshots)
+
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
 Real static export, local anvil chain posing as Fuji (chain id 43113), test wallet that announces itself as Core and forwards to anvil. Every user-facing feature adds one here (CLAUDE.md).

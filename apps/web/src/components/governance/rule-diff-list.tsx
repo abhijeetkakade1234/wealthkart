@@ -1,11 +1,14 @@
 import { ArrowRight } from "lucide-react";
 
+import { useT } from "@/i18n/react";
 import type { RuleChange } from "@/lib/rules";
+import "@/i18n/en/rules";
 
 /** Changed settings as "label: before -> after", one per row. */
 export function RuleDiffList({ changes }: { changes: RuleChange[] }) {
+  const { t } = useT();
   if (changes.length === 0) {
-    return <p className="text-[13.5px] text-muted-foreground">No setting changes.</p>;
+    return <p className="text-[13.5px] text-muted-foreground">{t("rules.diff.none")}</p>;
   }
   return (
     <ul
@@ -20,7 +23,11 @@ export function RuleDiffList({ changes }: { changes: RuleChange[] }) {
           <span className="text-foreground">{c.label}</span>
           <span className="inline-flex flex-wrap items-center gap-2 font-mono text-[13px] tabular">
             <span className="text-muted-foreground line-through decoration-faint">{c.before}</span>
-            <ArrowRight className="size-3.5 text-faint" strokeWidth={1.5} aria-label="becomes" />
+            <ArrowRight
+              className="size-3.5 text-faint"
+              strokeWidth={1.5}
+              aria-label={t("rules.diff.becomes")}
+            />
             <span className="font-semibold text-brand">{c.after}</span>
           </span>
         </li>

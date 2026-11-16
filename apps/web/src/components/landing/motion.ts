@@ -17,7 +17,12 @@ type Gsap = typeof GSAP;
 type ScrollTriggerT = typeof ST;
 
 const EASE = "power3.out";
-const END_TALLY = "3 of 4 said yes";
+/** The tally line, in the page's language (`data-tally-template`, ADR 0057). */
+const TALLY_TEMPLATE = "{n} of 4 said yes";
+function tallyLine(el: Element | null, n: number): string {
+  const template = el?.getAttribute("data-tally-template") ?? TALLY_TEMPLATE;
+  return template.replace("{n}", String(n));
+}
 
 /** Below the first screen? Only those get hidden, so nothing visible ever blinks. */
 function belowFold(el: Element) {
@@ -45,7 +50,7 @@ export function startLandingMotion(root: HTMLElement, gsap: Gsap, ScrollTrigger:
     const bar = root.querySelector<HTMLElement>("[data-month-progress]");
     if (bar) bar.style.transform = "scaleX(0)";
     const tally = root.querySelector("[data-tally-text]");
-    if (tally) tally.textContent = END_TALLY;
+    if (tally) tally.textContent = tallyLine(tally, 3);
     ScrollTrigger.refresh();
   };
 }
@@ -149,7 +154,7 @@ function monthScene(root: HTMLElement, gsap: Gsap, ScrollTrigger: ScrollTriggerT
   const b = FRIENDS[BORROWER];
   const tally = { n: 3 };
   const writeTally = () => {
-    if (tallyText) tallyText.textContent = `${Math.round(tally.n)} of 4 said yes`;
+    if (tallyText) tallyText.textContent = tallyLine(tallyText, Math.round(tally.n));
   };
 
   const tl = gsap.timeline({ defaults: { ease: "power2.inOut" } });

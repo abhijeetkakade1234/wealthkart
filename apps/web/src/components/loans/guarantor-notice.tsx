@@ -7,9 +7,11 @@ import type { Address } from "viem";
 import { TxFor } from "@/components/app/tx-for";
 import { Avatar } from "@/components/art";
 import { Button } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { money, useCircleAsset } from "@/lib/asset";
 import { type LoanRequestView, useLoanTx } from "@/lib/loan-hooks";
 import { notify } from "@/lib/toast";
+import "@/i18n/en/loans";
 
 /**
  * Someone named you as their guarantor (rule 11): what backing a loan means and "Back this
@@ -25,20 +27,21 @@ export function GuarantorNotice({
   onChanged: () => void;
 }) {
   const action = useLoanTx(circle);
+  const { t } = useT();
   const { asset } = useCircleAsset(circle);
   const who = r.borrowerName || shortAddress(r.borrower);
 
   async function accept() {
     const ok = await action.acceptGuarantee(r.borrower);
     if (ok) {
-      notify.success(`You're backing ${who}'s loan.`);
+      notify.success(t("loans.backingToast", { name: who }));
       onChanged();
     }
   }
 
   return (
     <section
-      aria-label="Asked to be a guarantor"
+      aria-label={t("loans.guarantorNotice.aria")}
       data-testid="guarantor-notice"
       className="grid gap-6 rounded-[14px] border border-brand/15 bg-brand-soft p-[26px] sm:p-8"
     >
@@ -46,14 +49,13 @@ export function GuarantorNotice({
         <Avatar address={r.borrower} size={40} />
         <div className="grid gap-1.5">
           <h3 className="text-[15px] font-semibold">
-            {who} asked you to back a {r.medical ? "medical " : ""}loan of {money(r.amount, asset)}
+            {t(r.medical ? "loans.guarantorNotice.titleMedical" : "loans.guarantorNotice.title", {
+              name: who,
+              amount: money(r.amount, asset),
+            })}
           </h3>
           <p className="max-w-[62ch] text-[13.5px] leading-relaxed text-foreground/80">
-            Backing it means your savings count towards their limit. If they stop paying and the
-            loan is marked as defaulted, you&apos;re frozen too: you can&apos;t leave or borrow, and
-            the circle can vote to use your share to repay what their savings don&apos;t cover. You
-            stay tied until the loan is repaid. If you do nothing, the request simply can&apos;t go
-            ahead.
+            {t("loans.guarantorNotice.body")}
           </p>
         </div>
       </div>
@@ -61,11 +63,11 @@ export function GuarantorNotice({
         <div>
           <Button
             icon={ShieldCheck}
-            workingLabel="Agreeing…"
+            workingLabel={t("loans.agreeing")}
             state={action.working ? "working" : undefined}
             onClick={accept}
           >
-            Back this loan
+            {t("loans.backThisLoan")}
           </Button>
         </div>
         <TxFor tx={action.tx} />

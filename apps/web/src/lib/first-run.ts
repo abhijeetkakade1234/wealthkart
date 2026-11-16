@@ -7,6 +7,9 @@
  * so a blocked store just means the list starts fresh.
  */
 
+import { t } from "@/i18n/runtime";
+import "@/i18n/en/checklist";
+
 export interface FirstRunState {
   dismissed: boolean;
   /** Self-reported: recovery phrase written down. */
@@ -81,37 +84,33 @@ export function checklistItems(input: {
   return [
     {
       id: "phrase",
-      title: "Write down your recovery phrase",
-      hint: "On paper, kept safe. Nobody can recover a lost wallet.",
+      title: t("checklist.phraseTitle"),
+      hint: t("checklist.phraseHint"),
       href: "/start/#create-wallet",
       status: input.state.phrase ? "done" : "todo",
       manual: true,
     },
     {
       id: "gas",
-      title: "Have a little AVAX for network fees",
-      hint: input.testnet
-        ? "Test AVAX is free from the Fuji faucet."
-        : "Every payment and vote costs a small fee in AVAX.",
+      title: t("checklist.gasTitle"),
+      hint: input.testnet ? t("checklist.gasHintTestnet") : t("checklist.gasHint"),
       href: "/start/#get-avax",
       status: fromRead(input.hasGas),
       manual: false,
     },
     {
       id: "nominee",
-      title: "Set a backup wallet",
+      title: t("checklist.nomineeTitle"),
       hint:
-        input.inCircle === false
-          ? "Once you're in a circle, add one on the circle's page. It gets your share only if you go dormant and the circle votes yes."
-          : "Add one on each circle's page. It gets your share only if you go dormant and the circle votes yes.",
+        input.inCircle === false ? t("checklist.nomineeHintNoCircle") : t("checklist.nomineeHint"),
       href: "/start/#backup-wallet",
       status: input.inCircle === false ? "todo" : fromRead(input.hasNominee),
       manual: false,
     },
     {
       id: "circle",
-      title: "Join or start a circle",
-      hint: "Open a friend's invite link, or start one yourself.",
+      title: t("checklist.circleTitle"),
+      hint: t("checklist.circleHint"),
       href: "/start/#join",
       status: fromRead(input.inCircle),
       manual: false,

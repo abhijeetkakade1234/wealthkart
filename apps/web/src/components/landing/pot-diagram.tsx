@@ -64,8 +64,31 @@ function Person({ x, y }: { x: number; y: number }) {
   );
 }
 
-export function PotDiagram({ className }: { className?: string }) {
-  const names = [...LANDING_MONTH.friends, LANDING_MONTH.borrower];
+/** Words drawn in the diagram; English by default, translated on `/hi/` and `/mr/` (ADR 0057). */
+export interface PotLabels {
+  art: string;
+  interest: string;
+  asks: string;
+  /** "{n} of 4 said yes": `{n}` is filled in here and by `motion.ts` while it counts. */
+  tally: string;
+}
+
+const EN_LABELS: PotLabels = {
+  art: "Five friends sit around a shared pot. Each puts in, Kiwi asks for a loan, three of the other four vote yes, the pot lends to Kiwi, and Kiwi pays it back with a little interest that stays in the pot.",
+  interest: "+ interest",
+  asks: "asks to borrow",
+  tally: "{n} of 4 said yes",
+};
+
+export function PotDiagram({
+  className,
+  names = [...LANDING_MONTH.friends, LANDING_MONTH.borrower],
+  labels = EN_LABELS,
+}: {
+  className?: string;
+  names?: string[];
+  labels?: PotLabels;
+}) {
   const b = FRIENDS[BORROWER];
   const repaid = levelY(POT.levels.repaid);
   return (
@@ -75,7 +98,7 @@ export function PotDiagram({ className }: { className?: string }) {
       height="424"
       className={className}
       role="img"
-      aria-label="Five friends sit around a shared pot. Each puts in, Kiwi asks for a loan, three of the other four vote yes, the pot lends to Kiwi, and Kiwi pays it back with a little interest that stays in the pot."
+      aria-label={labels.art}
       data-month-svg
     >
       <defs>
@@ -135,7 +158,7 @@ export function PotDiagram({ className }: { className?: string }) {
           fontSize="14"
           fill="var(--brand)"
         >
-          + interest
+          {labels.interest}
         </text>
       </g>
 
@@ -175,7 +198,7 @@ export function PotDiagram({ className }: { className?: string }) {
           fontSize="14"
           fill="var(--brand)"
         >
-          asks to borrow
+          {labels.asks}
         </text>
       </g>
 
@@ -223,8 +246,9 @@ export function PotDiagram({ className }: { className?: string }) {
           fontSize="15"
           fill="var(--foreground)"
           data-tally-text
+          data-tally-template={labels.tally}
         >
-          3 of 4 said yes
+          {labels.tally.replace("{n}", "3")}
         </text>
       </g>
 

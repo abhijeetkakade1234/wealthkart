@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n/react";
 import { messages } from "@/lib/messages";
 import { ALL_KINDS, hasKind, KIND_ROWS, type ReminderKind, toggleKind } from "@/lib/push";
 import { notify } from "@/lib/toast";
@@ -13,6 +14,7 @@ import { reminderError, useReminders } from "@/lib/use-reminders";
 
 import { ReminderGate } from "./reminder-gate";
 import { ReminderSwitch } from "./reminder-switch";
+import "@/i18n/en/reminders";
 
 /**
  * Reminders for one circle (ADR 0052), on the circle overview. Before reminders are on for this
@@ -20,6 +22,7 @@ import { ReminderSwitch } from "./reminder-switch";
  */
 export function CircleRemindersCard({ circle }: { circle: string }) {
   const r = useReminders();
+  const { t } = useT();
   const [busy, setBusy] = useState<ReminderKind | null>(null);
   const kinds = r.kindsFor(circle);
 
@@ -46,10 +49,10 @@ export function CircleRemindersCard({ circle }: { circle: string }) {
             className="flex items-center gap-2 text-[15px] font-semibold"
           >
             <BellRing size={16} strokeWidth={1.5} aria-hidden className="text-brand" />
-            Reminders for this circle
+            {t("reminders.circleTitle")}
           </h3>
           <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-            A quiet nudge on this device before money is due or a vote closes. Nothing else.
+            {t("reminders.circleIntro")}
           </p>
         </div>
       </div>
@@ -63,7 +66,7 @@ export function CircleRemindersCard({ circle }: { circle: string }) {
       ) : r.settings.isPending ? (
         <StateView
           state="loading"
-          label="Loading reminder settings"
+          label={t("reminders.loadingSettings")}
           skeleton={
             <div className="grid gap-4">
               {[0, 1, 2].map((i) => (
@@ -84,8 +87,8 @@ export function CircleRemindersCard({ circle }: { circle: string }) {
             {KIND_ROWS.map((row) => (
               <ReminderSwitch
                 key={row.kind}
-                label={row.label}
-                hint={row.hint}
+                label={t(row.label)}
+                hint={t(row.hint)}
                 checked={hasKind(kinds, row.kind)}
                 busy={busy === row.kind}
                 disabled={busy !== null}
@@ -96,16 +99,16 @@ export function CircleRemindersCard({ circle }: { circle: string }) {
           <div className="flex flex-wrap items-center justify-between gap-3 pt-4 text-[13px]">
             <span className="text-muted-foreground">
               {kinds === 0
-                ? "All off for this circle."
+                ? t("reminders.allOff")
                 : kinds === ALL_KINDS
-                  ? "All on for this circle."
-                  : "Some on for this circle."}
+                  ? t("reminders.allOn")
+                  : t("reminders.someOn")}
             </span>
             <Link
               href="/app/settings/"
               className="font-medium text-brand underline-offset-4 hover:underline"
             >
-              All reminder settings
+              {t("reminders.allSettings")}
             </Link>
           </div>
         </div>

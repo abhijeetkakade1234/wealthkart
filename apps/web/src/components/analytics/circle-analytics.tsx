@@ -4,6 +4,7 @@ import type { Address } from "viem";
 
 import { ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n/react";
 import { memberHistories, monthlySeries, totals } from "@/lib/analytics";
 import { money as withUnit, useCircleAsset } from "@/lib/asset";
 import { useCircleEvents } from "@/lib/events";
@@ -12,6 +13,7 @@ import { InflowChart, NavChart, ValueChart } from "./circle-charts";
 import { CircleLoanCharts } from "./loan-charts";
 import { PaymentsHeatmap } from "./payments-heatmap";
 import { ReturnsCard } from "./returns-card";
+import "@/i18n/en/analytics";
 
 /** Months shown in the charts: the last year, never before the circle started. */
 const CHART_MONTHS = 12;
@@ -48,12 +50,13 @@ export function CircleAnalytics({
 }) {
   const q = useCircleEvents(id);
   const { asset } = useCircleAsset(id);
+  const { t, tn } = useT();
 
   if (q.isPending) {
     return (
       <StateView
         state="loading"
-        label="Loading circle history"
+        label={t("analytics.loadingHistory")}
         skeleton={
           <div className="grid gap-5 lg:grid-cols-2">
             <Skeleton className="h-[330px] rounded-[14px] lg:col-span-2" />
@@ -71,42 +74,40 @@ export function CircleAnalytics({
   const firstPeriod = joins.length ? Math.min(...joins) : currentPeriod;
   const from = Math.max(firstPeriod, currentPeriod - CHART_MONTHS + 1);
   const points = monthlySeries(events, from, currentPeriod);
-  const t = totals(events);
+  const sum = totals(events);
   const histories = memberHistories(events);
 
   return (
-    <div className="grid gap-5">
-      {partial && (
-        <InlineAlert tone="info">
-          This circle is older than the history we can read quickly, so the charts show recent
-          months only. Full history arrives with the activity indexer.
-        </InlineAlert>
-      )}
+    <div className="grid grid-cols-1 gap-5">
+      {partial && <InlineAlert tone="info">{t("analytics.partialHistory")}</InlineAlert>}
       <p className="text-[13.5px] text-muted-foreground" data-testid="analytics-summary">
-        {t.payments === 0
-          ? "No payments yet. The charts fill in after the first installment."
-          : `${t.payments} ${t.payments === 1 ? "payment" : "payments"} so far · ${t.late} paid late · ${withUnit(t.fees, asset)} in late fees shared by everyone`}
+        {sum.payments === 0
+          ? t("analytics.noPayments")
+          : tn("analytics.summary", sum.payments, {
+              late: sum.late,
+              fees: withUnit(sum.fees, asset),
+            })}
       </p>
-      {t.payments > 0 && (
-        <div className="grid gap-5 lg:grid-cols-2">
-          <ErrorBoundary preset="widget" name="Circle value">
+      {sum.payments > 0 && (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <ErrorBoundary preset="widget" name={t("analytics.widgetValue")}>
             <div className="lg:col-span-2">
               <ValueChart points={points} asset={asset} />
             </div>
           </ErrorBoundary>
-          <ErrorBoundary preset="widget" name="Money in each month">
+          <ErrorBoundary preset="widget" name={t("analytics.widgetInflow")}>
             <InflowChart points={points} asset={asset} />
           </ErrorBoundary>
-          <ErrorBoundary preset="widget" name="Value of one share">
+          <ErrorBoundary preset="widget" name={t("analytics.widgetNav")}>
             <NavChart points={points} asset={asset} />
           </ErrorBoundary>
         </div>
       )}
-      {t.payments > 0 && money && (
+      {sum.payments > 0 && money && (
         <CircleLoanCharts id={id} logs={q.data.logs} money={money} asset={asset} />
       )}
-      {t.payments > 0 && mine && (
-        <ErrorBoundary preset="widget" name="Your returns">
+      {sum.payments > 0 && mine && (
+        <ErrorBoundary preset="widget" name={t("analytics.widgetReturns")}>
           <ReturnsCard
             events={events}
             me={mine.me}
@@ -120,7 +121,7 @@ export function CircleAnalytics({
           />
         </ErrorBoundary>
       )}
-      <ErrorBoundary preset="widget" name="Payments">
+      <ErrorBoundary preset="widget" name={t("analytics.widgetPayments")}>
         <PaymentsHeatmap
           id={id}
           total={memberListLength}

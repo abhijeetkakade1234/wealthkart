@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import type { Address } from "viem";
 import { readContract } from "wagmi/actions";
 
+import { LanguageSwitcher } from "@/components/app/language-switcher";
 import { PageHeader } from "@/components/app/page-header";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { CircleCover } from "@/components/art";
@@ -15,16 +16,18 @@ import { ReminderSwitch } from "@/components/reminders/reminder-switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { useT } from "@/i18n/react";
 import { CIRCLES_PAGE_SIZE, useFactory, useMyCircles } from "@/lib/circle";
 import { ALL_KINDS, KIND_ROWS, hasKind } from "@/lib/push";
 import { notify } from "@/lib/toast";
 import { reminderError, useReminders } from "@/lib/use-reminders";
 import { wagmiConfig } from "@/lib/wagmi";
+import "@/i18n/en/settings";
 
 /** Most circles switched on in one go when reminders are turned on here. */
 const TURN_ON_MAX = 50n;
 
-/** Settings: reminders on this device, and per circle (ADR 0052). */
+/** Settings: language (ADR 0057), reminders on this device, and per circle (ADR 0052). */
 export default function SettingsPage() {
   return (
     <RequireWallet>
@@ -39,6 +42,7 @@ function Settings() {
   const r = useReminders();
   const { address } = useCoreWallet();
   const factory = useFactory();
+  const { t } = useT();
   // Read at the moment of turning on, never from a cache: a circle joined a moment ago must be
   // included. The newest TURN_ON_MAX circles; each circle page can still switch its own on.
   const circleIds = useCallback(async (): Promise<string[]> => {
@@ -60,16 +64,33 @@ function Settings() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="How WealthKart keeps in touch on this device." />
-      <ErrorBoundary preset="widget" name="Reminders">
+      <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
+      <section
+        aria-labelledby="language-title"
+        data-testid="language-card"
+        className="mb-10 grid content-start gap-5 rounded-[14px] border border-border bg-card p-[26px] sm:p-8"
+      >
+        <div className="grid gap-1.5">
+          <h2 id="language-title" className="text-[17px] font-semibold">
+            {t("nav.language")}
+          </h2>
+          <p className="max-w-[60ch] text-[14px] leading-relaxed text-muted-foreground">
+            {t("nav.languageHint")}
+          </p>
+        </div>
+        <div>
+          <LanguageSwitcher />
+        </div>
+      </section>
+      <ErrorBoundary preset="widget" name={t("settings.reminders")}>
         <DeviceRemindersCard reminders={r} circles={circleIds} />
       </ErrorBoundary>
       {r.status === "on" && (
         <section className="mt-16">
           <h2 className="mb-6 text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-            Reminders per circle
+            {t("settings.remindersPerCircle")}
           </h2>
-          <ErrorBoundary preset="widget" name="Reminders per circle">
+          <ErrorBoundary preset="widget" name={t("settings.remindersPerCircle")}>
             <CircleList reminders={r} />
           </ErrorBoundary>
         </section>
@@ -82,6 +103,7 @@ function CircleList({ reminders: r }: { reminders: ReturnType<typeof useReminder
   const page = usePageParam();
   const q = useMyCircles(page);
   const [busy, setBusy] = useState<string | null>(null);
+  const { t } = useT();
   // The list may be cached from the home page; read it again so new circles show.
   const refetch = q.refetch;
   useEffect(() => {
@@ -93,7 +115,7 @@ function CircleList({ reminders: r }: { reminders: ReturnType<typeof useReminder
     return (
       <StateView
         state="loading"
-        label="Loading your circles"
+        label={t("settings.loadingCircles")}
         skeleton={
           <div className="grid gap-3">
             {[0, 1, 2].map((i) => (
@@ -116,12 +138,7 @@ function CircleList({ reminders: r }: { reminders: ReturnType<typeof useReminder
     );
   }
   if (q.circles.length === 0) {
-    return (
-      <StateView
-        state="empty"
-        message="You're not in a circle yet. Once you join one, you can choose its reminders here."
-      />
-    );
+    return <StateView state="empty" message={t("settings.noCircles")} />;
   }
 
   async function setAll(circle: string, on: boolean) {
@@ -151,10 +168,10 @@ function CircleList({ reminders: r }: { reminders: ReturnType<typeof useReminder
                   label={c.name}
                   hint={
                     count === 0
-                      ? "Off"
+                      ? t("settings.off")
                       : count === KIND_ROWS.length
-                        ? "All reminders on"
-                        : `${count} of ${KIND_ROWS.length} reminders on`
+                        ? t("settings.allOn")
+                        : t("settings.someOn", { count, total: KIND_ROWS.length })
                   }
                   checked={count > 0}
                   busy={busy === c.address}
@@ -166,13 +183,18 @@ function CircleList({ reminders: r }: { reminders: ReturnType<typeof useReminder
                 href={`/app/circle/?id=${c.address}#reminders`}
                 className="hidden shrink-0 text-[13px] font-medium text-brand underline-offset-4 hover:underline sm:inline"
               >
-                Choose which
+                {t("settings.chooseWhich")}
               </Link>
             </li>
           );
         })}
       </ul>
-      <Pagination page={page} pageSize={CIRCLES_PAGE_SIZE} total={q.total ?? 0} noun="circles" />
+      <Pagination
+        page={page}
+        pageSize={CIRCLES_PAGE_SIZE}
+        total={q.total ?? 0}
+        noun={t("settings.circlesNoun")}
+      />
     </div>
   );
 }

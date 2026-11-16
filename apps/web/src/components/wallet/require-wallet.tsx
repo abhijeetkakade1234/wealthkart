@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { loginHref } from "@/components/login/safe-next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StateView } from "@/components/kit";
+import { useT } from "@/i18n/react";
 import { notify } from "@/lib/toast";
 
 import { useCoreWallet } from "./use-core-wallet";
@@ -18,6 +19,7 @@ const REDIRECT_GRACE_MS = 400;
  */
 export function RequireWallet({ children }: { children: React.ReactNode }) {
   const w = useCoreWallet();
+  const { t } = useT();
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams().toString();
@@ -38,7 +40,7 @@ export function RequireWallet({ children }: { children: React.ReactNode }) {
     return (
       <StateView
         state="loading"
-        label="Connecting to Core"
+        label={t("wallet.connectingToCore")}
         skeleton={
           <div className="grid gap-5">
             <Skeleton className="h-36 rounded-[14px]" />
@@ -53,7 +55,7 @@ export function RequireWallet({ children }: { children: React.ReactNode }) {
     return (
       <StateView
         state="loading"
-        label="Taking you to sign in"
+        label={t("wallet.takingToSignIn")}
         skeleton={<Skeleton className="h-36 rounded-[14px]" />}
       />
     );
@@ -64,7 +66,7 @@ export function RequireWallet({ children }: { children: React.ReactNode }) {
       <StateView
         state="access"
         reason="wrong-network"
-        actionLabel={`Switch to ${w.targetChain.name}`}
+        actionLabel={t("wallet.switchTo", { network: w.targetChain.name })}
         onAction={() => w.switchToTarget().catch((e) => notify.error(e))}
       />
     );

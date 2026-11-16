@@ -3,6 +3,9 @@
 import { Table2, LineChart as LineIcon } from "lucide-react";
 import { useState } from "react";
 
+import { useT } from "@/i18n/react";
+import "@/i18n/en/analytics";
+
 /**
  * Card around one chart: title, one-line explanation, and a "Table" toggle so every chart
  * can also be read as numbers (dataviz: a table view always exists).
@@ -22,6 +25,7 @@ export function ChartFrame({
   className?: string;
 }) {
   const [asTable, setAsTable] = useState(false);
+  const { t } = useT();
   return (
     <section
       className={`grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8 ${className ?? ""}`}
@@ -43,7 +47,7 @@ export function ChartFrame({
           ) : (
             <Table2 className="size-3.5" strokeWidth={1.75} aria-hidden />
           )}
-          {asTable ? "Chart" : "Table"}
+          {asTable ? t("analytics.chart") : t("analytics.table")}
         </button>
       </header>
       {asTable ? (

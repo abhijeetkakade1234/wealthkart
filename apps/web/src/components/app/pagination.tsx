@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { useT } from "@/i18n/react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,12 +37,13 @@ export function Pagination({
   page,
   pageSize,
   total,
-  noun = "items",
+  noun,
   param = "page",
 }: {
   page: number;
   pageSize: number;
   total: number;
+  /** Translated plural noun (e.g. the home page's "circles"). Defaults to "items". */
   noun?: string;
   /** URL param this list pages with; set it when a page has two paginated lists. */
   param?: string;
@@ -49,6 +51,7 @@ export function Pagination({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
+  const { t } = useT();
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(page, pages);
 
@@ -69,19 +72,17 @@ export function Pagination({
 
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={t("kit.pagination")}
       className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-6 py-4 text-[13px] text-muted-foreground"
     >
-      <span>
-        Showing {from}–{to} of {total} {noun}
-      </span>
+      <span>{t("kit.showing", { from, to, total, noun: noun ?? t("kit.items") })}</span>
       <div className="flex items-center gap-1">
         <button
           type="button"
           className={cn(btn, "hover:bg-secondary")}
           disabled={current <= 1}
           onClick={() => go(current - 1)}
-          aria-label="Previous page"
+          aria-label={t("kit.previousPage")}
         >
           <ChevronLeft className="size-4" aria-hidden />
         </button>
@@ -112,7 +113,7 @@ export function Pagination({
           className={cn(btn, "hover:bg-secondary")}
           disabled={current >= pages}
           onClick={() => go(current + 1)}
-          aria-label="Next page"
+          aria-label={t("kit.nextPage")}
         >
           <ChevronRight className="size-4" aria-hidden />
         </button>

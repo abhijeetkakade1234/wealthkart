@@ -13,18 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/i18n/react";
+import { intlLocale } from "@/i18n/runtime";
 import { nameChangeAllowedAt } from "@/lib/membership";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 import { DisplayNameField, useNameCheck } from "./display-name-field";
-
-const dateFmt = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
+import "@/i18n/en/membership";
 
 /** "Your name in this circle": shows the current name and lets the member set or change it. */
 export function NameCard({
@@ -42,8 +39,15 @@ export function NameCard({
   chainNow: number;
   onSaved: () => void;
 }) {
+  const { t, locale } = useT();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(name);
+  // Device language in English (as before); the chosen language otherwise.
+  const dateFmt = new Intl.DateTimeFormat(locale === "en" ? undefined : intlLocale(locale), {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
   const check = useNameCheck(circle, me, draft, name);
   const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
@@ -60,7 +64,7 @@ export function NameCard({
       }),
     );
     if (receipt) {
-      notify.success(`Saved. You're "${draft}" in this circle now.`);
+      notify.success(t("membership.nameSavedToast", { name: draft }));
       setOpen(false);
       tx.reset();
       onSaved();
@@ -70,14 +74,13 @@ export function NameCard({
   return (
     <div className="grid content-start gap-5 rounded-[14px] border border-border bg-card p-[26px]">
       <div className="grid gap-1.5">
-        <h3 className="text-[15px] font-semibold">Your name in this circle</h3>
+        <h3 className="text-[15px] font-semibold">{t("membership.nameLabel")}</h3>
         <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-          Members see this instead of your wallet address. You can use a different name in each
-          circle.
+          {t("membership.nameCardBody")}
         </p>
       </div>
       <p className="font-display text-[32px] leading-none tracking-tight" data-testid="my-name">
-        {name || <span className="text-faint">No name yet</span>}
+        {name || <span className="text-faint">{t("membership.noNameYet")}</span>}
       </p>
       <div>
         <Button
@@ -91,15 +94,19 @@ export function NameCard({
           disabled={lockedUntil !== null}
           disabledReason={
             lockedUntil
-              ? `You can change it again on ${dateFmt.format(new Date(lockedUntil * 1000))}`
+              ? t("membership.changeAgainOn", {
+                  date: dateFmt.format(new Date(lockedUntil * 1000)),
+                })
               : undefined
           }
         >
-          {name ? "Change name" : "Pick a name"}
+          {name ? t("membership.changeName") : t("membership.pickName")}
         </Button>
         {lockedUntil && (
           <p className="mt-3 text-[12.5px] text-muted-foreground">
-            You can change it again on {dateFmt.format(new Date(lockedUntil * 1000))}.
+            {t("membership.changeAgainOnSentence", {
+              date: dateFmt.format(new Date(lockedUntil * 1000)),
+            })}
           </p>
         )}
       </div>
@@ -107,23 +114,22 @@ export function NameCard({
       <Dialog open={open} onOpenChange={(v) => !busy && setOpen(v)}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>{name ? "Change your name" : "Pick your name"}</DialogTitle>
-            <DialogDescription>
-              After this, you can change it again in 30 days. Your old name stays reserved for you
-              for 30 days too.
-            </DialogDescription>
+            <DialogTitle>
+              {name ? t("membership.dialogChange") : t("membership.dialogPick")}
+            </DialogTitle>
+            <DialogDescription>{t("membership.dialogDesc")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 pt-2">
             <DisplayNameField value={draft} onChange={setDraft} check={check} />
             <Button
               icon={PencilLine}
-              workingLabel="Saving…"
+              workingLabel={t("membership.saving")}
               state={busy ? "working" : undefined}
               onClick={save}
               disabled={check.state !== "available"}
-              disabledReason="Pick a free name first"
+              disabledReason={t("membership.pickFreeFirst")}
             >
-              Save name
+              {t("membership.saveName")}
             </Button>
             {tx.status !== "idle" && (
               <TxTracker

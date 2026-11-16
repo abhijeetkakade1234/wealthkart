@@ -15,12 +15,17 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { CircleSwitcher } from "@/components/app/circle-switcher";
+import { LanguageMenu } from "@/components/app/language-switcher";
 import { ConnectButton } from "@/components/wallet/connect-button";
+import { useT } from "@/i18n/react";
+import type { PlainKey } from "@/i18n/types";
 import { parseCircleId } from "@/lib/circle";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
+  /** Stable id; the visible label is `t(labelKey)`. */
   label: string;
+  labelKey: PlainKey;
   href: string;
   icon: LucideIcon;
   needsCircle?: boolean;
@@ -29,23 +34,44 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { label: "Home", href: "/app/", icon: Home },
-  { label: "Circle", href: "/app/circle/", icon: Users, needsCircle: true },
-  { label: "Pay", href: "/app/circle/pay/", icon: HandCoins, needsCircle: true },
-  { label: "Loans", href: "/app/circle/loans/", icon: Landmark, needsCircle: true },
-  { label: "Votes", href: "/app/circle/votes/", icon: Vote, needsCircle: true },
-  { label: "Activity", href: "/app/circle/activity/", icon: Activity, needsCircle: true },
-  { label: "Settings", href: "/app/settings/", icon: Settings },
+  { label: "Home", labelKey: "nav.home", href: "/app/", icon: Home },
+  { label: "Circle", labelKey: "nav.circle", href: "/app/circle/", icon: Users, needsCircle: true },
+  {
+    label: "Pay",
+    labelKey: "nav.pay",
+    href: "/app/circle/pay/",
+    icon: HandCoins,
+    needsCircle: true,
+  },
+  {
+    label: "Loans",
+    labelKey: "nav.loans",
+    href: "/app/circle/loans/",
+    icon: Landmark,
+    needsCircle: true,
+  },
+  {
+    label: "Votes",
+    labelKey: "nav.votes",
+    href: "/app/circle/votes/",
+    icon: Vote,
+    needsCircle: true,
+  },
+  {
+    label: "Activity",
+    labelKey: "nav.activity",
+    href: "/app/circle/activity/",
+    icon: Activity,
+    needsCircle: true,
+  },
+  { label: "Settings", labelKey: "nav.settings", href: "/app/settings/", icon: Settings },
 ];
 
 /** Mobile bottom bar: four destinations plus More (docs/ui.md §3). */
 const MOBILE_NAV: NavItem[] = [
   ...NAV.filter((n) => ["Home", "Pay", "Loans", "Votes"].includes(n.label)),
-  { label: "More", href: "/app/settings/", icon: MoreHorizontal },
+  { label: "More", labelKey: "nav.more", href: "/app/settings/", icon: MoreHorizontal },
 ];
-
-const NEEDS_CIRCLE_HINT = "Open a circle first";
-const SOON_HINT = "Coming in the next update";
 
 function isActive(pathname: string, item: NavItem) {
   if (item.label === "More") return pathname.startsWith("/app/settings");
@@ -61,11 +87,12 @@ function isActive(pathname: string, item: NavItem) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const circleId = parseCircleId(useSearchParams().get("id"));
+  const { t } = useT();
 
   const hrefFor = (item: NavItem) =>
     item.needsCircle && circleId ? `${item.href}?id=${circleId}` : item.href;
   const hintFor = (item: NavItem) =>
-    item.soon ? SOON_HINT : item.needsCircle && !circleId ? NEEDS_CIRCLE_HINT : undefined;
+    item.soon ? t("nav.soon") : item.needsCircle && !circleId ? t("nav.needsCircle") : undefined;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -76,6 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="flex items-center gap-2.5">
             <CircleSwitcher circleId={circleId} />
+            <LanguageMenu />
             <ConnectButton />
           </div>
         </div>
@@ -83,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="mx-auto flex max-w-[1320px]">
         <nav
-          aria-label="Main"
+          aria-label={t("nav.main")}
           className="sticky top-[68px] hidden h-[calc(100dvh-68px)] w-[220px] shrink-0 flex-col gap-1.5 border-r border-line-soft px-4 py-10 md:flex"
         >
           {NAV.map((item) => (
@@ -104,7 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav
-        aria-label="Main"
+        aria-label={t("nav.main")}
         className="z-sticky fixed inset-x-0 bottom-0 grid grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {MOBILE_NAV.map((item) => (
@@ -135,6 +163,7 @@ function NavLink({
   active: boolean;
   variant: "side" | "bottom";
 }) {
+  const { t } = useT();
   const disabled = hint !== undefined;
   const cls =
     variant === "side"
@@ -155,7 +184,7 @@ function NavLink({
         strokeWidth={1.5}
         aria-hidden
       />
-      {item.label}
+      {t(item.labelKey)}
     </>
   );
   return disabled ? (

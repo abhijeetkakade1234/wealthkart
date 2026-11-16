@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/i18n/react";
 import { useCircleAsset } from "@/lib/asset";
 import { useCircleEvents } from "@/lib/events";
 import {
@@ -50,6 +51,7 @@ import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
 
 import { StatusPill } from "./parts";
+import "@/i18n/en/loans";
 
 const PAGE_SIZE = 10;
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -83,6 +85,7 @@ export function LoansList({
   const params = useSearchParams();
   const page = usePageParam();
   const q = useCircleEvents(circle);
+  const { t, tn } = useT();
 
   const status = pickParam<LoanFilter>(params.get("status"), LOAN_FILTERS);
   const type = pickParam<LoanType>(params.get("type"), LOAN_TYPES);
@@ -181,7 +184,7 @@ export function LoansList({
           <div
             className="flex flex-wrap gap-1 rounded-full bg-secondary p-1"
             role="group"
-            aria-label="Status"
+            aria-label={t("loans.list.statusAria")}
           >
             {LOAN_FILTERS.map((f) => (
               <button
@@ -191,13 +194,17 @@ export function LoansList({
                 onClick={() => setParam("status", f.value, "all")}
                 className={chip(status === f.value)}
               >
-                {f.label}
+                {t(f.label)}
               </button>
             ))}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1 rounded-full bg-secondary p-1" role="group" aria-label="Type">
+          <div
+            className="flex gap-1 rounded-full bg-secondary p-1"
+            role="group"
+            aria-label={t("loans.list.typeAria")}
+          >
             {LOAN_TYPES.map((f) => (
               <button
                 key={f.value}
@@ -206,12 +213,12 @@ export function LoansList({
                 onClick={() => setParam("type", f.value, "all")}
                 className={chip(type === f.value)}
               >
-                {f.label}
+                {t(f.label)}
               </button>
             ))}
           </div>
           <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
-            Sort
+            {t("loans.list.sort")}
             <select
               value={sort}
               onChange={(e) => setParam("sort", e.target.value, "newest")}
@@ -219,13 +226,13 @@ export function LoansList({
             >
               {LOAN_SORTS.map((s) => (
                 <option key={s.value} value={s.value}>
-                  {s.label}
+                  {t(s.label)}
                 </option>
               ))}
             </select>
           </label>
           <label className="relative ml-auto min-w-[220px] flex-1 sm:max-w-[280px]">
-            <span className="sr-only">Search by borrower name or address</span>
+            <span className="sr-only">{t("loans.list.searchLabel")}</span>
             <Search
               className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint"
               strokeWidth={1.75}
@@ -235,24 +242,19 @@ export function LoansList({
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search borrower name or address"
+              placeholder={t("loans.list.searchPlaceholder")}
               className="h-10 w-full rounded-full border border-border bg-card pl-10 pr-4 text-[14px] outline-none transition-colors placeholder:text-faint focus:border-foreground/40"
             />
           </label>
         </div>
       </div>
 
-      {q.data?.partial && (
-        <InlineAlert tone="info">
-          This circle is older than the history we can read quickly, so only recent loans are
-          listed. Full history arrives with the activity indexer.
-        </InlineAlert>
-      )}
+      {q.data?.partial && <InlineAlert tone="info">{t("loans.list.partial")}</InlineAlert>}
 
       {q.isPending ? (
         <StateView
           state="loading"
-          label="Reading the circle's loans"
+          label={t("loans.list.loading")}
           skeleton={
             <div className="grid gap-3">
               {[0, 1, 2].map((i) => (
@@ -267,25 +269,26 @@ export function LoansList({
         <StateView
           state="empty"
           illustration={<EmptyArt variant="loans" />}
-          message={
-            records.length === 0
-              ? "Nobody has asked for a loan yet. When someone does, it shows up here with its vote and repayments."
-              : "No loans match. Try another name, or show all loans."
-          }
+          message={records.length === 0 ? t("loans.list.empty") : t("loans.list.noMatch")}
         />
       ) : (
         <div className="overflow-hidden rounded-[14px] border border-border bg-card">
-          <div className="overflow-x-auto">
-            <table aria-label="Loans" className="w-full min-w-[720px] text-[14px]">
+          <div className="relative overflow-x-auto">
+            <table
+              aria-label={t("loans.list.tableAria")}
+              className="w-full min-w-[720px] text-[14px]"
+            >
               <thead>
                 <tr className="border-b border-line-soft text-left text-[12.5px] text-muted-foreground">
-                  <th className="px-6 py-3.5 font-medium">Borrower</th>
-                  <th className="px-6 py-3.5 text-right font-medium">Amount ({asset.symbol})</th>
-                  <th className="px-6 py-3.5 font-medium">Status</th>
-                  <th className="px-6 py-3.5 text-right font-medium">Rate now</th>
-                  <th className="px-6 py-3.5 font-medium">Asked</th>
+                  <th className="px-6 py-3.5 font-medium">{t("loans.borrower")}</th>
+                  <th className="px-6 py-3.5 text-right font-medium">
+                    {t("loans.list.amount", { symbol: asset.symbol })}
+                  </th>
+                  <th className="px-6 py-3.5 font-medium">{t("loans.list.status")}</th>
+                  <th className="px-6 py-3.5 text-right font-medium">{t("loans.list.rateNow")}</th>
+                  <th className="px-6 py-3.5 font-medium">{t("loans.list.asked")}</th>
                   <th className="px-6 py-3.5 font-medium">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t("loans.list.actions")}</span>
                   </th>
                 </tr>
               </thead>
@@ -322,13 +325,19 @@ export function LoansList({
                               {name(r.borrower)}
                               {isMe && (
                                 <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-[11.5px] text-brand">
-                                  You
+                                  {t("loans.list.you")}
                                 </span>
                               )}
                             </span>
                             <span className="text-[12px] text-muted-foreground">
-                              {r.medical ? "Medical" : "Regular"}
-                              {r.guarantor !== ZERO ? ` · backed by ${name(r.guarantor)}` : ""}
+                              {r.guarantor !== ZERO
+                                ? t("loans.list.backedBy", {
+                                    type: r.medical ? t("loans.medical") : t("loans.regular"),
+                                    name: name(r.guarantor),
+                                  })
+                                : r.medical
+                                  ? t("loans.medical")
+                                  : t("loans.regular")}
                             </span>
                           </span>
                         </span>
@@ -338,7 +347,7 @@ export function LoansList({
                         {(r.status === "active" || r.status === "default") &&
                           r.outstanding !== r.amount && (
                             <span className="block text-[12px] text-muted-foreground">
-                              {avax(r.outstanding, asset)} left
+                              {t("loans.list.left", { amount: avax(r.outstanding, asset) })}
                             </span>
                           )}
                       </td>
@@ -346,8 +355,7 @@ export function LoansList({
                         <StatusPill status={r.status} />
                         {st && st.overdueMonths > 0 && (
                           <span className="mt-1 block text-[12px] text-muted-foreground">
-                            Interest {st.overdueMonths}{" "}
-                            {st.overdueMonths === 1 ? "month" : "months"} late
+                            {tn("loans.list.interestLate", st.overdueMonths)}
                           </span>
                         )}
                       </td>
@@ -382,7 +390,12 @@ export function LoansList({
               </tbody>
             </table>
           </div>
-          <Pagination page={current} pageSize={PAGE_SIZE} total={filtered.length} noun="loans" />
+          <Pagination
+            page={current}
+            pageSize={PAGE_SIZE}
+            total={filtered.length}
+            noun={t("loans.list.noun")}
+          />
         </div>
       )}
     </div>
@@ -404,45 +417,40 @@ function MarkDefaultButton({
 }) {
   const [open, setOpen] = useState(false);
   const action = useLoanTx(circle);
+  const { t } = useT();
   async function mark() {
     const ok = await action.markDefault(borrower);
     if (ok) {
       setOpen(false);
       action.tx.reset();
-      notify.success(`${name}'s loan is marked as defaulted.`);
+      notify.success(t("loans.list.markedToast", { name }));
       onDone();
     }
   }
   return (
     <>
       <Button variant="secondary" size="sm" icon={Gavel} onClick={() => setOpen(true)}>
-        Mark as defaulted
+        {t("loans.list.mark")}
       </Button>
       <Dialog open={open} onOpenChange={(v) => !action.working && setOpen(v)}>
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>Mark {name}&apos;s loan as defaulted?</DialogTitle>
-            <DialogDescription>
-              Their interest is late long enough, or all three loan terms are over, so the rules
-              allow it.
-            </DialogDescription>
+            <DialogTitle>{t("loans.list.markTitle", { name })}</DialogTitle>
+            <DialogDescription>{t("loans.list.markDescription")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-5 pt-1 text-[13.5px] leading-relaxed text-muted-foreground">
             <p>
-              {name}
-              {hasGuarantor ? " and their guarantor" : ""} will be frozen: no leaving and no new
-              loans. Nothing is taken yet. Paying what&apos;s owed lifts the freeze; if it stays
-              unpaid, the circle can vote to repay it from their savings.
+              {t(hasGuarantor ? "loans.list.markBodyGuarantor" : "loans.list.markBody", { name })}
             </p>
             <div className="grid gap-4">
               <Button
                 variant="danger"
                 icon={Gavel}
-                workingLabel="Marking…"
+                workingLabel={t("loans.list.marking")}
                 state={action.working ? "working" : undefined}
                 onClick={mark}
               >
-                Yes, mark as defaulted
+                {t("loans.list.markYes")}
               </Button>
               <TxFor tx={action.tx} />
             </div>
@@ -468,27 +476,28 @@ function ProposeSettleButton({
   onDone: () => void;
 }) {
   const action = useLoanTx(circle);
+  const { t } = useT();
   return (
     <div className="grid justify-items-end gap-2">
       <Button
         variant="secondary"
         size="sm"
         icon={Scale}
-        workingLabel="Sending…"
+        workingLabel={t("loans.sending")}
         state={action.working ? "working" : undefined}
         onClick={async () => {
           const ok = await action.proposeSettle(borrower);
           if (ok) {
             notify.success(
               now
-                ? `${name}'s loan was settled from their savings.`
-                : `Settle vote started for ${name}'s loan. Your yes is counted.`,
+                ? t("loans.list.settledNowToast", { name })
+                : t("loans.list.settleStartedToast", { name }),
             );
             onDone();
           }
         }}
       >
-        {now ? "Settle from savings now" : "Ask the circle to settle"}
+        {now ? t("loans.list.settleNow") : t("loans.list.askSettle")}
       </Button>
       <TxFor tx={action.tx} />
     </div>
