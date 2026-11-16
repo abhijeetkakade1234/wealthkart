@@ -68,7 +68,7 @@ function Votes() {
     <div className="max-w-[760px]">
       <PageHeader
         title="Votes"
-        subtitle={`${d.name} · proposals, loans, people asking to join, and members the circle may mark dormant. At least ${d.quorumPct}% of members must vote, and each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
+        subtitle={`${d.name} · proposals, loans, people asking to join, members the circle may mark dormant, and backup wallet claims. At least ${d.quorumPct}% of members must vote, and each vote stays open ${hours >= 48 ? `${Math.round(hours / 24)} days` : `${hours} hours`}.`}
         actions={
           gov?.rules && !gov.dissolved ? (
             <NewProposalButton
@@ -135,7 +135,7 @@ function Votes() {
           id="requests-heading"
           className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground"
         >
-          Joining and dormant members
+          Joining, dormant members and backup wallets
         </h2>
         <ErrorBoundary preset="widget" name="Open votes">
           <RequestList

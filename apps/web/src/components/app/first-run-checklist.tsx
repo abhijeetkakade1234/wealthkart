@@ -17,6 +17,7 @@ import {
   writeFirstRun,
 } from "@/lib/first-run";
 import { messages } from "@/lib/messages";
+import { useBackupCoverage } from "@/lib/nominee-hooks";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { TARGET_CHAIN } from "@/lib/wagmi";
@@ -30,6 +31,7 @@ import { TARGET_CHAIN } from "@/lib/wagmi";
 export function FirstRunChecklist({ inCircle }: { inCircle: boolean | undefined | null }) {
   const { address } = useCoreWallet();
   const balance = useBalance({ address, query: { enabled: Boolean(address) } });
+  const backup = useBackupCoverage();
   const [state, setState] = useState<FirstRunState | null>(null);
 
   // Stored per wallet; read after mount so the static HTML never depends on storage.
@@ -40,7 +42,13 @@ export function FirstRunChecklist({ inCircle }: { inCircle: boolean | undefined 
   if (!address || !state) return null;
 
   const hasGas = balance.isError ? null : balance.data ? balance.data.value > 0n : undefined;
-  const items = checklistItems({ hasGas, inCircle, state, testnet: Boolean(TARGET_CHAIN.testnet) });
+  const items = checklistItems({
+    hasGas,
+    inCircle,
+    hasNominee: backup.allSet,
+    state,
+    testnet: Boolean(TARGET_CHAIN.testnet),
+  });
   if (!showChecklist(items, state)) return null;
 
   const done = items.filter((i) => i.status === "done").length;

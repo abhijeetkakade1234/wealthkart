@@ -445,7 +445,8 @@ export const RISKS: PublicPage = {
         {
           kind: "list",
           items: [
-            "You can name a nominee wallet that can claim your share after a member vote and a notice period.",
+            "You can name a backup wallet in each circle. If you are marked dormant, it can ask for your share; the members vote, and after a notice of at least 30 days the share is paid to it. You can cancel before then. Without one, a lost wallet's share stays locked.",
+            "A backup wallet you name gets your whole share if the vote passes and you don't cancel in time. Pick someone you trust and keep the address right.",
             "Anyone who gets your recovery phrase can act as you: pay, vote, borrow up to your limit, or leave and take your share.",
           ],
         },

@@ -104,7 +104,15 @@ export async function createCircle(
 export async function vaultSend(
   circle: Address,
   from: string,
-  functionName: "requestLoan" | "voteLoan" | "acceptGuarantee",
+  functionName:
+    | "requestLoan"
+    | "voteLoan"
+    | "acceptGuarantee"
+    | "proposeDormant"
+    | "vote"
+    | "setNominee"
+    | "setDisplayName"
+    | "requestNomineeClaim",
   args: readonly unknown[],
   value?: bigint,
 ) {
@@ -117,6 +125,34 @@ export async function vaultSend(
       args,
     } as unknown as Parameters<typeof encodeFunctionData>[0]),
     value,
+  });
+}
+
+/** The open dormant vote about `who` (0 = none). */
+export async function openDormantOf(circle: Address, who: Address): Promise<bigint> {
+  const data = encodeFunctionData({
+    abi: circleVaultAbi,
+    functionName: "openDormantOf",
+    args: [who],
+  });
+  return decodeFunctionResult({
+    abi: circleVaultAbi,
+    functionName: "openDormantOf",
+    data: (await call(circle, data)) as `0x${string}`,
+  });
+}
+
+/** A backup-wallet claim about `member`: [open request id, payee once passed] (ADR 0056). */
+export async function nomineeClaimOf(circle: Address, member: Address) {
+  const data = encodeFunctionData({
+    abi: circleVaultAbi,
+    functionName: "nomineeClaimOf",
+    args: [member],
+  });
+  return decodeFunctionResult({
+    abi: circleVaultAbi,
+    functionName: "nomineeClaimOf",
+    data: (await call(circle, data)) as `0x${string}`,
   });
 }
 

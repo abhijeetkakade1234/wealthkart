@@ -60,6 +60,8 @@ export const ACCOUNTS = {
   erin: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
   /** Only the faucet test uses him: no circles and no test USDT on a fresh chain. */
   frank: "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
+  /** Only the backup wallet tests use her: an outsider named as a member's nominee. */
+  gina: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
 } as const;
 
 /**
