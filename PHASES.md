@@ -24,6 +24,7 @@ Done:
 - Landing page in plain words with a scroll-told month in a circle (ADR 0049)
 - Circle templates: Friends, Family, Office or Custom fill in the create form, every value editable and inside the on-chain limits (ADR 0054)
 - Onboarding guide at `/start` for people new to crypto, linked from sign-in and the landing page, plus a "Before you start" checklist on the home screen (ADR 0054)
+- Backup wallet (nominee, ADR 0016 and 0056): a member names one wallet that can ask for their share after they go dormant; the circle votes, a notice of at least 30 days runs, and the member can cancel until it is paid
 
 Left:
 

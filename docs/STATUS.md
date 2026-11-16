@@ -153,6 +153,7 @@ How to use this file:
 - [x] Onboarding guide `/start` (install Core, back up phrase, get AVAX) + first-run checklist (ADR 0054)
 - [x] "Get test USDT" faucet button on test network builds (ADR 0053)
 - [x] Dev tools: `pnpm dev:local` (anvil + contracts + app on a PC) and configurable / free E2E ports (`pnpm e2e:isolated`) (ADR 0053)
+- [x] Nominee (backup) wallet built (ADR 0016, 0056): `setNominee`, claim vote at 66%, notice of at least 30 days, payout through the exit queue to the nominee, any member action ends a claim; Backup wallet card, "You are the backup wallet for ...", claim cards on Votes, cancel alert; checklist reads `nomineeOf`; S-NOM-01..16, I-14, S-E2E-50/51; self-review in `docs/redteam/2026-11-16-nominee-review.md`
 
 ## Phase 5: USDC vaults + WealthKart L1
 

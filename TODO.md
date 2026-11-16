@@ -43,8 +43,8 @@ Last updated: 2026-11-16
 - [x] Circle templates: Friends, Family, Office, Custom pre-fill the create form (ADR 0054)
 - [ ] Hindi and Marathi
 - [x] Onboarding guide at `/start` and a first-run checklist on the home screen (ADR 0054)
-- [ ] Nominee wallet in the contracts (ADR 0016); then make the checklist read it from the chain
-- [x] Free space in the vault (now 22,109 B, 2,467 B left under 24 KB)
+- [x] Nominee (backup) wallet in the contracts and app; the checklist reads it from the chain (ADR 0056)
+- [x] Free space in the vault (now 23,103 B after the nominee wallet, 1,473 B left under 24 KB)
 - [x] "Get test USDT" faucet button on test network builds (ADR 0053)
 - [ ] E2E for USDT loans (pay interest, repay) and the approve retry
 - [ ] Confirm on Fuji/fork that Avalanche USDt allows re-approving over a non-zero allowance
