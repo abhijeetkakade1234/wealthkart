@@ -466,9 +466,9 @@ export const SECURITY: PublicPage = {
   ],
 };
 
-const IS_MAINNET = CHAIN_ID === 43114;
-const CORE_URL = "https://core.app/";
-const FUJI_FAUCET_URL = "https://core.app/tools/testnet-faucet/";
+export const IS_MAINNET = CHAIN_ID === 43114;
+export const CORE_URL = "https://core.app/";
+export const FUJI_FAUCET_URL = "https://core.app/tools/testnet-faucet/";
 
 /**
  * The onboarding guide (ADR 0054) for someone who has never used crypto. Network-aware:

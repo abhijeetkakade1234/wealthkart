@@ -15,8 +15,9 @@ export const LANDING_DESCRIPTION =
 export const LANDING_HERO = {
   status: "Now testing on Avalanche Fuji",
   eyebrow: "Savings circles for friends",
-  /** Rendered as "Save together. <em>Borrow</em> by vote." */
+  /** Rendered as "Save together. <em>Borrow</em> by vote.": `h1Em` is the emphasised part. */
   h1: "Save together. Borrow by vote.",
+  h1Em: "Borrow",
   lead: "A shared money pot for you and your friends. Everyone puts in the same amount each month. When someone needs money, the group votes and the pot lends it. No one, not even us, can take the money out.",
   note: "Free to use. Sign in with Core wallet. No name, phone or email.",
   /** Link to the onboarding guide (ADR 0054), after the note. */
@@ -161,6 +162,70 @@ export const LANDING_CTA = {
   heading: "Start a circle with your friends",
   text: "It takes a few minutes and one transaction. You'll need Core, Avalanche's free wallet app.",
   startLink: "New to crypto? Start here",
+};
+
+export type FeatureId = "save" | "borrow" | "leave";
+export type SafetyId = "no-one-holds" | "slow-rules" | "public" | "private";
+
+/**
+ * All landing copy in one shape, so Hindi and Marathi (`content/hi`, `content/mr`, ADR 0057)
+ * fill exactly the same fields and the sections render any language.
+ */
+export interface LandingCopy {
+  description: string;
+  hero: {
+    status: string;
+    eyebrow: string;
+    h1: string;
+    h1Em: string;
+    lead: string;
+    note: string;
+    startLink: string;
+  };
+  steps: { eyebrow: string; heading: string; steps: LandingStep[] };
+  month: {
+    eyebrow: string;
+    heading: string;
+    borrower: string;
+    friends: string[];
+    steps: LandingStep[];
+  };
+  features: {
+    eyebrow: string;
+    heading: string;
+    items: readonly { id: FeatureId; title: string; text: string }[];
+  };
+  safety: {
+    eyebrow: string;
+    heading: string;
+    items: readonly { id: SafetyId; title: string; text: string }[];
+    caveat: string;
+  };
+  audience: {
+    eyebrow: string;
+    heading: string;
+    body: string[];
+    facts: { value: string; label: string }[];
+    footnote: string;
+  };
+  faq: {
+    eyebrow: string;
+    heading: string;
+    items: { id: string; question: string; answer: string }[];
+  };
+  cta: { heading: string; text: string; startLink: string };
+}
+
+export const LANDING: LandingCopy = {
+  description: LANDING_DESCRIPTION,
+  hero: LANDING_HERO,
+  steps: LANDING_STEPS,
+  month: LANDING_MONTH,
+  features: LANDING_FEATURES,
+  safety: LANDING_SAFETY,
+  audience: LANDING_AUDIENCE,
+  faq: LANDING_FAQ,
+  cta: LANDING_CTA,
 };
 
 /** The landing page as Markdown, for `/llms-full.txt` (ADR 0024). */

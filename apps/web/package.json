@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm --filter @wealthkart/rules --filter @wealthkart/sdk build && next build",
+    "build": "pnpm --filter @wealthkart/rules --filter @wealthkart/sdk build && next build && node scripts/localize-html.mjs",
     "start": "npx serve out",
     "lint": "eslint && node scripts/check-no-emoji.mjs",
     "typecheck": "tsc --noEmit",

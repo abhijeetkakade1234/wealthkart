@@ -2,6 +2,8 @@
  * Landing page sections (ADR 0049). Server components: plain HTML and SVG that read
  * correctly with no JavaScript. Motion hooks are data attributes only (`data-reveal`,
  * `data-line`, `data-draw`, `data-depth`, `data-month-*`), picked up by `motion.ts`.
+ * Every section takes a `locale` (ADR 0057): copy from `content/localized.ts`, labels from the
+ * `site` namespace. English is the default and renders exactly as before.
  */
 import {
   ArrowRight,
@@ -14,21 +16,32 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import {
-  LANDING_AUDIENCE,
-  LANDING_CTA,
-  LANDING_FAQ,
-  LANDING_FEATURES,
-  LANDING_HERO,
-  LANDING_MONTH,
-  LANDING_SAFETY,
-  LANDING_STEPS,
-} from "@/content/landing";
+import type { LandingCopy, SafetyId } from "@/content/landing";
+import { LANDING_BY_LOCALE, linkFor } from "@/content/localized";
+import type { Locale } from "@/i18n/config";
+import { serverT } from "@/i18n/server";
 import { cn } from "@/lib/utils";
 
 import { LeaveDiagram, RingDiagram, SaveDiagram, VoteDiagram } from "./diagrams";
 import { HeroArt } from "./hero-art";
 import { PotDiagram } from "./pot-diagram";
+
+interface SectionProps {
+  locale?: Locale;
+}
+
+/** Copy, labels and link targets for one language (server only). */
+function copyFor(locale: Locale = "en"): {
+  copy: LandingCopy;
+  t: ReturnType<typeof serverT>;
+  href: (path: string) => string;
+} {
+  return {
+    copy: LANDING_BY_LOCALE[locale],
+    t: serverT(locale),
+    href: (path) => linkFor(locale, path),
+  };
+}
 
 const WRAP = "mx-auto w-full max-w-[1180px] px-4 sm:px-10";
 const SECTION = "py-24 md:py-[92px]";
@@ -46,7 +59,7 @@ const BTN =
 const BTN_PRIMARY = `${BTN} border-primary bg-primary text-primary-foreground hover:border-black hover:bg-black`;
 const BTN_OUTLINE = `${BTN} border-border bg-card text-foreground hover:bg-secondary`;
 
-function PrimaryCta({ children = "Open the app" }: { children?: React.ReactNode }) {
+function PrimaryCta({ children }: { children: React.ReactNode }) {
   return (
     <Link href="/login/" className={cn(BTN_PRIMARY, "group")} data-testid="cta-open-app">
       {children}
@@ -89,8 +102,12 @@ function SectionHead({
 
 /* ---------------------------------------------------------------- hero */
 
-export function Hero() {
-  const [first, rest] = LANDING_HERO.h1.split(". Borrow");
+export function Hero({ locale }: SectionProps) {
+  const { copy, t, href } = copyFor(locale);
+  const hero = copy.hero;
+  const at = hero.h1.indexOf(hero.h1Em);
+  const before = at >= 0 ? hero.h1.slice(0, at) : hero.h1;
+  const after = at >= 0 ? hero.h1.slice(at + hero.h1Em.length) : "";
   return (
     <section
       aria-labelledby="hero-title"
@@ -106,51 +123,53 @@ export function Hero() {
           style={{ animationDelay: "0ms" }}
         >
           <span className="size-1.5 rounded-full bg-brand" aria-hidden />
-          {LANDING_HERO.status}
+          {hero.status}
         </p>
         <p className={cn(EYEBROW, "land-rise mt-10")} style={{ animationDelay: "80ms" }}>
-          {LANDING_HERO.eyebrow}
+          {hero.eyebrow}
         </p>
         <h1
           id="hero-title"
           className="land-rise mt-5 font-display md:max-w-[12ch] text-[clamp(48px,7vw,92px)] font-normal leading-[0.96] tracking-[-0.02em]"
           style={{ animationDelay: "140ms" }}
         >
-          {first}. <em className="text-brand">Borrow</em>
-          {rest}
+          {before}
+          {at >= 0 && <em className="text-brand">{hero.h1Em}</em>}
+          {after}
         </h1>
         <p
           className={cn(LEAD, "land-rise mt-8 max-w-[40ch] text-[18px]")}
           style={{ animationDelay: "240ms" }}
         >
-          {LANDING_HERO.lead}
+          {hero.lead}
         </p>
         <div
           className="land-rise mt-11 flex flex-wrap items-center gap-3"
           style={{ animationDelay: "340ms" }}
         >
-          <PrimaryCta />
-          <SecondaryCta href="#how-it-works">How it works</SecondaryCta>
+          <PrimaryCta>{t("site.landing.openTheApp")}</PrimaryCta>
+          <SecondaryCta href="#how-it-works">{t("site.landing.howItWorks")}</SecondaryCta>
         </div>
         <p className="land-rise mt-7 text-[13.5px] text-faint" style={{ animationDelay: "420ms" }}>
-          {LANDING_HERO.note}{" "}
+          {hero.note}{" "}
           <Link
-            href="/start/"
+            href={href("/start/")}
             className="font-medium text-brand underline-offset-4 hover:underline"
             data-testid="hero-start-link"
           >
-            {LANDING_HERO.startLink}
+            {hero.startLink}
           </Link>
         </p>
       </div>
-      <HeroArt className="mx-auto h-auto w-full max-w-[560px]" />
+      <HeroArt className="mx-auto h-auto w-full max-w-[560px]" label={t("site.landing.heroArt")} />
     </section>
   );
 }
 
 /* ---------------------------------------------------------------- steps */
 
-export function Steps() {
+export function Steps({ locale }: SectionProps) {
+  const { copy, t, href } = copyFor(locale);
   return (
     <section
       aria-labelledby="how-title"
@@ -158,9 +177,9 @@ export function Steps() {
       data-tone="paper"
       className={cn(WRAP, SECTION, "land-band scroll-mt-8")}
     >
-      <SectionHead id="how-title" eyebrow={LANDING_STEPS.eyebrow} heading={LANDING_STEPS.heading} />
+      <SectionHead id="how-title" eyebrow={copy.steps.eyebrow} heading={copy.steps.heading} />
       <ol className="mt-20 grid gap-14 sm:grid-cols-2 md:mt-28 lg:grid-cols-4 lg:gap-10">
-        {LANDING_STEPS.steps.map((s, i) => (
+        {copy.steps.steps.map((s, i) => (
           <li key={s.title} data-reveal>
             <div className="h-px w-full bg-border" data-line aria-hidden />
             <p className="mt-7 font-display text-[44px] leading-none text-faint tabular">
@@ -173,10 +192,10 @@ export function Steps() {
       </ol>
       <p className="mt-16 text-[15px]" data-reveal>
         <Link
-          href="/how-it-works/"
+          href={href("/how-it-works/")}
           className="group inline-flex items-center gap-1.5 text-brand underline-offset-4 hover:underline"
         >
-          The full walk-through
+          {t("site.landing.fullWalkthrough")}
           <ArrowRight className="land-nudge size-4" strokeWidth={1.75} aria-hidden />
         </Link>
       </p>
@@ -186,7 +205,8 @@ export function Steps() {
 
 /* ---------------------------------------------------------------- one month (signature) */
 
-export function OneMonth() {
+export function OneMonth({ locale }: SectionProps) {
+  const { copy, t } = copyFor(locale);
   return (
     <section
       aria-labelledby="month-title"
@@ -202,17 +222,26 @@ export function OneMonth() {
             )}
           >
             <div className="md:col-start-1 md:row-start-1">
-              <p className={EYEBROW}>{LANDING_MONTH.eyebrow}</p>
+              <p className={EYEBROW}>{copy.month.eyebrow}</p>
               <h2 id="month-title" className={H2}>
-                {LANDING_MONTH.heading}
+                {copy.month.heading}
               </h2>
             </div>
             <div className="land-month-art flex justify-center md:col-start-2 md:row-span-2 md:row-start-1 md:items-center">
-              <PotDiagram className="h-auto w-full max-w-[500px]" />
+              <PotDiagram
+                className="h-auto w-full max-w-[500px]"
+                names={[...copy.month.friends, copy.month.borrower]}
+                labels={{
+                  art: t("site.landing.potArt"),
+                  interest: t("site.landing.potInterest"),
+                  asks: t("site.landing.potAsks"),
+                  tally: t("site.landing.potTally", { n: "{n}" }),
+                }}
+              />
             </div>
             <div className="md:col-start-1 md:row-start-2">
               <ol className="land-month-steps grid gap-8">
-                {LANDING_MONTH.steps.map((s, i) => (
+                {copy.month.steps.map((s, i) => (
                   <li key={s.title} data-step={i} className="grid grid-cols-[2.25rem_1fr] gap-x-3">
                     <span className="pt-0.5 font-mono text-[13px] text-faint tabular">
                       {String(i + 1).padStart(2, "0")}
@@ -248,7 +277,8 @@ export function OneMonth() {
 
 const FEATURE_ART = { save: SaveDiagram, borrow: VoteDiagram, leave: LeaveDiagram } as const;
 
-export function Features() {
+export function Features({ locale }: SectionProps) {
+  const { copy } = copyFor(locale);
   return (
     <section
       aria-labelledby="features-title"
@@ -258,11 +288,11 @@ export function Features() {
     >
       <SectionHead
         id="features-title"
-        eyebrow={LANDING_FEATURES.eyebrow}
-        heading={LANDING_FEATURES.heading}
+        eyebrow={copy.features.eyebrow}
+        heading={copy.features.heading}
       />
       <ul className="mt-20 grid gap-6 md:mt-28 md:grid-cols-3">
-        {LANDING_FEATURES.items.map((f) => {
+        {copy.features.items.map((f) => {
           const Art = FEATURE_ART[f.id];
           return (
             <li
@@ -285,35 +315,32 @@ export function Features() {
 
 /* ---------------------------------------------------------------- safety */
 
-const SAFETY_ICON: Record<(typeof LANDING_SAFETY.items)[number]["id"], LucideIcon> = {
+const SAFETY_ICON: Record<SafetyId, LucideIcon> = {
   "no-one-holds": LockKeyhole,
   "slow-rules": Hourglass,
   public: ScanEye,
   private: UserRoundX,
 };
 
-export function Safety() {
+export function Safety({ locale }: SectionProps) {
+  const { copy, t } = copyFor(locale);
   return (
     <section aria-labelledby="safety-title" id="safety" className={cn(WRAP, SECTION)}>
       <div className="grid gap-16 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24">
-        <SectionHead
-          id="safety-title"
-          eyebrow={LANDING_SAFETY.eyebrow}
-          heading={LANDING_SAFETY.heading}
-        >
+        <SectionHead id="safety-title" eyebrow={copy.safety.eyebrow} heading={copy.safety.heading}>
           <p className="mt-8 text-[15px]">
             <Link
               href="/security/"
               className="group inline-flex items-center gap-1.5 text-brand underline-offset-4 hover:underline"
             >
-              How the contracts protect the pot
+              {t("site.landing.safetyLink")}
               <ArrowRight className="land-nudge size-4" strokeWidth={1.75} aria-hidden />
             </Link>
           </p>
         </SectionHead>
         <div>
           <ul className="grid gap-x-12 gap-y-14 sm:grid-cols-2">
-            {LANDING_SAFETY.items.map((item) => {
+            {copy.safety.items.map((item) => {
               const Icon = SAFETY_ICON[item.id];
               return (
                 <li key={item.id} className="group" data-reveal>
@@ -338,7 +365,7 @@ export function Safety() {
             className="mt-16 border-l-2 border-brand pl-6 text-[15px] leading-[1.75] text-muted-foreground"
             data-reveal
           >
-            {LANDING_SAFETY.caveat}
+            {copy.safety.caveat}
           </p>
         </div>
       </div>
@@ -348,7 +375,8 @@ export function Safety() {
 
 /* ---------------------------------------------------------------- audience */
 
-export function Audience() {
+export function Audience({ locale }: SectionProps) {
+  const { copy } = copyFor(locale);
   return (
     <section
       aria-labelledby="audience-title"
@@ -364,10 +392,10 @@ export function Audience() {
       >
         <SectionHead
           id="audience-title"
-          eyebrow={LANDING_AUDIENCE.eyebrow}
-          heading={LANDING_AUDIENCE.heading}
+          eyebrow={copy.audience.eyebrow}
+          heading={copy.audience.heading}
         >
-          {LANDING_AUDIENCE.body.map((p) => (
+          {copy.audience.body.map((p) => (
             <p key={p.slice(0, 24)} className={cn(LEAD, "mt-7")}>
               {p}
             </p>
@@ -375,7 +403,7 @@ export function Audience() {
         </SectionHead>
         <div className="self-end">
           <dl className="divide-y divide-border border-y border-border">
-            {LANDING_AUDIENCE.facts.map((f) => (
+            {copy.audience.facts.map((f) => (
               <div
                 key={f.label}
                 className="flex items-baseline justify-between gap-6 py-8"
@@ -389,7 +417,7 @@ export function Audience() {
             ))}
           </dl>
           <p className="mt-8 text-[14px] leading-relaxed text-faint" data-reveal>
-            {LANDING_AUDIENCE.footnote}
+            {copy.audience.footnote}
           </p>
         </div>
       </div>
@@ -399,23 +427,24 @@ export function Audience() {
 
 /* ---------------------------------------------------------------- FAQ teaser */
 
-export function FaqTeaser() {
+export function FaqTeaser({ locale }: SectionProps) {
+  const { copy, t } = copyFor(locale);
   return (
     <section aria-labelledby="faq-title" id="questions" className={cn(WRAP, SECTION)}>
       <div className="grid gap-14 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24">
-        <SectionHead id="faq-title" eyebrow={LANDING_FAQ.eyebrow} heading={LANDING_FAQ.heading}>
+        <SectionHead id="faq-title" eyebrow={copy.faq.eyebrow} heading={copy.faq.heading}>
           <p className="mt-8 text-[15px]">
             <Link
               href="/faq/"
               className="group inline-flex items-center gap-1.5 text-brand underline-offset-4 hover:underline"
             >
-              See all questions
+              {t("site.landing.allQuestions")}
               <ArrowRight className="land-nudge size-4" strokeWidth={1.75} aria-hidden />
             </Link>
           </p>
         </SectionHead>
         <div className="border-t border-border" data-reveal>
-          {LANDING_FAQ.items.map((q) => (
+          {copy.faq.items.map((q) => (
             <details key={q.id} className="land-faq group border-b border-border">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-7 font-display text-[clamp(22px,2.4vw,27px)] leading-snug outline-none focus-visible:text-brand">
                 {q.question}
@@ -438,7 +467,8 @@ export function FaqTeaser() {
 
 /* ---------------------------------------------------------------- final CTA */
 
-export function FinalCta() {
+export function FinalCta({ locale }: SectionProps) {
+  const { copy, t, href } = copyFor(locale);
   return (
     <section
       aria-labelledby="start-title"
@@ -449,13 +479,13 @@ export function FinalCta() {
       <div className="flex flex-col items-center text-center" data-reveal>
         <RingDiagram className="size-[104px]" />
         <h2 id="start-title" className={cn(H2, "mt-12 max-w-[16ch]")}>
-          {LANDING_CTA.heading}
+          {copy.cta.heading}
         </h2>
-        <p className={cn(LEAD, "mt-7 max-w-[44ch]")}>{LANDING_CTA.text}</p>
+        <p className={cn(LEAD, "mt-7 max-w-[44ch]")}>{copy.cta.text}</p>
         <div className="mt-11 flex flex-wrap justify-center gap-3">
-          <PrimaryCta />
-          <SecondaryCta href="/start/">{LANDING_CTA.startLink}</SecondaryCta>
-          <SecondaryCta href="/rules/">Read the rules</SecondaryCta>
+          <PrimaryCta>{t("site.landing.openTheApp")}</PrimaryCta>
+          <SecondaryCta href={href("/start/")}>{copy.cta.startLink}</SecondaryCta>
+          <SecondaryCta href="/rules/">{t("site.landing.readRules")}</SecondaryCta>
         </div>
       </div>
     </section>

@@ -2,6 +2,9 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import type { PublicPage } from "@/content/pages";
+import type { Locale } from "@/i18n/config";
+import { serverT } from "@/i18n/server";
+import type { PlainKey } from "@/i18n/types";
 import { pageLd } from "@/lib/seo/json-ld";
 import { cn } from "@/lib/utils";
 
@@ -14,20 +17,23 @@ import "./start.css";
 
 const ROOT_ID = "start-guide";
 
-/** "Step 4: Get free test AVAX for network fees" -> ["Step 4", "Get free test AVAX ..."]. */
+/**
+ * "Step 4: Get free test AVAX for network fees" -> ["Step 4", "Get free test AVAX ..."].
+ * Any word then a number works, so "कदम 4: ..." and "पायरी 4: ..." split the same way.
+ */
 function splitStep(heading: string): [string, string] {
-  const m = /^(Step \d+):\s*(.+)$/.exec(heading);
+  const m = /^([^:\d]+ \d+):\s*(.+)$/.exec(heading);
   return m ? [m[1]!, m[2]!] : ["", heading];
 }
 
-/** Short labels for the step chips at the top. */
-const SHORT: Record<string, string> = {
-  "install-core": "Install Core",
-  "create-wallet": "Back up the phrase",
-  "backup-wallet": "Pick a backup wallet",
-  "get-avax": "Get AVAX for fees",
-  "get-usdt": "USDT, if needed",
-  join: "Join your circle",
+/** Short labels for the step chips at the top (`site` namespace, ADR 0057). */
+const SHORT: Record<string, PlainKey> = {
+  "install-core": "site.startGuide.installCore",
+  "create-wallet": "site.startGuide.createWallet",
+  "backup-wallet": "site.startGuide.backupWallet",
+  "get-avax": "site.startGuide.getAvax",
+  "get-usdt": "site.startGuide.getUsdt",
+  join: "site.startGuide.join",
 };
 
 /**
@@ -36,7 +42,16 @@ const SHORT: Record<string, string> = {
  * as numbered steps with a line drawing each. Static HTML; a tiny client script only adds the
  * stroke tracing, and never with reduced motion.
  */
-export function StartGuide({ page, testnet }: { page: PublicPage; testnet: boolean }) {
+export function StartGuide({
+  page,
+  testnet,
+  locale = "en",
+}: {
+  page: PublicPage;
+  testnet: boolean;
+  locale?: Locale;
+}) {
+  const t = serverT(locale);
   return (
     <main id={ROOT_ID} className="mx-auto max-w-[1180px] px-4 sm:px-10">
       <JsonLd data={pageLd(page)} />
@@ -57,18 +72,16 @@ export function StartGuide({ page, testnet }: { page: PublicPage; testnet: boole
             data-testid="start-network"
           >
             <span aria-hidden className="size-1.5 rounded-full bg-current" />
-            {testnet
-              ? "Fuji test network: coins are free and worth nothing"
-              : "Avalanche mainnet: real money"}
+            {testnet ? t("site.startGuide.testnet") : t("site.startGuide.mainnet")}
           </p>
           <p className="mt-6 text-[13px] text-muted-foreground">
-            Updated {formatDate(page.updated)}
+            {t("site.updated", { date: formatDate(page.updated, locale) })}
           </p>
         </div>
         <StartHeroArt className="mx-auto h-auto w-full max-w-[420px]" />
       </header>
 
-      <nav aria-label="Steps" className="border-t border-line-soft pt-12">
+      <nav aria-label={t("site.startGuide.steps")} className="border-t border-line-soft pt-12">
         <ol className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-3">
           {page.sections.map((s, i) => (
             <li key={s.id}>
@@ -79,7 +92,9 @@ export function StartGuide({ page, testnet }: { page: PublicPage; testnet: boole
                 <span className="font-mono text-[12.5px] text-brand">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className="text-[14.5px]">{SHORT[s.id] ?? splitStep(s.heading)[1]}</span>
+                <span className="text-[14.5px]">
+                  {SHORT[s.id] ? t(SHORT[s.id]!) : splitStep(s.heading)[1]}
+                </span>
               </a>
             </li>
           ))}
@@ -136,18 +151,17 @@ export function StartGuide({ page, testnet }: { page: PublicPage; testnet: boole
 
       <section className="mt-36 rounded-[20px] border border-border bg-card px-6 py-14 text-center sm:px-16 sm:py-20">
         <h2 className="font-display text-[clamp(30px,4vw,48px)] leading-[1.05] tracking-tight">
-          Ready when you are
+          {t("site.startGuide.readyTitle")}
         </h2>
         <p className="mx-auto mt-6 max-w-[46ch] text-[16.5px] leading-relaxed text-muted-foreground">
-          Got Core, a backed-up phrase and a little AVAX? Open the app and connect. Your circles and
-          anything you need to do will be there.
+          {t("site.startGuide.readyText")}
         </p>
         <div className="mt-10 flex flex-wrap justify-center gap-3">
           <Link
             href="/login/"
             className="group inline-flex h-12 items-center justify-center gap-2 rounded-full border border-primary bg-primary px-7 text-[15px] font-semibold text-primary-foreground transition-transform hover:bg-black active:scale-[0.97]"
           >
-            Open the app
+            {t("site.landing.openTheApp")}
             <ArrowRight
               className="size-4 transition-transform group-hover:translate-x-0.5"
               strokeWidth={1.75}
@@ -158,7 +172,7 @@ export function StartGuide({ page, testnet }: { page: PublicPage; testnet: boole
             href="/faq/"
             className="inline-flex h-12 items-center justify-center rounded-full border border-border bg-card px-7 text-[15px] font-semibold transition-colors hover:bg-secondary active:scale-[0.97]"
           >
-            Read the FAQ
+            {t("site.startGuide.readFaq")}
           </Link>
         </div>
       </section>
