@@ -52,3 +52,4 @@
 | [0040](0040-governance.md)                              | Governance: rule changes with delay to next period, fee waivers, dissolve, guardian off           | Accepted, partly superseded by [0043](0043-voting-bars-and-rage-quit.md) |
 | [0043](0043-voting-bars-and-rage-quit.md)               | Review fixes: member-bar votes, auto rule switch-over, rage-quit notice, linked exit queue, loans | Accepted                                                                 |
 | [0044](0044-loans-screens.md)                           | Loans screens: one hook file, loan list from events, tall segmented money bar, `--chart-6`        | Accepted                                                                 |
+| [0045](0045-member-cap-50.md)                           | Member cap 3..50 per circle (no unlimited); founders ≤ 50                                         | Accepted                                                                 |

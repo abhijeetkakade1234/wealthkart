@@ -70,7 +70,8 @@ Known gaps:
 - S-MEM-06 Name with emoji / RTL / zero-width chars / 200 chars → normalised or rejected
 - S-MEM-07 Wallet lost; 3 months missed → dormant vote → dues stop, shares untouched; dormant member can't vote, take a holiday or rename
 - S-MEM-08 Dormant member comes back with `wake()` → dues restart this month (or next if the due moment passed); votes only on requests opened after waking; bad `dormantAfter` setting refused
-- S-MEM-09 Circle with 500 members → every action still under the gas limit (ADR 0015)
+- S-MEM-09 Circle at the 50-member cap (ADR 0045) → every action still under the gas limit and flat in the member count (ADR 0015)
+- S-MEM-09a 50 founders (creator + 49) fit a cap of 50; a full circle refuses join requests; 51 founders are refused at creation (ADR 0045)
 - S-MEM-10 Joins (or circle created) after this month's due moment → first installment is next month; nobody starts already late (ADR 0028)
 - S-MEM-11 Smart-contract wallet that refuses plain AVAX is a member → can pay and vote
 - S-MEM-12 Only members who joined before the request can vote; outsiders, the applicant and later joiners can't; one vote each
@@ -192,6 +193,7 @@ Known gaps:
 - S-LIFE-08 Migration vote to a new contract version passes (ADR 0020) → funds, shares, loans and nominees identical in the new circle; dissenters exit under old rules during the delay
 - S-LIFE-09 Guardian pause → new loans and deposits blocked; exits still work; auto-unpauses after 14 days
 - S-LIFE-10 Parameter set outside bounds (e.g. 50% interest, due day 31) → rejected on-chain (ADR 0022)
+- S-LIFE-10a Member cap outside 3..50 (0 = unlimited, 2, 51) → rejected with a plain message; 3 and 50 accepted (ADR 0045)
 - S-LIFE-11 Loan above k × (own + guarantor stake) → rejected (ADR 0018)
 - S-LIFE-05 Member leaves, later rejoins → treated as a new member at the current NAV
 - S-LIFE-06 AVAX 10× in price makes the installment unaffordable → vote to change the installment; applies from the next period

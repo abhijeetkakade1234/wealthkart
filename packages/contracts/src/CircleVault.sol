@@ -57,7 +57,7 @@ contract CircleVault is ReentrancyGuardTransient {
         uint32 votingWindow;
         /// @dev Share of eligible members who must vote, in percent: 20..100 (ADR 0022).
         uint8 quorumPct;
-        /// @dev Member cap; 0 = unlimited, otherwise >= 3 and >= creator + invited founders.
+        /// @dev Member cap, 3..50 and at least the creator plus invited founders (ADR 0045).
         uint16 maxMembers;
         /// @dev Missed installments before a dormant vote is allowed, 1..12 (ADR 0032).
         uint8 dormantAfter;
@@ -80,6 +80,8 @@ contract CircleVault is ReentrancyGuardTransient {
     uint8 public constant MIN_QUORUM_PCT = 20;
     uint8 public constant MAX_QUORUM_PCT = 100;
     uint16 public constant MIN_MAX_MEMBERS = 3;
+    /// @notice Highest member cap a circle can choose (ADR 0045).
+    uint16 public constant MAX_MAX_MEMBERS = 50;
     uint8 public constant MAX_DORMANT_AFTER = 12;
     uint8 public constant MAX_MIN_PAID_TO_VOTE = 6;
     uint256 public constant MAX_OPEN_PER_MEMBER = Membership.MAX_OPEN_PER_MEMBER;
@@ -1084,11 +1086,11 @@ contract CircleVault is ReentrancyGuardTransient {
         if (cfg.minPaidToVote > MAX_MIN_PAID_TO_VOTE) {
             revert InvalidConfig("minPaidToVote must be 0..6");
         }
-        if (
-            cfg.maxMembers != 0
-                && (cfg.maxMembers < MIN_MAX_MEMBERS || cfg.maxMembers < invited + 1)
-        ) {
-            revert InvalidConfig("maxMembers must be 0 or >= 3 and >= founders");
+        if (cfg.maxMembers < MIN_MAX_MEMBERS || cfg.maxMembers > MAX_MAX_MEMBERS) {
+            revert InvalidConfig("maxMembers must be 3..50");
+        }
+        if (cfg.maxMembers < invited + 1) {
+            revert InvalidConfig("maxMembers must be at least the creator plus invited founders");
         }
     }
 

@@ -10,7 +10,7 @@ import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 
 /// @notice Scenario harness (docs/testing.md): a 12-member circle created on 2026-12-01 00:00 UTC
 ///         with G1-like defaults (0.5 AVAX due on the 10th, fees 0.01 + 0.01, 3 holidays a year,
-///         48 h join votes at 50% quorum, no member cap), plus named actors and helpers for time,
+///         48 h join votes at 50% quorum, member cap 50), plus named actors and helpers for time,
 ///         payments, join requests and votes. members[0] created it; the other 11 accepted.
 /// @dev Actors:
 ///      - `honest`   members[0]: pays on time.
@@ -62,7 +62,7 @@ abstract contract CircleVaultBase is Test {
             holidaysPerYear: 3,
             votingWindow: 48 hours,
             quorumPct: 50,
-            maxMembers: 0,
+            maxMembers: 50,
             dormantAfter: 3,
             minPaidToVote: 2,
             rules: Rules.defaults(uint128(AVAX / 2))

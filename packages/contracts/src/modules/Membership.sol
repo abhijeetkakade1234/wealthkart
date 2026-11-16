@@ -98,7 +98,7 @@ library Membership {
 
     struct Store {
         mapping(address member => Member) members;
-        /// @dev Members right now, dormant included (the `maxMembers` cap counts them).
+        /// @dev Members right now, dormant included (the `maxMembers` cap, 3..50, counts them).
         uint256 memberCount;
         uint256 dormantCount;
         /// @dev Members who can vote right now: voter, active, not dormant. Every quorum
@@ -135,7 +135,8 @@ library Membership {
 
     // ------------------------------------------------------------------ constants
 
-    uint256 internal constant MAX_FOUNDERS = 200;
+    /// @dev Creator plus invited founders; also the highest `maxMembers` (ADR 0045).
+    uint256 internal constant MAX_FOUNDERS = 50;
     /// @dev Share of votes cast that must be yes to admit someone (RT-03).
     uint256 internal constant ADMISSION_PASS_PCT = 66;
     /// @dev Dormant passes with more than half the votes cast (PLAN.md §3 pass mark default).
@@ -595,7 +596,7 @@ library Membership {
     }
 
     function _isFull(Store storage s, Params calldata p) private view returns (bool) {
-        return p.maxMembers != 0 && s.memberCount >= p.maxMembers;
+        return s.memberCount >= p.maxMembers;
     }
 
     function _isVoter(Member storage m) private view returns (bool) {

@@ -45,7 +45,7 @@ contract CircleFactory is ICircleRegistry {
 
     /// @notice Create a circle. You become its first member; `invitees` must each accept.
     /// @param cfg Circle settings (bounds enforced by the vault).
-    /// @param invitees Other founders to invite (may be empty, max 199).
+    /// @param invitees Other founders to invite (may be empty; with you, at most 50 and at most `maxMembers`).
     function createCircle(CircleVault.Config calldata cfg, address[] calldata invitees)
         external
         returns (address circle)
