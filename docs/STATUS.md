@@ -145,7 +145,7 @@ How to use this file:
 ## Phase 4: Growth
 
 - [x] Landing page: plain-language sections, cut-paper hero, GSAP scroll scene (ADR 0049)
-- [ ] Reminders (Web Push, wallet-keyed)
+- [x] Reminders (Web Push, wallet-keyed, ADR 0052): indexer cron sends installment, late-fee, interest, vote and money-waiting reminders in UTC stages; SIWE to turn on, device token after; Reminders card per circle and a Settings page; unit S-REM-01..44, E2E S-E2E-33..36. VAPID keys are an owner action
 - [ ] Circle templates (friends / family / office)
 - [ ] Hindi + Marathi
 - [ ] Onboarding guide (install Core, back up phrase, get AVAX)

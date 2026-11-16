@@ -11,7 +11,7 @@ Last updated: 2026-11-16
 | 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                              |
 | 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Done**: contracts reviewed and fixed (239 tests), all screens with Playwright tests |
 | 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: bug bounty, external audit and mainnet deploy are owner/external       |
-| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page done                                                        |
+| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page and reminders done                                          |
 | 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                 |
 | 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                 |
 
@@ -33,6 +33,17 @@ Done:
 
 - Loan screens: ask with live limits, vote, pay interest, repay, guarantor and default flows, loan votes, loans in the activity feed, and two loan charts
 - Safety fixes found while testing everything together: exit claims can't succeed while paying nobody, and every write is sent with gas headroom so nested calls never run out
+
+## Phase 4 so far
+
+Done:
+
+- Landing page with the "one month" scroll scene
+- Reminders on your phone or computer (Web Push): an installment due in 3 days, tomorrow or today, a late fee about to start, loan interest, a vote waiting for you, money ready to collect. Keyed by wallet only, one signature to turn on, switches per circle, times in UTC with your own time added
+
+Left:
+
+- Circle templates, Hindi and Marathi, onboarding guide
 
 ## Phase 3 so far
 
@@ -74,5 +85,5 @@ Phase 0  ##########  done
 Phase 1  ##########  done (milestone deferred)
 Phase 2  ##########  done
 Phase 3  ########--  code done; bug bounty, audit, mainnet deploy left (owner/external)
-Phase 4  ----------
+Phase 4  ####------  landing page and reminders done
 ```

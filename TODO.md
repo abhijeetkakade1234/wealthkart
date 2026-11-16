@@ -37,7 +37,7 @@ Last updated: 2026-11-16
 ## Next: Phase 4 (growth)
 
 - [x] Landing page with the "one month" scroll scene (ADR 0049)
-- [ ] Reminders (Web Push, keyed by wallet)
+- [x] Reminders (Web Push, keyed by wallet, ADR 0052)
 - [ ] Circle templates (friends, family, office)
 - [ ] Hindi and Marathi
 - [ ] Onboarding guide (install Core, back up the phrase, get AVAX)
@@ -52,6 +52,7 @@ Last updated: 2026-11-16
 
 - [ ] Phase 1 milestone: G1 plus 2–3 test circles on Fuji, demo video, Team1 application
 - [ ] Deploy the indexer: create the D1 database, add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, run **Deploy indexer**, set `NEXT_PUBLIC_INDEXER_URL`
+- [ ] Reminders: `pnpm --filter @wealthkart/indexer vapid:keys`, public key in `workers/indexer/wrangler.toml` and the Pages variable `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `wrangler secret put VAPID_PRIVATE_KEY` (own pair for `--env mainnet`), check `APP_DOMAINS` is the real domain
 - [ ] Merge `abhijeet` → `dev` → `main` (ongoing): https://github.com/abhijeetkakade1234/wealthkart/compare/dev...abhijeet
 - [ ] Fuji deploy: GitHub environment `fuji` with `DEPLOYER_PRIVATE_KEY`, faucet AVAX, run the deploy workflow
 - [ ] Branch protection on `main` and `dev`

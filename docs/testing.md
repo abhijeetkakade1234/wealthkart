@@ -265,6 +265,43 @@ Known gaps:
 - S-IDX-07 D1 soft size limit: the indexer stops storing new events and its cursor, `/v1/health` reports `full` and the size; no limit keeps indexing
 - S-NET-01 the network comes from the environment: empty or `fuji` is Fuji, `mainnet` is Avalanche, any other value fails the build (ADR 0051)
 
+### Reminders (S-REM, ADR 0052)
+
+Worker tests in `workers/indexer/test/push-*.test.ts` (D1 on node:sqlite); app tests in `apps/web/src/lib/__tests__/push.test.ts`.
+
+- S-REM-01 UTC maths matches the contract: the due moment is 23:59:59 UTC on the due day; day counts flip at 00:00 UTC; January wraps the year
+- S-REM-02 Installment reminders go out 3 days before the due day, the day before and on the due day, never earlier or after
+- S-REM-03 Late-fee warnings: from 6 hours before the due moment, on the second-fee day (only if there is a second fee), and once after a missed month
+- S-REM-04 No installment reminders when paid, dormant, on a payment holiday, switched off, or when the circle is closing
+- S-REM-05 Loan interest: due soon in the last 3 days, then "late" once overdue, with fees, linking to Loans
+- S-REM-06 Votes: once when waiting for this member and again in the last 24 hours; never for votes they can't cast; grouped into one notification per circle; none for dormant members
+- S-REM-07 Money waiting: exit notice over, and a refused payout per amount, in the circle's asset
+- S-REM-08 Dedupe: a stage is sent once, and a lower stage never after a higher one
+- S-REM-09 Amounts in AVAX and USDT decimals; small AVAX amounts keep four decimals
+- S-REM-10 A fresh SIWE message signed by the wallet proves it
+- S-REM-11 Refused: another key claiming the address, another site, chain, device, action or statement, expired, too long-lived, issued in the future, tampered, malformed signature
+- S-REM-12 Allowed sites match exactly or as subdomains of a wildcard, ports included
+- S-REM-13 Endpoints: only https known push services; no http, other hosts, look-alike suffixes, logins, odd ports, metadata IPs, non-URLs or URLs over 1024 characters
+- S-REM-14 Device key is 65 bytes and secret 16 bytes
+- S-REM-15 Circle lists keep valid addresses only, lowercased, deduplicated, capped at 50
+- S-REM-20 Subscribe with a signature, get a device token (stored only as a hash), only factory circles are watched, change and read settings, unsubscribe deletes settings with the last device
+- S-REM-21 Replayed messages, wrong tokens, unknown devices, non-push endpoints, keys that aren't curve points, bad JSON, bodies over 8 KB (also when streamed without a length) and GET are refused
+- S-REM-22 Rate limits: 10 subscribes per wallet per hour; one test push per 30 seconds per device
+- S-REM-23 Off (503) until the VAPID key is set, `/v1/health` says so; no new devices once D1 is full (ADR 0047)
+- S-REM-24 At most 5 devices per wallet; a sixth replaces the oldest
+- S-REM-25 The push body decrypts like a browser decrypts it (RFC 8291) and the VAPID JWT verifies for the push service's origin (RFC 8292)
+- S-REM-26 404/410 drops the device; 429, 5xx and network errors retry later; a bad VAPID key on our side never drops devices
+- S-REM-27 Cron: each stage once, votes grouped, the pair isn't read again within the hour, the next UTC day sends "due today" once
+- S-REM-28 A device the push service says is gone is deleted with its settings; a wallet that left the circle stops being watched
+- S-REM-29 An RPC failure retries the pair in 15 minutes; pushes over the run's budget go out next minute
+- S-REM-30 A circle switched off is never read
+- S-REM-31 Only circles the chain lists the wallet as a member of are watched or can be switched on; switching off never needs the check; RPC trouble leaves it to the cron
+- S-REM-40 Browser support: ready, unsupported, and iPhone/iPad outside the Home Screen
+- S-REM-41 The app's kind bitmask matches the Worker's
+- S-REM-42 The app's signed message is standard SIWE with the site, action, device and a 5-minute expiry, word for word what the Worker expects
+- S-REM-43 VAPID key bytes; push API and browser errors map to plain messages
+- S-REM-44 The service worker opens only same-origin `/app/` pages, adds the deadline in device time, and survives odd data
+
 ### Frontend / E2E (S-WEB)
 
 - S-WEB-01 Core not installed → install prompt
@@ -363,6 +400,10 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
 - S-E2E-31 Start a USDT circle: USDT is offered (factory has one), the freeze and AVAX-for-gas warning shows, amounts are in USDT; the Pay page says the wallet has too little USDT; after the faucet mint the member pays in two steps (approve up to installment plus both fees, then pay), exactly 50.00 USDT leaves the wallet, 2 USDT of allowance is left, and the overview shows the USDT badge and amounts
 - S-E2E-32 The create form refuses member caps of 2 and 51 before sending and notes slower votes above 20; a cap of 50 creates an AVAX circle with `maxMembers = 50` and the AVAX badge
+- S-E2E-33 From Settings, "Turn on reminders" asks the browser, Core signs once, and the card shows "On" for the wallet; the new circle is on in the per-circle list, switching it off survives a reload; "Send a test" reaches the (fake) push service encrypted (aes128gcm) with a VAPID header; "Turn off on this device" goes back to off
+- S-E2E-34 The circle page's Reminders card turns reminders on for that circle; switching "Votes waiting for you" off survives a reload while the others stay on
+- S-E2E-35 Notifications blocked, a browser without Web Push and iPhone Safari outside the Home Screen each show what to do instead of a broken button; saying no at the browser prompt leaves reminders off with a plain note
+- S-E2E-36 When the push service says a device is gone (410), the test button says so and the card is back to "Turn on reminders"
 
 ## Gates in CI
 

@@ -85,6 +85,7 @@ Contract deploys: **manual workflow** with environment approval (Fuji / mainnet)
 ## 8. Secrets and config
 
 - `.env.example` documents every variable; real values live in GitHub Actions secrets / Cloudflare env only
+- Reminders (ADR 0052): the VAPID private key is a Worker secret only (`wrangler secret put VAPID_PRIVATE_KEY`, plus `--env mainnet` with its own pair); the public key goes in `workers/indexer/wrangler.toml` and the Pages variable `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. Make a pair with `pnpm --filter @wealthkart/indexer vapid:keys`
 - Deployer keys are never on a laptop for mainnet: hardware wallet or multisig (Safe)
 - Guardian (pause only, limited per ADR 0020) = founder multisig (Safe); no one holds upgrade or fund-moving powers
 
