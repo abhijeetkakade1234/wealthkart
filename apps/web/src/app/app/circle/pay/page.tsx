@@ -11,6 +11,7 @@ import { AssetBadge, PayButton, PayProgress } from "@/components/app/asset-pay";
 import { CountdownUTC } from "@/components/app/countdown-utc";
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
+import { TestUsdtFaucet } from "@/components/app/test-usdt-faucet";
 import { CirclePauseBanner } from "@/components/exits/pause";
 import { Button, InlineAlert, StateView, TxTracker } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -202,6 +203,7 @@ function Pay() {
                 })}
               </InlineAlert>
             ))}
+          {isToken(asset) && <TestUsdtFaucet onMinted={() => void token.refetch()} />}
           {isToken(asset) && !tooPoor && (
             <p className="text-[13px] leading-relaxed text-muted-foreground">
               Paying in USDT takes two steps in your wallet: approve, then pay. You approve up to
