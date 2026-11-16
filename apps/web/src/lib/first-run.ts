@@ -1,17 +1,18 @@
 /**
  * First-run checklist on the home screen (ADR 0054): what a new wallet still needs before it
- * can take part in a circle. Two items are read from the chain (AVAX for fees, being in a
- * circle); two can only be ticked by the person (recovery phrase written down, backup wallet
- * picked), because nobody else can know. Ticks and "hide" are kept per wallet in this
- * browser's localStorage; every read and write is wrapped so a blocked store just means the
- * list starts fresh.
+ * can take part in a circle. Three items are read from the chain (AVAX for fees, being in a
+ * circle, a backup wallet set in every circle: `nomineeOf`, ADR 0056); one can only be ticked
+ * by the person (recovery phrase written down), because nobody else can know. Ticks and
+ * "hide" are kept per wallet in this browser's localStorage; every read and write is wrapped
+ * so a blocked store just means the list starts fresh.
  */
 
 export interface FirstRunState {
   dismissed: boolean;
   /** Self-reported: recovery phrase written down. */
   phrase: boolean;
-  /** Self-reported: backup (nominee) wallet picked. */
+  /** Old self-tick for the backup wallet; kept so stored state still parses. It is read from
+   *  the chain now (ADR 0056) and no longer counts. */
   nominee: boolean;
 }
 
@@ -72,6 +73,8 @@ function fromRead(v: Read): CheckStatus {
 export function checklistItems(input: {
   hasGas: Read;
   inCircle: Read;
+  /** Every circle this wallet is in has a backup wallet set (`nomineeOf`). */
+  hasNominee: Read;
   state: FirstRunState;
   testnet: boolean;
 }): ChecklistItem[] {
@@ -96,11 +99,14 @@ export function checklistItems(input: {
     },
     {
       id: "nominee",
-      title: "Pick a backup wallet",
-      hint: "Someone who should get your savings if you lose access for good.",
+      title: "Set a backup wallet",
+      hint:
+        input.inCircle === false
+          ? "Once you're in a circle, add one on the circle's page. It gets your share only if you go dormant and the circle votes yes."
+          : "Add one on each circle's page. It gets your share only if you go dormant and the circle votes yes.",
       href: "/start/#backup-wallet",
-      status: input.state.nominee ? "done" : "todo",
-      manual: true,
+      status: input.inCircle === false ? "todo" : fromRead(input.hasNominee),
+      manual: false,
     },
     {
       id: "circle",

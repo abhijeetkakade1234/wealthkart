@@ -9,9 +9,9 @@
 | ---------------------------- | --------------------- | ------------------------------------------------------------------------- |
 | `src/CircleFactory.sol`      | contract              | Deploys vaults from stored creation code; registry of circles and members |
 | `src/CircleVault.sol`        | contract (one/circle) | Payments, shares/NAV, entry points for every module                       |
-| `src/modules/Membership.sol` | external library      | Founders, join and dormant votes, names, voting rights                    |
+| `src/modules/Membership.sol` | external library      | Founders, join, dormant and nominee-claim votes, names, voting rights     |
 | `src/modules/LoanBook.sol`   | external library      | Loan votes, disbursal, interest, tenors, default and settlement           |
-| `src/modules/Exits.sol`      | external library      | Exit notice, payout queue, Chainlink Automation, guardian pause           |
+| `src/modules/Exits.sol`      | external library      | Exit notice, payout queue, Chainlink Automation, guardian pause, nominee  |
 | `src/modules/Governance.sol` | external library      | Rule changes with delay and rage-quit, fee waivers, dissolution           |
 | `src/modules/Rules.sol`      | external library      | Settings with on-chain bounds                                             |
 | `src/modules/Ledger.sol`     | internal library      | Assets, shares, loans out, refused payouts (push then pull), USDT in/out  |
@@ -34,6 +34,7 @@ Each circle is one immutable `CircleVault`, created by `CircleFactory` from crea
 - On every vote, `yes + no <= eligible` (snapshot honesty, including members who wake or gain rights mid-vote)
 - `voterCount`, `dormantCount`, `memberCount` match the member flags
 - No write path loops over members (ADR 0015)
+- Nominee claims (ADR 0056): an open claim is an open `Kind.Claim` request about a dormant member asked by their current nominee; an approved claim is a live queue entry of a dormant member paid to that nominee; never both; the payee can't change after approval (a member's own action ends the claim instead); every way back from dormant ends the claim; the claim notice is at least 30 days with no rage-quit cap
 
 ## Known limitations (by design or deferred)
 
@@ -45,6 +46,7 @@ Each circle is one immutable `CircleVault`, created by `CircleFactory` from crea
 - Seats held by dormant or lost wallets free only on exit or dissolve (RT-USDT-04); founder invites hold their seats for 14 days (RT-USDT-03).
 - Tether can freeze the vault itself, and a member paying with tainted USDT could draw such a freeze (L-2, L-4). A member frozen by Tether waits for an unfreeze to claim `withdrawable`; there is no `withdrawTo`.
 - Tokens or AVAX sent straight to the vault are stuck; there is no skim (L-1).
+- Nominee (ADR 0056): a circle where the nominee is the only voter can't run a claim (`NoOtherVoters`); after a dissolve a dormant member without an approved claim can only claim in person; a nominee may re-ask right after a failed vote (bounded by one open claim per member, 3 per address, 20 per circle); a passed claim pays the whole share to the nominee the member chose, so a majority that wrongly marks a living member dormant can only move the share to that member's own choice, and only after a notice of at least 30 days in which the member can cancel. Please challenge the claim lifecycle against the exit queue (`_cancelClaim`, `closeClaim`, `_pay`) and the extra settle gas (`payTo`, `nominee` deletes) under `SETTLE_GAS`.
 
 ## How to run
 

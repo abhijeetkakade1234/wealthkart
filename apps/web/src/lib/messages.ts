@@ -138,6 +138,20 @@ export const messages = {
   notDissolved: () => "The circle hasn't voted to close, so there's nothing to claim yet.",
   claimBlockedByLoan: () =>
     "Your loan, or the loan you guarantee, must be repaid or settled before you can claim.",
+  // Backup wallet (nominee), ADR 0016 and 0056.
+  invalidNominee: () =>
+    "That wallet can't be your backup: it's your own wallet or the circle itself. Pick someone else's wallet.",
+  notNominee: () => "Only the backup wallet this member named can ask for their share.",
+  nomineeClaimPending: () =>
+    "A backup wallet claim about this member is already open. The member can cancel it from the circle page; otherwise the circle's vote decides.",
+  noNomineeClaim: () => "There's no backup wallet claim about you to cancel.",
+  nomineeSaved: () =>
+    "Saved. This wallet can ask for your share only if the circle marks you dormant and then votes yes.",
+  nomineeCleared: () => "Backup wallet removed. Nobody can claim your share now.",
+  nomineeClaimCancelled: () =>
+    "Claim cancelled. Your share stays yours and your payments start again from the next due date.",
+  nomineeClaimRequested: () =>
+    "You asked for the share. The circle votes now; you can follow it on the Votes page.",
   nothingToClaimYet: () =>
     "There's no cash to share out right now. Claim again once loans are repaid.",
   proposalTooSoon: () => "You started a proposal recently. You can start the next one tomorrow.",
@@ -310,6 +324,10 @@ export type FriendlyErrorCode =
   | "no-other-voters"
   | "too-many-requests-by"
   | "exit-gas-too-low"
+  | "invalid-nominee"
+  | "not-nominee"
+  | "nominee-claim-pending"
+  | "no-nominee-claim"
   | "loan-loans-closed"
   | "loan-loans-paused"
   | "loan-not-a-voter"
@@ -559,6 +577,11 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NoOtherVoters", "no-other-voters", messages.noOtherVoters],
     ["TooManyOpenRequestsBy", "too-many-requests-by", messages.tooManyOpenRequestsBy],
     ["ExitGasTooLow", "exit-gas-too-low", messages.exitGasTooLow],
+    // Backup wallet (ADR 0056).
+    ["InvalidNominee", "invalid-nominee", messages.invalidNominee],
+    ["NotNominee", "not-nominee", messages.notNominee],
+    ["NomineeClaimPending", "nominee-claim-pending", messages.nomineeClaimPending],
+    ["NoNomineeClaim", "no-nominee-claim", messages.noNomineeClaim],
     // Loans (ADR 0038).
     ["LoansClosed", "loan-loans-closed", messages.loansClosed],
     ["LoansPaused", "loan-loans-paused", messages.loansPaused],

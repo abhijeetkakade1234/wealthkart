@@ -25,6 +25,7 @@ Done:
 - Circle templates: Friends, Family, Office or Custom fill in the create form, every value editable and inside the on-chain limits (ADR 0054)
 - Onboarding guide at `/start` for people new to crypto, linked from sign-in and the landing page, plus a "Before you start" checklist on the home screen (ADR 0054)
 - Reminders on your phone or computer (Web Push): an installment due in 3 days, tomorrow or today, a late fee about to start, loan interest, a vote waiting for you, money ready to collect. Keyed by wallet only, one signature to turn on, switches per circle, times in UTC with your own time added (ADR 0052)
+- Backup wallet (nominee, ADR 0016 and 0056): a member names one wallet that can ask for their share after they go dormant; the circle votes, a notice of at least 30 days runs, and the member can cancel until it is paid
 
 Left:
 

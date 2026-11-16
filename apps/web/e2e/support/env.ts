@@ -62,6 +62,8 @@ export const ACCOUNTS = {
   frank: "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
   /** Only the reminder tests use her (anvil account 7), so her circle list stays short. */
   fay: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+  /** Only the backup wallet tests use her: anvil account 8, an outsider named as a member's nominee. */
+  gina: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
 } as const;
 
 /**

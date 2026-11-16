@@ -36,6 +36,7 @@ export function useCircleGov(id: Address | null) {
       { ...vault, functionName: "loansOutstanding" },
       { ...vault, functionName: "creator" },
       { ...vault, functionName: "memberOf", args: [me] },
+      { ...vault, functionName: "nomineeClaimOf", args: [me] },
     ] as const,
     query: { enabled: Boolean(id && address), refetchInterval: 15_000 },
   });
@@ -101,6 +102,11 @@ export function useCircleGov(id: Address | null) {
           ),
           frozen: member?.frozen ?? false,
           loanTies: Number(member?.loanTies ?? 0),
+          /** This wallet's queued exit is a passed backup-wallet claim (ADR 0056), not its own. */
+          claimQueued: Boolean(
+            ok<readonly [bigint, Address]>(13) &&
+            ok<readonly [bigint, Address]>(13)![1].toLowerCase() !== ZERO,
+          ),
         }
       : undefined,
   };

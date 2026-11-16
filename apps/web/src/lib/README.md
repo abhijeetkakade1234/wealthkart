@@ -21,7 +21,9 @@
 - `use-vault-action.ts`: one typed vault write with its tracker state
 - `circle-form.ts`: create-circle form state and validation (mirrors contract bounds): asset AVAX or USDT, member cap 3..50 (default 12, note above 20), quorum 20..100, and the loan/vote/notice rules checked by `rulesProblem`
 - `templates.ts`: circle templates (Friends, Family, Office, Custom) as data; apply, asset switch, change count, plain summary (ADR 0054)
-- `first-run.ts`: first-run checklist items and per-wallet localStorage state, try/catch wrapped (ADR 0054)
+- `first-run.ts`: first-run checklist items and per-wallet localStorage state, try/catch wrapped (ADR 0054); the backup wallet item is a chain read (ADR 0056)
+- `nominee.ts`: pure backup wallet (nominee) rules: address problems, claim notice (>= 30 days), claim phase, queue position (ADR 0056)
+- `nominee-hooks.ts`: `useMyBackupWallet`, `useNamedBy` (who named this wallet, via `nomineeOf` over the member list), `useExitQueue`, `useBackupCoverage` (checklist)
 - `messages.ts`: plain-language message catalogue, `toFriendlyError`
 - `push.ts`: reminders (ADR 0052): browser support (iPhone needs the Home Screen), the SIWE message, kind bitmask, push API client, this device's record
 - `use-reminders.ts`: reminder state for this device (`loading` ... `on`), turn on/off, per-circle settings, test push

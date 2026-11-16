@@ -12,17 +12,17 @@ export const ADMISSION_PASS_PCT = 66;
 /** Same as CircleVault.DORMANT_PASS_PCT: dormant passes with more than 50% yes (ADR 0032). */
 export const DORMANT_PASS_PCT = 50;
 
-/** Membership.Kind order. */
-export type RequestKind = "join" | "dormant";
+/** Membership.Kind order: join, dormant, backup-wallet claim (ADR 0056). */
+export type RequestKind = "join" | "dormant" | "claim";
 export function requestKind(kind: number): RequestKind {
-  return kind === 1 ? "dormant" : "join";
+  return kind === 2 ? "claim" : kind === 1 ? "dormant" : "join";
 }
 
-/** Same rule as Membership._passes. */
+/** Same rule as Membership._passes: join and claim need 66% yes, dormant more than 50%. */
 function passes(kind: RequestKind, yes: number, total: number): boolean {
-  return kind === "join"
-    ? yes * 100 >= ADMISSION_PASS_PCT * total
-    : yes * 100 > DORMANT_PASS_PCT * total;
+  return kind === "dormant"
+    ? yes * 100 > DORMANT_PASS_PCT * total
+    : yes * 100 >= ADMISSION_PASS_PCT * total;
 }
 
 const ALLOWED = /^[A-Za-z0-9 _.-]+$/;
@@ -65,7 +65,7 @@ export interface Tally {
   no: number;
   /** Circle's quorum, percent of `eligible` who must vote. */
   quorumPct: number;
-  /** Join (66% yes) or dormant (more than 50% yes). Defaults to join. */
+  /** Join and claim (66% yes) or dormant (more than 50% yes). Defaults to join. */
   kind?: RequestKind;
 }
 
@@ -95,9 +95,9 @@ export function tallyLine(t: Tally): string {
   const need = quorumVotes(t.eligible, t.quorumPct);
   const cast = t.yes + t.no;
   const mark =
-    (t.kind ?? "join") === "join"
-      ? `needs ${ADMISSION_PASS_PCT}% yes`
-      : `needs more than ${DORMANT_PASS_PCT}% yes`;
+    t.kind === "dormant"
+      ? `needs more than ${DORMANT_PASS_PCT}% yes`
+      : `needs ${ADMISSION_PASS_PCT}% yes`;
   return `${cast} of ${need} ${need === 1 ? "vote" : "votes"} needed · ${t.yes} yes, ${t.no} no · ${mark}`;
 }
 
@@ -144,6 +144,18 @@ export function nameChangeAllowedAt(nameChangedAt: number, nowSec: number): numb
 
 /** What voters read once a request's result is certain but not yet recorded. */
 export function settledLine(outcome: VoteOutcome, kind: RequestKind = "join"): string {
+  if (kind === "claim") {
+    switch (outcome) {
+      case "approved":
+        return "Enough members voted yes. Once recorded, the notice starts and the share is paid to the backup wallet when it ends, unless the member cancels. Anyone can record the result.";
+      case "rejected":
+        return "There aren't enough yes votes, so nothing is paid. Anyone can record the result.";
+      case "expired":
+        return "Voting time ran out before enough members voted. Anyone can record the result.";
+      default:
+        return "";
+    }
+  }
   if (kind === "dormant") {
     switch (outcome) {
       case "approved":

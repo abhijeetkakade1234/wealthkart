@@ -249,7 +249,7 @@ export const FAQ: PublicPage = {
       id: "lost-wallet",
       heading: "What if I lose my wallet?",
       answer:
-        "WealthKart can't recover it, so back up your Core recovery phrase. You can name a nominee wallet that can claim your share after a vote and a notice period.",
+        "WealthKart can't recover it, so back up your Core recovery phrase. In each circle you can also name a backup wallet, such as a family member's. If you stop paying for months and the circle marks you dormant, that wallet can ask for your share. The members vote, and after a notice of at least 30 days the share is paid to it. If you're fine, cancel at any time before then.",
     },
     {
       id: "personal-data",
@@ -460,7 +460,7 @@ export const SECURITY: PublicPage = {
       id: "wallet-loss",
       heading: "What if my wallet is stolen or lost?",
       answer:
-        "WealthKart can't reverse transactions or recover wallets. Back up your Core recovery phrase and consider naming a nominee wallet.",
+        "WealthKart can't reverse transactions or recover wallets. Back up your Core recovery phrase and name a backup wallet on each circle's page. A backup wallet can only ask for your share after you are marked dormant, and only a member vote lets it through.",
     },
     addressesSection(),
   ],
@@ -550,11 +550,28 @@ export const START: PublicPage = {
       id: "backup-wallet",
       heading: "Step 3: Pick a backup wallet (your nominee)",
       answer:
-        "Decide who should get your savings if you can never reach them again, and note that person's wallet address next to your recovery phrase backup. It can be a family member's wallet or a second wallet of your own.",
+        "Decide who should get your savings if you can never reach them again, and keep that person's wallet address next to your recovery phrase backup. It can be a family member's wallet or a second wallet of your own. Once you're in a circle, add it on the circle's page under \"Backup wallet\".",
       blocks: [
         {
-          kind: "p",
-          text: "WealthKart can't recover a lost wallet. Circles are getting a nominee setting: you name one backup wallet, and if you go quiet for months, it can claim your share after a member vote and a notice period. Until that setting arrives, keep the address ready. Your circle can already vote to pause the payments of a member who lost their wallet, and the savings stay theirs.",
+          kind: "steps",
+          items: [
+            {
+              title: "You name one wallet per circle",
+              text: "Inside the circle or outside it. You can change or remove it at any time from your own wallet.",
+            },
+            {
+              title: "Nothing happens while you pay",
+              text: "It can only ask for your share after you miss months and the circle votes to mark you dormant.",
+            },
+            {
+              title: "Then the circle decides",
+              text: "The members vote on the claim (66% yes needed). Neither you nor the backup wallet can vote on it.",
+            },
+            {
+              title: "You can always stop it",
+              text: "After a yes there is a notice of at least 30 days. Cancel from the circle page before it ends and your share stays yours. After the notice, the share is paid to the backup wallet.",
+            },
+          ],
         },
       ],
     },

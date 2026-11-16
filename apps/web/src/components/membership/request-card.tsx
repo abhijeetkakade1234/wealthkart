@@ -1,7 +1,15 @@
 "use client";
 
 import { circleVaultAbi, shortAddress } from "@wealthkart/sdk";
-import { BadgeCheck, Gavel, PauseCircle, ThumbsDown, ThumbsUp, TriangleAlert } from "lucide-react";
+import {
+  BadgeCheck,
+  Gavel,
+  LifeBuoy,
+  PauseCircle,
+  ThumbsDown,
+  ThumbsUp,
+  TriangleAlert,
+} from "lucide-react";
 import type { Address } from "viem";
 
 import { Deadline } from "@/components/app/deadline";
@@ -22,8 +30,8 @@ import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 /**
- * One open request: who, who vouched (join) or proposed (dormant), the tally, the deadline,
- * and what you can do.
+ * One open request: who, who vouched (join), proposed (dormant) or asks as their backup wallet
+ * (claim, ADR 0056), the tally, the deadline, and what you can do.
  */
 export function RequestCard({
   circle,
@@ -45,8 +53,12 @@ export function RequestCard({
   const voteTx = useTx();
   const finalizeTx = useTx();
   const dormant = r.kind === "dormant";
+  const claim = r.kind === "claim";
+  /** About an existing member (dormant vote or backup-wallet claim), not a newcomer. */
+  const aboutMember = dormant || claim;
   const tally = { eligible: r.eligible, yes: r.yes, no: r.no, quorumPct, kind: r.kind };
-  const who = (dormant ? r.accountName : r.displayName) || shortAddress(r.account);
+  const who = (aboutMember ? r.accountName : r.displayName) || shortAddress(r.account);
+  const nominee = r.inviterName || shortAddress(r.invitedBy);
   const ended = chainNow > r.deadline;
   const outcome = voteOutcome(tally, ended);
   const voting = voteTx.status === "confirm" || voteTx.status === "sending";
@@ -81,13 +93,17 @@ export function RequestCard({
       notify.success(
         outcome === "expired"
           ? `Settled: voting time ran out before enough members voted on ${who}.`
-          : dormant
+          : claim
             ? outcome === "approved"
-              ? `${who} is now dormant. Their payments are paused and their savings stay theirs.`
-              : `Settled: the circle chose not to pause ${who}'s payments.`
-            : outcome === "approved"
-              ? `${who} is now a member.`
-              : `Settled: the members didn't vote ${who} in.`,
+              ? `Settled: ${who}'s share goes to their backup wallet after the notice, unless ${who} cancels.`
+              : `Settled: the circle chose not to pay ${who}'s share to their backup wallet.`
+            : dormant
+              ? outcome === "approved"
+                ? `${who} is now dormant. Their payments are paused and their savings stay theirs.`
+                : `Settled: the circle chose not to pause ${who}'s payments.`
+              : outcome === "approved"
+                ? `${who} is now a member.`
+                : `Settled: the members didn't vote ${who} in.`,
       );
       onChanged();
     }
@@ -97,24 +113,32 @@ export function RequestCard({
     ? "You've voted on this one."
     : ended
       ? "Voting time is over."
-      : dormant
-        ? "You can't vote on this one: the member it's about can't vote, and only members who were in the circle before it started, and are at most one month behind, can."
-        : "You can't vote on this one: only members who joined before the request, and are at most one month behind, can vote.";
+      : claim
+        ? "You can't vote on this one: the member it's about and their backup wallet can't vote, and only members who were in the circle before it started, and are at most one month behind, can."
+        : dormant
+          ? "You can't vote on this one: the member it's about can't vote, and only members who were in the circle before it started, and are at most one month behind, can."
+          : "You can't vote on this one: only members who joined before the request, and are at most one month behind, can vote.";
 
   return (
     <article
       className="grid gap-6 rounded-[14px] border border-border bg-card p-[26px] sm:p-8"
-      aria-label={dormant ? `Dormant vote about ${who}` : `Join request from ${who}`}
+      aria-label={
+        claim
+          ? `Backup wallet claim for ${who}`
+          : dormant
+            ? `Dormant vote about ${who}`
+            : `Join request from ${who}`
+      }
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <Avatar address={r.account} size={44} />
           <div className="grid gap-1">
             <span className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-              {dormant ? "Pause payments" : "Wants to join"}
+              {claim ? "Backup wallet claim" : dormant ? "Pause payments" : "Wants to join"}
             </span>
             <h3 className="font-display text-[26px] leading-none tracking-tight">
-              {(dormant ? r.accountName : r.displayName) || "No name"}
+              {(aboutMember ? r.accountName : r.displayName) || "No name"}
             </h3>
             <span className="font-mono text-[12px] text-muted-foreground">
               {shortAddress(r.account)}
@@ -125,7 +149,17 @@ export function RequestCard({
       </header>
 
       <div className="grid gap-2 text-[13.5px]">
-        {dormant ? (
+        {claim ? (
+          <p className="flex items-start gap-2 text-muted-foreground">
+            <LifeBuoy className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={1.5} aria-hidden />
+            <span>
+              <strong className="font-semibold text-foreground">{nominee}</strong> is the backup
+              wallet {who} named, and asks for their share. {who} is dormant. If the circle votes
+              yes, the share is paid to the backup wallet after a notice of at least 30 days, unless{" "}
+              {who} cancels. Vote yes only if you believe {who} can&apos;t come back.
+            </span>
+          </p>
+        ) : dormant ? (
           <p className="flex flex-wrap items-start gap-2 text-muted-foreground">
             <PauseCircle
               className="mt-0.5 size-4 shrink-0 text-brand"
@@ -159,19 +193,19 @@ export function RequestCard({
             )}
           </p>
         ) : null}
-        {!dormant && hasInviter && (
+        {!aboutMember && hasInviter && (
           <p className="text-muted-foreground" data-testid="inviter-stats">
             {inviterStats(r.inviterOpen, r.inviterAdmitted)}
           </p>
         )}
-        {!dormant && hasInviter && invitedTooMany(r.inviterAdmitted, memberCount) && (
+        {!aboutMember && hasInviter && invitedTooMany(r.inviterAdmitted, memberCount) && (
           <p className="flex items-start gap-2 text-warn">
             <TriangleAlert className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} aria-hidden />
             This member has brought in more than a third of the circle. Make sure each newcomer is
             someone the group knows.
           </p>
         )}
-        {!dormant && !hasInviter && (
+        {!aboutMember && !hasInviter && (
           <p className="text-muted-foreground">No inviter named. Make sure someone knows them.</p>
         )}
         <p className="tabular" data-testid="tally">

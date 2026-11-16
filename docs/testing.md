@@ -44,6 +44,7 @@ Known gaps:
 - I-12 Vault balance ≥ total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets); `≥` because AVAX can be forced in (EXIT-10)
 - I-12u (USDT circles, ADR 0046) `token.balanceOf(vault) >= totalAssets - loansOutstanding + totalWithdrawable`, and equal to it plus tokens sent straight to the vault; run with random installments, loans, interest, repayments, exits, withdrawals, donations and Tether-style freezes (`CircleVault.usdtInvariant.t.sol`)
 - I-13 The exit queue is a consistent linked list of live exits; exactly the queued members are flagged `exiting`, and `voterCount` leaves them out (ADR 0043)
+- I-14 (ADR 0056) An open nominee claim is an open `Kind.Claim` request about a dormant member, asked by that member's current nominee, with `yes + no <= eligible`; an approved one is a live queue entry of a dormant member paid to the nominee who asked; never both; a member who left has no nominee. Run with random dormancy, claims, votes, cancels, wakes, payments, exits and payouts (`CircleVault.nomineeInvariant.t.sol`, plus nominee actions in the exits invariant), with the solvency invariant I-12 counting the nominee's `withdrawable`
 
 ## Scenario catalogue
 
@@ -133,6 +134,26 @@ Known gaps:
 - S-EXIT-13 Member takes a loan tie or is frozen during the notice → exit dropped at processing, `exitsWaiting` stays exact
 - S-EXIT-14b Gas sweep, AVAX circle (RT-USDT-01, ADR 0050): 6 matured exits (creator first, 24-byte names, cold storage via `isolate`), `processExits` at 150k..1.2M gas in 2k steps → each call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; paid count never drops as gas rises
 
+### Nominee / backup wallet (S-NOM, ADR 0016, 0056)
+
+- S-NOM-01 Set, change and clear the nominee (event each time); own wallet and the circle refused; outsiders can't set one; a dormant member can still change theirs
+- S-NOM-02 Claim refused while the member is active (`NotDormant`), from anyone but the current nominee (`NotNominee`), or when no nominee is set
+- S-NOM-03 Fake claim while the member is alive: `cancelNomineeClaim` during the vote or the notice ends it, wakes the member, nothing is paid; paying or `wake()` ends it too; `requestExit` replaces it with the member's own exit; `cancelExit`/`claimExit` on a claim are refused
+- S-NOM-04 Nominee who is a member can't vote on the claim; eligible excludes both the member and the nominee
+- S-NOM-05 Member changes the nominee during the vote or after the pass → claim ended, member woken, approved payout never redirected; old nominee can't ask again
+- S-NOM-06 Dormant member with an open loan, or an active guarantee → claim refused (`HasLoanTies` / `MemberFrozen`)
+- S-NOM-07 Vote fails (no), expires (no quorum), or reaches 62.5% (passes a dormant vote, not a claim) → nothing queued, claim id cleared, nominee may ask again
+- S-NOM-08 Vote passes → exit queued with notice ≥ 30 days and no rage-quit cap → paid to the nominee at NAV minus the locked exit fee by anyone's `processExits`; member removed, nominee cleared; a nominee wallet that refuses AVAX gets `withdrawable` and the queue moves on
+- S-NOM-09 USDT circle: nominee paid in USDT; a Tether-frozen nominee's payout waits in `withdrawable` until unfrozen, the exit behind it is paid, solvency holds
+- S-NOM-10 Gas sweep (isolated, cold): five matured claims (creator first, long names, nominees set) → `processExits` at 150k..1.2M gas pays ≥ 1 or reverts only `ExitGasTooLow`, monotonic
+- S-NOM-11 Claim and exit queue: an earlier exit is paid first (FIFO); a claim waits for cash like any exit and counts in `exitsWaiting`
+- S-NOM-12 Dissolve after the pass → nominee paid in full with no fee; dissolve during the vote → claim can still pass and is paid; no new claim after a dissolve; member's own `claimDissolution` ends the claim
+- S-NOM-13 Claim counts toward the nominee's 3 open requests; a member who left and rejoins starts with no nominee
+- S-NOM-14 Fuzz: any mix of yes/no votes → state after close matches the outcome (`yes + no <= eligible`, queued iff approved)
+- S-NOM-15 Invariant handler reaches claims, passes and payouts to the nominee (fixed walk) and random runs keep I-12, I-2, I-13, I-14
+- S-NOM-16 First-run checklist "backup wallet" item reads `nomineeOf` in every circle (no self-tick); before joining it says where to set it
+- S-NOM-19 Every nominee error maps to a plain-language message with its own code
+
 ### Governance (S-GOV)
 
 - S-GOV-01 Rule change passes → applies from the next period, not retroactively
@@ -186,10 +207,10 @@ Known gaps:
 
 - S-LIFE-01 Circle with 1 or 2 members → borrowing needs ≥ 3 members (the borrower can't vote, so someone else must)
 - S-LIFE-02 Members vote to dissolve → new loans stop, existing loans must close, then everything is paid out by shares
-- S-LIFE-03 Member dies (rule 1, ADR 0016) → nominee claims after dormancy + vote + notice → paid automatically
-- S-LIFE-03a Nominee files a fake claim while the member is alive → member cancels during notice
-- S-LIFE-03b Member with an open loan dies → loan repaid from their share first, remainder to the nominee
-- S-LIFE-03c Member changes nominee during a pending claim → pending claim cancelled
+- S-LIFE-03 Member dies (rule 1, ADR 0016) → nominee claims after dormancy + vote + notice → paid automatically (S-NOM-08)
+- S-LIFE-03a Nominee files a fake claim while the member is alive → member cancels during notice (S-NOM-03)
+- S-LIFE-03b Member with an open loan dies → claim refused until the loan or guarantee is settled (ADR 0056 follows exits; S-NOM-06)
+- S-LIFE-03c Member changes nominee during a pending claim → pending claim cancelled, never redirected (S-NOM-05)
 - S-LIFE-04 Member takes a payment holiday before the due day (ADR 0017) → no late fee; pays both installments by the next due date
 - S-LIFE-04a Holiday declared after the due day → rejected
 - S-LIFE-04b 4th holiday in a year → rejected; 1st holiday in the new UTC year → allowed
@@ -441,6 +462,8 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-34 The circle page's Reminders card turns reminders on for that circle; switching "Votes waiting for you" off survives a reload while the others stay on
 - S-E2E-35 Notifications blocked, a browser without Web Push and iPhone Safari outside the Home Screen each show what to do instead of a broken button; saying no at the browser prompt leaves reminders off with a plain note
 - S-E2E-36 When the push service says a device is gone (410), the test button says so and the card is back to "Turn on reminders"
+- S-E2E-50 A member adds a backup wallet from the circle page (her own address is refused before sending); the outsider opens the circle link and reads "You are the backup wallet for CarolK"; Carol misses a month and is voted dormant; the backup wallet asks for her share; the claim shows on Votes with "needs 66% yes" and passes; Carol sees the claim alert with Cancel; after the notice the backup wallet pays out to itself and the member count drops. A wallet with no circles sees the checklist's backup item as a chain read (no tick button)
+- S-E2E-51 A dormant member who is fine sees "Someone asked for your share", can't change the backup wallet while it runs, cancels the claim, and is no longer dormant
 - S-E2E-40 A wallet with no circles sees "Get test USDT" on the empty dashboard with the plain note that test USDT has no value; one tap adds exactly 1,000 USDT; on a USDT circle's Pay page the button shows again, adds another 1,000 and Pay is enabled (ADR 0053)
 
 ## Gates in CI

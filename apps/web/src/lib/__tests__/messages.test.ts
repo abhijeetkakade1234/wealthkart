@@ -130,6 +130,20 @@ describe("toFriendlyError", () => {
     ).toContain("14 Dec");
   });
 
+  it("S-NOM-19 every backup wallet error has its own plain-language message", () => {
+    const cases: Array<[string, string, string]> = [
+      ["InvalidNominee", "invalid-nominee", messages.invalidNominee()],
+      ["NotNominee", "not-nominee", messages.notNominee()],
+      ["NomineeClaimPending", "nominee-claim-pending", messages.nomineeClaimPending()],
+      ["NoNomineeClaim", "no-nominee-claim", messages.noNomineeClaim()],
+    ];
+    for (const [errorName, code, expected] of cases) {
+      const fe = toFriendlyError({ name: "ContractFunctionRevertedError", data: { errorName } });
+      expect(fe.message, errorName).toBe(expected);
+      expect(fe.code, errorName).toBe(code);
+    }
+  });
+
   it("S-MEM-19 no user-reachable contract error falls through to the generic message", () => {
     // Errors only the create form can hit (it validates first) or that no button can trigger.
     const creationOnly = new Set([

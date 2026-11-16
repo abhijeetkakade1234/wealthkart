@@ -9,6 +9,8 @@ import {ICircleRegistry} from "../interfaces/ICircleRegistry.sol";
 /// @title Membership
 /// @notice Who is in a circle and how that changes: founder invites, join requests decided by a
 ///         member vote (ADR 0028), dormant members (ADR 0010, 0032) and display names (ADR 0029).
+///         Nominee claims (ADR 0016, 0056) are voted here too; Exits opens them and acts on the
+///         result.
 /// @dev An external library (ADR 0031): deployed once per chain and linked into CircleVault at
 ///      build time. The vault delegatecalls it, so all state lives in the vault's `Store`. The
 ///      library address is fixed in the vault's bytecode; nothing can swap it (ADR 0020: no
@@ -48,7 +50,10 @@ library Membership {
         /// @dev Someone asks to join. `account` is the applicant.
         Join,
         /// @dev A member asks the circle to mark `account` dormant.
-        Dormant
+        Dormant,
+        /// @dev A dormant member's nominee asks for the member's share (ADR 0016, 0056).
+        ///      `account` is the member, `invitedBy` the nominee. Opened and acted on by Exits.
+        Claim
     }
 
     enum Status {
@@ -66,12 +71,13 @@ library Membership {
 
     struct Request {
         Kind kind;
-        /// @dev Join: the applicant. Dormant: the member it is about.
+        /// @dev Join: the applicant. Dormant and Claim: the member it is about.
         address account;
         uint64 deadline;
         /// @dev Voters possible at request time: the quorum denominator.
         uint32 eligible;
         /// @dev Join: member who vouched (optional). Dormant: the member who proposed it.
+        ///      Claim: the nominee who asked, fixed for the life of the claim.
         address invitedBy;
         /// @dev Only members with seq <= seqSnapshot can vote (in the circle before the request).
         uint32 seqSnapshot;
@@ -328,19 +334,28 @@ library Membership {
         _castVote(s, p, id, r, true);
     }
 
-    function vote(Store storage s, Params calldata p, uint256 id, bool support) external {
+    /// @return claim `id` if this vote closed a nominee claim (any outcome), else 0. The vault
+    ///         then hands it to `Exits.closeClaim` (ADR 0056).
+    function vote(Store storage s, Params calldata p, uint256 id, bool support)
+        external
+        returns (uint256 claim)
+    {
         Request storage r = _openRequest(s, id);
         if (block.timestamp > r.deadline) revert VotingClosed(id);
         if (!_canVoteOn(s, r, msg.sender)) revert NotEligibleToVote(id, msg.sender);
         if (s.hasVoted[id][msg.sender]) revert AlreadyVoted(id);
-        _castVote(s, p, id, r, support);
+        return _castVote(s, p, id, r, support);
     }
 
-    function finalize(Store storage s, Params calldata p, uint256 id) external {
+    /// @return claim As for `vote`.
+    function finalize(Store storage s, Params calldata p, uint256 id)
+        external
+        returns (uint256 claim)
+    {
         Request storage r = _openRequest(s, id);
         Status outcome = _outcome(r, p.quorumPct, block.timestamp > r.deadline);
         if (outcome == Status.Open) revert NotDecidedYet(id);
-        _close(s, p, id, r, outcome);
+        return _close(s, p, id, r, outcome);
     }
 
     function cancelJoinRequest(Store storage s, Params calldata p) external {
@@ -348,21 +363,6 @@ library Membership {
         // slither-disable-next-line incorrect-equality (0 is the "no request" sentinel)
         if (id == 0) revert NoOpenRequest();
         _close(s, p, id, s.requests[id - 1], Status.Cancelled);
-    }
-
-    // ------------------------------------------------------------------ dormant
-
-    /// @notice A dormant member comes back. Dues restart like a new member's (this month if its
-    ///         due moment hasn't passed, otherwise next month); the months in between bought no
-    ///         shares and aren't owed (ADR 0032).
-    function wake(Store storage s, Params calldata p) external {
-        _wake(s, msg.sender, _firstPeriod(p.dueDay));
-    }
-
-    /// @notice Wake because the member is paying (RT-11): the payment covers the current period,
-    ///         with its usual late fees if its due moment has passed.
-    function wakeToPay(Store storage s) external {
-        _wake(s, msg.sender, SafeCast.toUint32(PeriodMath.periodOf(block.timestamp)));
     }
 
     // ------------------------------------------------------------------ display names
@@ -505,6 +505,43 @@ library Membership {
         }
     }
 
+    /// @notice A dormant member comes back (ADR 0032). Dues restart at `next`: for `wake()` the
+    ///         period a new member would start at (`firstDuePeriod`), for a payment the current one
+    ///         (RT-11). The months in between bought no shares and aren't owed. Exits calls this
+    ///         after ending any nominee claim (ADR 0056), so every way back passes through there.
+    function wakeMember(Store storage s, address who, uint32 next) internal {
+        _wake(s, who, next);
+    }
+
+    /// @notice First period a new or returning member owes (see `_firstPeriod`).
+    function firstDuePeriod(uint8 dueDay) internal view returns (uint32) {
+        return _firstPeriod(dueDay);
+    }
+
+    /// @notice Opens a request decided by the usual vote: quorum of `eligible`, voters
+    ///         snapshotted now, the circle-wide and per-member caps. Exits opens nominee claims
+    ///         with it (ADR 0056).
+    function openRequest(
+        Store storage s,
+        Params calldata p,
+        Kind kind,
+        address account,
+        address by,
+        uint32 eligible
+    ) internal returns (uint256 id) {
+        return _open(s, p, kind, account, by, eligible, "");
+    }
+
+    /// @notice Closes open request `id` as Cancelled with no other effect (a nominee claim the
+    ///         member ended, ADR 0056).
+    function cancelRequest(Store storage s, uint256 id) internal {
+        Request storage r = s.requests[id - 1];
+        r.status = Status.Cancelled;
+        if (r.invitedBy != address(0)) s.openBy[r.invitedBy] -= 1;
+        _unlist(s, id);
+        emit RequestClosed(id, r.kind, Status.Cancelled);
+    }
+
     /// @notice True if `who` counts in `voterCount`: active, a voter, not dormant, not leaving.
     function inVoterCount(Store storage s, address who) internal view returns (bool) {
         Member storage m = s.members[who];
@@ -630,7 +667,8 @@ library Membership {
                 >= PeriodMath.periodOf(block.timestamp);
     }
 
-    /// @dev In the circle before the request, not the member a dormant vote is about.
+    /// @dev In the circle before the request, not the member a dormant vote or claim is about,
+    ///      and not the nominee asking for a claim (ADR 0056).
     function _canVoteOn(Store storage s, Request storage r, address voter)
         private
         view
@@ -638,7 +676,8 @@ library Membership {
     {
         Member storage m = s.members[voter];
         if (m.seq > r.seqSnapshot) return false;
-        if (r.kind == Kind.Dormant && voter == r.account) return false;
+        if (r.kind != Kind.Join && voter == r.account) return false;
+        if (r.kind == Kind.Claim && voter == r.invitedBy) return false;
         return _isCurrentVoter(m);
     }
 
@@ -688,7 +727,7 @@ library Membership {
         uint256 id,
         Request storage r,
         bool support
-    ) private {
+    ) private returns (uint256 claim) {
         s.hasVoted[id][msg.sender] = true;
         if (support) {
             r.yes += 1;
@@ -699,14 +738,15 @@ library Membership {
         emit Voted(id, msg.sender, support);
 
         Status outcome = _outcome(r, p.quorumPct, false);
-        if (outcome != Status.Open) _close(s, p, id, r, outcome);
+        if (outcome != Status.Open) claim = _close(s, p, id, r, outcome);
     }
 
-    /// @dev Join passes with 66% yes of votes cast (>=); dormant with more than 50% (>).
+    /// @dev Join and nominee claim pass with 66% yes of votes cast (>=, ADR 0056); dormant with
+    ///      more than 50% (>).
     function _passes(Kind kind, uint256 yes, uint256 total) private pure returns (bool) {
-        return kind == Kind.Join
-            ? yes * PERCENT >= ADMISSION_PASS_PCT * total
-            : yes * PERCENT > DORMANT_PASS_PCT * total;
+        return kind == Kind.Dormant
+            ? yes * PERCENT > DORMANT_PASS_PCT * total
+            : yes * PERCENT >= ADMISSION_PASS_PCT * total;
     }
 
     /// @dev Open = not decided yet. Passes on quorum (of `eligible`) plus the pass mark of votes
@@ -735,18 +775,26 @@ library Membership {
     }
 
     /// @dev Effects first; the only external call is the trusted factory registry, last.
+    ///      Returns `id` when a nominee claim closes (any outcome), for `Exits.closeClaim`.
     function _close(
         Store storage s,
         Params calldata p,
         uint256 id,
         Request storage r,
         Status outcome
-    ) private {
+    ) private returns (uint256 claim) {
         address account = r.account;
         Kind kind = r.kind;
         if (kind == Kind.Join) {
             if (outcome == Status.Approved && _isFull(s, p)) outcome = Status.Full;
             delete s.openJoinOf[account];
+        } else if (kind == Kind.Claim) {
+            // Every way back from dormant ends the claim first (Exits), so this only guards.
+            Member storage subject = s.members[account];
+            if (outcome == Status.Approved && !(subject.active && subject.dormant)) {
+                outcome = Status.Cancelled;
+            }
+            claim = id;
         } else {
             // The member caught up while the vote ran: nothing to do.
             if (outcome == Status.Approved && periodsOverdue(s, account, p.dueDay) < p.dormantAfter)
@@ -757,23 +805,17 @@ library Membership {
         }
         r.status = outcome;
         if (r.invitedBy != address(0)) s.openBy[r.invitedBy] -= 1;
-
-        uint256 pos = s.openPos[id];
-        uint256 lastId = s.openIds[s.openIds.length - 1];
-        s.openIds[pos - 1] = lastId;
-        s.openPos[lastId] = pos;
-        s.openIds.pop();
-        delete s.openPos[id];
+        _unlist(s, id);
         emit RequestClosed(id, kind, outcome);
 
-        if (outcome != Status.Approved) return;
+        if (outcome != Status.Approved || kind == Kind.Claim) return claim;
         if (kind == Kind.Dormant) {
             Member storage target = s.members[account];
             target.dormant = true;
             s.dormantCount += 1;
             if (target.voter && !target.exiting) s.voterCount -= 1;
             emit MemberDormant(account, PeriodMath.periodOf(block.timestamp));
-            return;
+            return 0;
         }
         if (r.inviterConfirmed && r.invitedBy != address(0)) s.admittedVia[r.invitedBy] += 1;
         _addMember(s, account, _firstPeriod(p.dueDay), p.minPaidToVote == 0);
@@ -782,6 +824,16 @@ library Membership {
         if (_isNameFree(s, k, account)) _takeName(s, account, r.displayName, k);
         else emit DisplayNameUnavailable(account, r.displayName);
         ICircleRegistry(p.factory).registerMember(account);
+    }
+
+    /// @dev Swap-and-pop `id` out of the open list.
+    function _unlist(Store storage s, uint256 id) private {
+        uint256 pos = s.openPos[id];
+        uint256 lastId = s.openIds[s.openIds.length - 1];
+        s.openIds[pos - 1] = lastId;
+        s.openPos[lastId] = pos;
+        s.openIds.pop();
+        delete s.openPos[id];
     }
 
     /// @dev Free if nobody ever held it, `account` held it last, or its reservation ran out.

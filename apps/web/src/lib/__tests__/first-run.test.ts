@@ -45,6 +45,7 @@ describe("S-ONB-02 checklist items reflect the wallet and link to the guide", ()
     const items = checklistItems({
       hasGas: true,
       inCircle: undefined,
+      hasNominee: undefined,
       state: EMPTY_FIRST_RUN,
       testnet: true,
     });
@@ -52,12 +53,14 @@ describe("S-ONB-02 checklist items reflect the wallet and link to the guide", ()
     expect(by.gas!.status).toBe("done");
     expect(by.circle!.status).toBe("checking");
     expect(by.phrase!.status).toBe("todo");
-    expect(by.nominee!.manual).toBe(true);
+    expect(by.nominee!.manual).toBe(false);
+    expect(by.nominee!.status).toBe("checking");
     expect(by.gas!.hint).toMatch(/faucet/);
     for (const i of items) expect(i.href).toMatch(/^\/start\/#/);
     const failed = checklistItems({
       hasGas: null,
       inCircle: false,
+      hasNominee: null,
       state: EMPTY_FIRST_RUN,
       testnet: false,
     });
@@ -66,16 +69,45 @@ describe("S-ONB-02 checklist items reflect the wallet and link to the guide", ()
   });
 
   it("hides when dismissed or when everything is done", () => {
-    const all = { dismissed: false, phrase: true, nominee: true };
-    const done = checklistItems({ hasGas: true, inCircle: true, state: all, testnet: true });
+    const all = { dismissed: false, phrase: true, nominee: false };
+    const done = checklistItems({
+      hasGas: true,
+      inCircle: true,
+      hasNominee: true,
+      state: all,
+      testnet: true,
+    });
     expect(showChecklist(done, all)).toBe(false);
     const fresh = checklistItems({
       hasGas: false,
       inCircle: false,
+      hasNominee: false,
       state: EMPTY_FIRST_RUN,
       testnet: true,
     });
     expect(showChecklist(fresh, EMPTY_FIRST_RUN)).toBe(true);
     expect(showChecklist(fresh, { ...EMPTY_FIRST_RUN, dismissed: true })).toBe(false);
+  });
+});
+
+describe("S-NOM-16 the backup wallet item is read from the chain (ADR 0056)", () => {
+  const base = { hasGas: true, state: EMPTY_FIRST_RUN, testnet: true };
+  const item = (x: Parameters<typeof checklistItems>[0]) =>
+    checklistItems(x).find((i) => i.id === "nominee")!;
+
+  it("is done only when every circle has one, and can't be ticked by hand", () => {
+    expect(item({ ...base, inCircle: true, hasNominee: true }).status).toBe("done");
+    expect(item({ ...base, inCircle: true, hasNominee: false }).status).toBe("todo");
+    expect(item({ ...base, inCircle: true, hasNominee: null }).status).toBe("unknown");
+    expect(item({ ...base, inCircle: true, hasNominee: true }).manual).toBe(false);
+    // An old self-tick no longer counts.
+    const ticked = { ...EMPTY_FIRST_RUN, nominee: true };
+    expect(item({ ...base, inCircle: true, hasNominee: false, state: ticked }).status).toBe("todo");
+  });
+
+  it("before joining a circle it explains where to set it", () => {
+    const i = item({ ...base, inCircle: false, hasNominee: undefined });
+    expect(i.status).toBe("todo");
+    expect(i.hint).toMatch(/circle's page/);
   });
 });

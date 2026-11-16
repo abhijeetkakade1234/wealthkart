@@ -22,6 +22,11 @@ import { GuardianPause, PauseBanner } from "@/components/exits/pause";
 import { WithdrawAlert } from "@/components/exits/withdraw-alert";
 import { DissolvedNotice, RuleChangeBanner } from "@/components/governance/circle-notices";
 import { RulesCard } from "@/components/governance/rules-card";
+import {
+  BackupForCards,
+  BackupWalletCard,
+  NomineeClaimAlert,
+} from "@/components/membership/backup-wallet";
 import { DormantNotice, ProposeDormantButton } from "@/components/membership/dormant";
 import { InviteCard } from "@/components/membership/invite-card";
 import { NameCard } from "@/components/membership/name-card";
@@ -144,6 +149,14 @@ function CircleOverview() {
         </div>
       )}
 
+      {d.isMember && (
+        <div className="mb-10 grid gap-5 empty:hidden">
+          <ErrorBoundary preset="widget" name="Backup wallet claim">
+            <NomineeClaimAlert circle={id} chainNow={chainNow} onChanged={refetchAll} />
+          </ErrorBoundary>
+        </div>
+      )}
+
       {d.iAmDormant && (
         <div className="mb-10">
           <ErrorBoundary preset="widget" name="Dormant">
@@ -151,6 +164,18 @@ function CircleOverview() {
           </ErrorBoundary>
         </div>
       )}
+
+      <div className="mb-10 grid gap-5 empty:hidden">
+        <ErrorBoundary preset="widget" name="Backup wallet for">
+          <BackupForCards
+            circle={id}
+            asset={asset}
+            exitNoticeDays={gov?.rules?.exitNoticeDays ?? 30}
+            dormantAfter={d.dormantAfter}
+            chainNow={chainNow}
+          />
+        </ErrorBoundary>
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-3">
         <StatCard
@@ -219,6 +244,14 @@ function CircleOverview() {
               <CircleRemindersCard circle={id} />
             </ErrorBoundary>
           </div>
+          <ErrorBoundary preset="widget" name="Backup wallet">
+            <BackupWalletCard
+              circle={id}
+              me={address}
+              exitNoticeDays={gov?.rules?.exitNoticeDays ?? 30}
+              onChanged={refetchAll}
+            />
+          </ErrorBoundary>
         </section>
       )}
 
@@ -227,7 +260,7 @@ function CircleOverview() {
           <ErrorBoundary preset="widget" name="Circle rules">
             <RulesCard circle={id} rules={gov.rules} />
           </ErrorBoundary>
-          {d.isMember && !gov.dissolved && (
+          {d.isMember && !gov.dissolved && !gov.claimQueued && (
             <ErrorBoundary preset="widget" name="Leaving">
               <LeaveCard circle={id} gov={gov} chainNow={chainNow} onChanged={refetchAll} />
             </ErrorBoundary>
