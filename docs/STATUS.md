@@ -146,9 +146,9 @@ How to use this file:
 
 - [x] Landing page: plain-language sections, cut-paper hero, GSAP scroll scene (ADR 0049)
 - [ ] Reminders (Web Push, wallet-keyed)
-- [ ] Circle templates (friends / family / office)
+- [x] Circle templates (friends / family / office / custom) on the create form (ADR 0054)
 - [ ] Hindi + Marathi
-- [ ] Onboarding guide (install Core, back up phrase, get AVAX)
+- [x] Onboarding guide `/start` (install Core, back up phrase, get AVAX) + first-run checklist (ADR 0054)
 
 ## Phase 5: USDC vaults + WealthKart L1
 

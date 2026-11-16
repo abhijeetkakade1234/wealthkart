@@ -4,15 +4,16 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 
 ## 1. What's public vs private
 
-| Route           | Indexed | Notes                                                                   |
-| --------------- | ------- | ----------------------------------------------------------------------- |
-| `/`             | yes     | Landing (ADR 0049); copy in `content/landing.ts`, also in llms-full.txt |
-| `/how-it-works` | yes     | Create circle → contribute AVAX → borrow by vote → exit; `HowTo` schema |
-| `/faq`          | yes     | Real questions people ask; `FAQPage` schema                             |
-| `/rules`        | yes     | Every circle setting with defaults and bounds (from ADR 0022)           |
-| `/security`     | yes     | Immutable contracts, audits, addresses, bug bounty, what we never store |
-| `/blog/*`       | yes     | Later (Phase 4)                                                         |
-| `/app/*`        | **no**  | `noindex`, disallowed in robots, excluded from sitemap                  |
+| Route           | Indexed | Notes                                                                     |
+| --------------- | ------- | ------------------------------------------------------------------------- |
+| `/`             | yes     | Landing (ADR 0049); copy in `content/landing.ts`, also in llms-full.txt   |
+| `/how-it-works` | yes     | Create circle → contribute AVAX → borrow by vote → exit; `HowTo` schema   |
+| `/faq`          | yes     | Real questions people ask; `FAQPage` schema                               |
+| `/rules`        | yes     | Every circle setting with defaults and bounds (from ADR 0022)             |
+| `/security`     | yes     | Immutable contracts, audits, addresses, bug bounty, what we never store   |
+| `/start`        | yes     | Onboarding for crypto beginners (ADR 0054); `HowTo` schema; network-aware |
+| `/blog/*`       | yes     | Later (Phase 4)                                                           |
+| `/app/*`        | **no**  | `noindex`, disallowed in robots, excluded from sitemap                    |
 
 ## 2. SEO checklist (per public page)
 
@@ -27,7 +28,7 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 
 - Write each section as a **question heading plus a direct 1–3 sentence answer**, then detail. Answer engines quote these blocks.
 - Include **concrete, checkable facts**: default rules (1%/month, 20% reserve, 30-day notice), chain (Avalanche C-Chain), contract addresses with Snowtrace links, audit report link, "we store no personal data".
-- **JSON-LD:** `Organization` + `WebSite` (site-wide), `SoftwareApplication` (home), `HowTo` (how-it-works), `FAQPage` (faq), `TechArticle` (rules, security).
+- **JSON-LD:** `Organization` + `WebSite` (site-wide), `SoftwareApplication` (home), `HowTo` (how-it-works, start), `FAQPage` (faq), `TechArticle` (rules, security).
 - Keep headings and URLs stable; update dates shown on pages.
 - Target questions, e.g.: "How do friends pool money and lend to each other safely?", "What is a savings circle on Avalanche?", "How does WealthKart decide loans?", "What happens if a member stops paying?", "Can WealthKart access our funds?", "What if I lose my wallet?"
 

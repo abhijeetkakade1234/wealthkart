@@ -332,6 +332,29 @@ ADR 0049. E2E in `apps/web/e2e/landing.e2e.ts`; copy checks in `apps/web/src/lib
 - S-LAND-06 Scrolling the month scene highlights step 1 at the start and step 4 at the end
 - S-LAND-07 Landing copy never advertises returns, the description fits search limits, FAQ teaser answers match `/faq`, and llms-full.txt carries the landing copy
 
+### Circle templates (S-TPL)
+
+ADR 0054. Unit tests in `apps/web/src/lib/__tests__/templates.test.ts`, E2E in `apps/web/e2e/templates.e2e.ts`.
+
+- S-TPL-01 Every template (Friends, Family, Office, Custom) in AVAX and in USDT passes the create form's own `validate` with no errors, and its config sits inside the `CircleVault` and `Rules.validate` bounds (due day, second fee day, fees at most half the installment, quorum 20..100, cap 3..50, `rulesProblem` null); Friends and Custom equal today's defaults; Family is gentler and Office stricter than Friends
+- S-TPL-02 Applying a template never touches the name, friends or asset; a member cap the creator typed survives switching templates; switching asset swaps the template's amounts but keeps typed ones; edits are counted
+- S-TPL-03 Template summaries give the late fee as an amount and a share of the installment, name the guarantor rule, and write ordinals correctly
+- S-TPL-04 (E2E) The create form opens on Friends with today's defaults and its plain summary
+- S-TPL-05 (E2E) Pick Family: every rule field takes the Family values and the summary says what they mean; change one field and the form says "You changed 1 setting"; create the circle on anvil and the chain holds the Family values plus the edit
+- S-TPL-06 (E2E) Office ticks "Every loan needs a guarantor" and a 66% quorum while keeping a cap the creator typed; an out-of-bounds quorum is refused before anything is sent
+
+### Onboarding (S-ONB)
+
+ADR 0054. Unit tests in `apps/web/src/lib/__tests__/first-run.test.ts` and `seo.test.ts`, E2E in `apps/web/e2e/onboarding.e2e.ts`.
+
+- S-ONB-01 First-run checklist state is stored per wallet (address case ignored), junk or blocked storage reads as a fresh list and writes never throw
+- S-ONB-02 Checklist items map chain reads to done / to do / checking / couldn't check, link to their `/start` step, and hide once dismissed or all done; the AVAX hint names the faucet only on test networks
+- S-ONB-03 `/start` is in the sitemap and llms.txt, has HowTo JSON-LD with every step and the recovery phrase warning; Fuji builds link the faucet and the test USDT button, mainnet builds say to use an exchange and name none
+- S-ONB-04 (E2E) `/start` renders all six steps, is indexable with a canonical, shows the phrase warning and the Fuji network note, links Core and the faucet, step chips jump to their section, in-site links open, and the sitemap, llms.txt and `/start.md` include it
+- S-ONB-05 (E2E) The sign-in page ("New to wallets? Start here"), the landing hero and the public footer all reach `/start`
+- S-ONB-06 (E2E) No sideways scroll on `/start` at 360px wide
+- S-ONB-07 (E2E) A newly connected wallet sees "Before you start" with AVAX ticked from its balance; "I've done this" ticks the recovery phrase item and survives a reload; open items link to their guide step; hiding the list toasts and keeps it hidden after a reload
+
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
 Real static export, local anvil chain posing as Fuji (chain id 43113), test wallet that announces itself as Core and forwards to anvil. Every user-facing feature adds one here (CLAUDE.md).

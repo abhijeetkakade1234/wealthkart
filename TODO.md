@@ -38,9 +38,10 @@ Last updated: 2026-11-16
 
 - [x] Landing page with the "one month" scroll scene (ADR 0049)
 - [ ] Reminders (Web Push, keyed by wallet)
-- [ ] Circle templates (friends, family, office)
+- [x] Circle templates: Friends, Family, Office, Custom pre-fill the create form (ADR 0054)
 - [ ] Hindi and Marathi
-- [ ] Onboarding guide (install Core, back up the phrase, get AVAX)
+- [x] Onboarding guide at `/start` and a first-run checklist on the home screen (ADR 0054)
+- [ ] Nominee wallet in the contracts (ADR 0016); then make the checklist read it from the chain
 - [x] Free space in the vault (now 22,109 B, 2,467 B left under 24 KB)
 - [ ] "Get test USDT" faucet button on Fuji builds
 - [ ] E2E for USDT loans (pay interest, repay) and the approve retry
