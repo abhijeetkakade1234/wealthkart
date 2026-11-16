@@ -324,6 +324,11 @@ library Exits {
         (,,, payout) = _quote(ledger, r, m.shares, feeBps);
     }
 
+    /// @notice `member`'s pending exit (`requestedAt` 0 = none).
+    function entryOf(Store storage s, address member) external view returns (Entry memory) {
+        return s.entries[member];
+    }
+
     /// @notice Exits in queue order from position `offset`, at most `limit` of them. Read each
     ///         with the vault's `exitOf`.
     function queuePage(Store storage s, uint256 offset, uint256 limit)

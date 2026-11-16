@@ -372,6 +372,36 @@ library Membership {
 
     // ------------------------------------------------------------------ views
 
+    // The vault forwards these views here unchanged (`CircleVault._view`, ADR 0038), so it never
+    // decodes and re-encodes the structs and strings itself.
+
+    function getRequest(Store storage s, uint256 id) external view returns (Request memory) {
+        return s.requests[id - 1];
+    }
+
+    function memberOf(Store storage s, address account) external view returns (Member memory) {
+        return s.members[account];
+    }
+
+    function nameOf(Store storage s, address member) external view returns (string memory) {
+        return s.names[member];
+    }
+
+    function membersPage(Store storage s, uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory page)
+    {
+        address[] storage list = s.memberList;
+        uint256 len = list.length;
+        if (offset >= len) return new address[](0);
+        uint256 end = offset + limit > len ? len : offset + limit;
+        page = new address[](end - offset);
+        for (uint256 i = offset; i < end; ++i) {
+            page[i - offset] = list[i];
+        }
+    }
+
     function canVote(Store storage s, uint256 id, address voter) external view returns (bool) {
         if (id == 0 || id > s.requests.length) return false;
         Request storage r = s.requests[id - 1];

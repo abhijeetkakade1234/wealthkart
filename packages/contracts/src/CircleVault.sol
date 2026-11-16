@@ -404,7 +404,8 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice `borrower`'s loan (principal 0 = no loan). Returns `LoanBook.Loan`.
     function loanOf(address borrower) external view {
-        _loanView(abi.encodeWithSelector(LoanBook.loanOf.selector, _loansSlot(), borrower));
+        _view(address(LoanBook), LoanBook.loanOf.selector, _loansSlot(), false);
+        borrower;
     }
 
     /// @notice What `payInterest` needs now: interest, late fees, and overdue months.
@@ -431,7 +432,8 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice Loan or settle request `id`. Returns `LoanBook.Request`.
     function loanRequest(uint256 id) external view {
-        _loanView(abi.encodeWithSelector(LoanBook.loanRequest.selector, _loansSlot(), id));
+        _view(address(LoanBook), LoanBook.loanRequest.selector, _loansSlot(), false);
+        id;
     }
 
     function loanRequestCount() external view returns (uint256) {
@@ -446,7 +448,8 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @notice Paginated open loan and settle requests (order changes as requests close).
     ///         Returns `(uint256[] ids, LoanBook.Request[] page)`.
     function openLoanRequestsPage(uint256 offset, uint256 limit) external view {
-        _loanView(abi.encodeWithSelector(LoanBook.openPage.selector, _loansSlot(), offset, limit));
+        _view(address(LoanBook), LoanBook.openPage.selector, _loansSlot(), false);
+        (offset, limit);
     }
 
     function canVoteLoan(uint256 id, address voter) external view returns (bool) {
@@ -513,6 +516,59 @@ contract CircleVault is ReentrancyGuardTransient {
         assembly {
             if iszero(ok) { revert(add(ret, 32), mload(ret)) }
             return(add(ret, 32), mload(ret))
+        }
+    }
+
+    function _exitsSlot() internal pure returns (uint256 slot) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            slot := _exits.slot
+        }
+    }
+
+    /// @dev `_view` on the Membership library with the members store.
+    function _mView(bytes4 sel, bool dyn) internal view {
+        uint256 slot;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            slot := _m.slot
+        }
+        _view(address(Membership), sel, slot, dyn);
+    }
+
+    /// @dev Runs view `sel` of the linked library `lib` with DELEGATECALL, passing the storage
+    ///      slot `slot` first and then this call's own arguments, and ends the call with the
+    ///      library's output (or revert) unchanged. The vault then never decodes or re-encodes
+    ///      the library's structs, arrays and strings, which keeps it small (ADR 0038). `dyn`:
+    ///      the first argument is a string, so its offset moves by the one word the slot adds.
+    ///      `lib` and `sel` are fixed by the caller; nothing here is user-controlled. The view
+    ///      cast is sound for the same reason as `_loanView`: the targets are view functions.
+    function _view(address lib, bytes4 sel, uint256 slot, bool dyn) internal view {
+        function(address, bytes4, uint256, bool) internal fwd = _forward;
+        function(address, bytes4, uint256, bool) internal view asView;
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            asView := fwd
+        }
+        asView(lib, sel, slot, dyn);
+    }
+
+    /// @dev Never returns to its caller. Only reached through the view cast in `_view`.
+    // slither-disable-next-line dead-code (called through a function pointer in _view)
+    function _forward(address lib, bytes4 sel, uint256 slot, bool dyn) internal {
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            if iszero(extcodesize(lib)) { revert(0, 0) }
+            let ptr := mload(0x40)
+            mstore(ptr, sel)
+            mstore(add(ptr, 0x04), slot)
+            let n := sub(calldatasize(), 4)
+            calldatacopy(add(ptr, 0x24), 4, n)
+            if dyn { mstore(add(ptr, 0x24), add(mload(add(ptr, 0x24)), 0x20)) }
+            let ok := delegatecall(gas(), lib, ptr, add(0x24, n), 0, 0)
+            returndatacopy(ptr, 0, returndatasize())
+            if iszero(ok) { revert(ptr, returndatasize()) }
+            return(ptr, returndatasize())
         }
     }
 
@@ -585,8 +641,9 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice `member`'s pending exit (`requestedAt` 0 = none); `prev`/`next` link the queue.
-    function exitOf(address member) external view returns (Exits.Entry memory) {
-        return _exits.entries[member];
+    function exitOf(address member) external view returns (Exits.Entry memory e) {
+        _view(address(Exits), Exits.entryOf.selector, _exitsSlot(), false);
+        (member, e);
     }
 
     /// @notice Exits in the queue right now.
@@ -595,8 +652,13 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice Paginated exit queue in payout order.
-    function exitQueuePage(uint256 offset, uint256 limit) external view returns (address[] memory) {
-        return Exits.queuePage(_exits, offset, limit);
+    function exitQueuePage(uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory page)
+    {
+        _view(address(Exits), Exits.queuePage.selector, _exitsSlot(), false);
+        (offset, limit, page);
     }
 
     /// @notice What `member` would be paid right now, after the exit fee (none once dissolved).
@@ -814,8 +876,9 @@ contract CircleVault is ReentrancyGuardTransient {
         amount = uint256(installment) + fees;
     }
 
-    function memberOf(address account) external view returns (Membership.Member memory) {
-        return _m.members[account];
+    function memberOf(address account) external view returns (Membership.Member memory m) {
+        _mView(Membership.memberOf.selector, false);
+        (account, m);
     }
 
     /// @notice Members right now, dormant ones included.
@@ -859,14 +922,8 @@ contract CircleVault is ReentrancyGuardTransient {
         view
         returns (address[] memory page)
     {
-        address[] storage list = _m.memberList;
-        uint256 len = list.length;
-        if (offset >= len) return new address[](0);
-        uint256 end = offset + limit > len ? len : offset + limit;
-        page = new address[](end - offset);
-        for (uint256 i = offset; i < end; ++i) {
-            page[i - offset] = list[i];
-        }
+        _mView(Membership.membersPage.selector, false);
+        (offset, limit, page);
     }
 
     function isMember(address account) external view returns (bool) {
@@ -901,30 +958,34 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice A member's display name here ("" if not set yet).
-    function nameOf(address member) external view returns (string memory) {
-        return _m.names[member];
+    function nameOf(address member) external view returns (string memory n) {
+        _mView(Membership.nameOf.selector, false);
+        (member, n);
     }
 
     /// @notice The member currently using `displayName` (any letter case), or address(0).
-    function memberByName(string calldata displayName) external view returns (address) {
-        return _m.memberByName(displayName);
+    function memberByName(string calldata displayName) external view returns (address a) {
+        _mView(Membership.memberByName.selector, true);
+        (displayName, a);
     }
 
     /// @notice True if `account` could take `displayName` right now.
     function isNameAvailable(string calldata displayName, address account)
         external
         view
-        returns (bool)
+        returns (bool ok)
     {
-        return _m.isNameAvailable(displayName, account);
+        _mView(Membership.isNameAvailable.selector, true);
+        (displayName, account, ok);
     }
 
     function requestCount() external view returns (uint256) {
         return _m.requests.length;
     }
 
-    function getRequest(uint256 id) external view returns (Membership.Request memory) {
-        return _m.requests[id - 1];
+    function getRequest(uint256 id) external view returns (Membership.Request memory r) {
+        _mView(Membership.getRequest.selector, false);
+        (id, r);
     }
 
     function openRequestCount() external view returns (uint256) {
@@ -937,12 +998,14 @@ contract CircleVault is ReentrancyGuardTransient {
         view
         returns (uint256[] memory ids, Membership.Request[] memory page)
     {
-        (ids, page) = _m.openRequestsPage(offset, limit);
+        _mView(Membership.openRequestsPage.selector, false);
+        (offset, limit, ids, page);
     }
 
     /// @notice True if `voter` can vote on request `id` right now.
-    function canVote(uint256 id, address voter) external view returns (bool) {
-        return _m.canVote(id, voter);
+    function canVote(uint256 id, address voter) external view returns (bool ok) {
+        _mView(Membership.canVote.selector, false);
+        (id, voter, ok);
     }
 
     /// @notice Current value of `member`'s stake in wei.
@@ -987,8 +1050,9 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice The circle's loan, exit and governance settings in force right now (a passed
     ///         change counts from its `effectiveAt`, ADR 0043).
-    function rules() external view returns (Rules.Params memory) {
-        return _effRules();
+    function rules() external view returns (Rules.Params memory r) {
+        _view(address(Rules), Rules.read.selector, _rulesSlot(), false);
+        r;
     }
 
     // ------------------------------------------------------------------ internals
