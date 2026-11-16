@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { money, useCircleAsset } from "@/lib/asset";
 import { type MyLoan, useLoanMembers, useLoanTx } from "@/lib/loan-hooks";
 import { avax, loanLimits, loanPreview, parseAvaxInput } from "@/lib/loans";
 import { formatBps, type RulesParams } from "@/lib/rules";
@@ -70,7 +71,7 @@ export function AskLoanButton({
           <DialogHeader>
             <DialogTitle>Ask for a loan</DialogTitle>
             <DialogDescription>
-              The other members vote. If enough say yes, the AVAX is sent to your wallet straight
+              The other members vote. If enough say yes, the money is sent to your wallet straight
               away. Nobody approves it by hand.
             </DialogDescription>
           </DialogHeader>
@@ -123,7 +124,8 @@ function AskForm({
   const [medical, setMedical] = useState(false);
   const [guarantor, setGuarantor] = useState<string>("");
   const typed = useDebounced(text, 300);
-  const amount = parseAvaxInput(typed);
+  const { asset } = useCircleAsset(circle);
+  const amount = parseAvaxInput(typed, asset);
   const { members, isPending } = useLoanMembers(circle);
   // One stake backs one loan (ADR 0043): nobody with a loan, a request or a guarantee of
   // their own can back yours.
@@ -153,9 +155,11 @@ function AskForm({
   const tooBig = amount !== null && amount > limits.limit;
   const problem =
     typed.trim() !== "" && amount === null
-      ? "Type an amount in AVAX, like 0.25."
+      ? asset.symbol === "USDT"
+        ? "Type an amount in USDT, like 25."
+        : "Type an amount in AVAX, like 0.25."
       : tooBig
-        ? `That's more than you can ask for right now. The most is ${avax(limits.limit)} AVAX.`
+        ? `That's more than you can ask for right now. The most is ${money(limits.limit, asset)}.`
         : null;
   const canSend = amount !== null && !tooBig && !needsGuarantor && text === typed;
 
@@ -189,7 +193,7 @@ function AskForm({
             title="Medical"
             text={
               medicalOn
-                ? `Up to ${avax(rules.medicalCap)} AVAX, ${rules.medicalFreeMonths} months interest-free, once a year. Faster vote.`
+                ? `Up to ${money(rules.medicalCap, asset)}, ${rules.medicalFreeMonths} months interest-free, once a year. Faster vote.`
                 : "This circle doesn't offer medical loans."
             }
           />
@@ -198,13 +202,13 @@ function AskForm({
 
       <div className="grid gap-1.5">
         <label htmlFor="loan-amount" className="text-[13px] font-medium">
-          Amount in AVAX
+          Amount in {asset.symbol}
         </label>
         <input
           id="loan-amount"
           inputMode="decimal"
           autoComplete="off"
-          placeholder={`Up to ${avax(limits.limit)}`}
+          placeholder={`Up to ${avax(limits.limit, asset)}`}
           className={inputCls}
           value={text}
           aria-invalid={Boolean(problem)}
@@ -215,7 +219,7 @@ function AskForm({
           id="loan-amount-hint"
           className={cn("text-[12px]", problem ? "text-bad" : "text-muted-foreground")}
         >
-          {problem ?? `You can ask for up to ${avax(limits.limit)} AVAX right now.`}
+          {problem ?? `You can ask for up to ${money(limits.limit, asset)} right now.`}
         </span>
       </div>
 
@@ -233,13 +237,13 @@ function AskForm({
           <option value="">{rules.guarantorRequired ? "Pick a member" : "No guarantor"}</option>
           {options.map((m) => (
             <option key={m.address} value={m.address}>
-              {m.name || shortAddress(m.address)} · {avax(m.stake)} AVAX saved
+              {m.name || shortAddress(m.address)} · {money(m.stake, asset)} saved
             </option>
           ))}
         </select>
         <span className="text-[12px] leading-relaxed text-muted-foreground">
           A guarantor is a member who backs your loan. Their savings raise your limit, and if the
-          loan goes unpaid their share can be frozen and used. They must agree before the AVAX is
+          loan goes unpaid their share can be frozen and used. They must agree before the money is
           sent.
         </span>
       </div>
@@ -276,7 +280,7 @@ function AskForm({
                   <span className="text-[13.5px] font-medium">{l.label}</span>
                   <span className="text-[12px] text-muted-foreground">{l.explain}</span>
                 </span>
-                <span className="font-mono text-[13.5px] tabular">{avax(l.cap)} AVAX</span>
+                <span className="font-mono text-[13.5px] tabular">{money(l.cap, asset)}</span>
               </li>
             );
           })}
@@ -285,7 +289,7 @@ function AskForm({
 
       <section aria-label="What it costs" className="grid gap-4 rounded-[12px] bg-secondary/60 p-6">
         <h4 className="text-[12px] uppercase tracking-[0.12em] text-muted-foreground">
-          What it costs{amount === null ? ` (at ${avax(limits.limit)} AVAX)` : ""}
+          What it costs{amount === null ? ` (at ${money(limits.limit, asset)})` : ""}
         </h4>
         <ol className="grid gap-3 sm:grid-cols-3">
           {preview.tenors.map((t) => (
@@ -294,7 +298,9 @@ function AskForm({
                 {periodLabel(t.from).slice(0, 3)} {periodLabel(t.from).slice(-4)} to{" "}
                 {periodLabel(t.to).slice(0, 3)} {periodLabel(t.to).slice(-4)}
               </span>
-              <span className="font-mono text-[14px] tabular">{avax(t.monthly)} AVAX a month</span>
+              <span className="font-mono text-[14px] tabular">
+                {money(t.monthly, asset)} a month
+              </span>
               <span className="text-[12px] text-muted-foreground">
                 {formatBps(t.rateBps)} a month
               </span>
@@ -315,11 +321,11 @@ function AskForm({
           {preview.minimum > 0n && (
             <li>
               Repaying in the month you borrow still costs one month&apos;s interest (
-              {avax(preview.minimum)} AVAX).
+              {money(preview.minimum, asset)}).
             </li>
           )}
           <li>
-            Late interest costs {avax(rules.interestFee)} AVAX a month extra. After{" "}
+            Late interest costs {money(rules.interestFee, asset)} a month extra. After{" "}
             {rules.defaultAfter} late {rules.defaultAfter === 1 ? "month" : "months"}, anyone can
             mark the loan as defaulted, which freezes you{chosen ? " and your guarantor" : ""}.
           </li>

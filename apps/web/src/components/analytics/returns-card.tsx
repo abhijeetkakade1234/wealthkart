@@ -1,9 +1,8 @@
 "use client";
 
-import { formatAvax, periodLabel } from "@wealthkart/sdk";
+import { periodLabel } from "@wealthkart/sdk";
 import { Download } from "lucide-react";
 import { useState } from "react";
-import { formatEther } from "viem";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import {
@@ -15,6 +14,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import type { CircleEvent } from "@/lib/analytics";
+import { type CircleAsset, fmt, toNumber } from "@/lib/asset";
 import { annualReturn, cashFlows, formatRate, memberHistoryCsv, project } from "@/lib/returns";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +49,7 @@ export function ReturnsCard({
   dueDay,
   chainNow,
   circleName,
+  asset,
 }: {
   events: readonly CircleEvent[];
   me: string;
@@ -58,16 +59,18 @@ export function ReturnsCard({
   dueDay: number;
   chainNow: number;
   circleName: string;
+  asset: CircleAsset;
 }) {
   const [years, setYears] = useState<(typeof YEARS)[number]>(10);
-  const mine = annualReturn(cashFlows(events, dueDay, stake, chainNow, me));
-  const circle = annualReturn(cashFlows(events, dueDay, totalAssets, chainNow));
+  const mine = annualReturn(cashFlows(events, dueDay, stake, chainNow, me, asset));
+  const circle = annualReturn(cashFlows(events, dueDay, totalAssets, chainNow, undefined, asset));
   const rate = circle ?? 0;
-  const points = project(Number(formatEther(stake)), Number(formatEther(installment)), rate, years);
+  const stakeNum = toNumber(stake, asset);
+  const points = project(stakeNum, toNumber(installment, asset), rate, years);
   const data = points.map((p) => ({
     year: p.year === 0 ? "Now" : `${p.year}y`,
     value: Number(p.value.toFixed(2)),
-    paidIn: Number((Number(formatEther(stake)) + p.paidIn).toFixed(2)),
+    paidIn: Number((stakeNum + p.paidIn).toFixed(2)),
   }));
 
   function downloadCsv() {
@@ -75,7 +78,9 @@ export function ReturnsCard({
       events,
       me,
       (p) => periodLabel(p),
-      (w) => formatAvax(w),
+      // USDT exact (6 decimals); AVAX as before (2 decimals, rounded down).
+      (u) => fmt(u, asset, asset.symbol === "USDT" ? 6 : 2),
+      asset.symbol,
     );
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -91,7 +96,7 @@ export function ReturnsCard({
       title="Your returns"
       subtitle="Based on each installment's due date and what your share is worth today."
       table={{
-        columns: ["Year", "Could be worth (AVAX)", "You'd pay in (AVAX)"],
+        columns: ["Year", `Could be worth (${asset.symbol})`, `You'd pay in (${asset.symbol})`],
         rows: data.map((d) => [d.year, d.value.toFixed(2), d.paidIn.toFixed(2)]),
       }}
     >
@@ -111,8 +116,8 @@ export function ReturnsCard({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-[13.5px] text-muted-foreground">
-            If you keep paying {formatAvax(installment)} AVAX a month and the circle&apos;s return
-            holds:
+            If you keep paying {fmt(installment, asset)} {asset.symbol} a month and the
+            circle&apos;s return holds:
           </p>
           <div className="flex gap-1 rounded-full bg-secondary p-1" role="group" aria-label="Years">
             {YEARS.map((y) => (

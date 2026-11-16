@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { type CircleAsset, useCircleAsset } from "@/lib/asset";
 import { useMemberOptions } from "@/lib/gov-hooks";
 import { type ProposalKind, proposalTitle, WAIVER_REASONS, waiverMonths } from "@/lib/governance";
 import {
@@ -73,6 +74,7 @@ export function NewProposalButton({
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<ProposalKind>("rule-change");
   const action = useVaultAction(circle);
+  const { asset } = useCircleAsset(circle);
 
   function done(message: string) {
     setOpen(false);
@@ -132,6 +134,7 @@ export function NewProposalButton({
           <div role="tabpanel" aria-label={proposalTitle(kind)} className="grid gap-6 pt-2">
             {kind === "rule-change" && (
               <RuleChangeForm
+                asset={asset}
                 rules={rules}
                 installment={installment}
                 working={action.working}
@@ -209,19 +212,21 @@ export function NewProposalButton({
 }
 
 function RuleChangeForm({
+  asset,
   rules,
   installment,
   working,
   onSubmit,
 }: {
+  asset: CircleAsset;
   rules: RulesParams;
   installment: bigint;
   working: boolean;
   onSubmit: (next: RulesParams) => void;
 }) {
-  const [form, setForm] = useState<RulesForm>(() => rulesToForm(rules));
-  const parsed = useMemo(() => rulesFromForm(form, installment), [form, installment]);
-  const changes = parsed.params ? ruleDiff(rules, parsed.params) : [];
+  const [form, setForm] = useState<RulesForm>(() => rulesToForm(rules, asset));
+  const parsed = useMemo(() => rulesFromForm(form, installment, asset), [form, installment, asset]);
+  const changes = parsed.params ? ruleDiff(rules, parsed.params, asset) : [];
   const set = (k: RuleKey, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
@@ -267,6 +272,7 @@ function RuleChangeForm({
                 <div key={k} className="grid content-start gap-1.5">
                   <label htmlFor={id} className="text-[13px] font-medium">
                     {meta.label}
+                    {meta.unit === "avax" ? ` (${asset.symbol})` : ""}
                   </label>
                   <input
                     id={id}

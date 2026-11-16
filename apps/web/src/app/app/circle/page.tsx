@@ -1,6 +1,6 @@
 "use client";
 
-import { explorerAddressUrl, formatAvax, periodLabel, shortAddress } from "@wealthkart/sdk";
+import { explorerAddressUrl, periodLabel, shortAddress } from "@wealthkart/sdk";
 import { HandCoins } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { periodOf } from "@wealthkart/rules";
 
 import { CircleAnalytics } from "@/components/analytics/circle-analytics";
+import { AssetBadge } from "@/components/app/asset-pay";
 import { CountdownUTC } from "@/components/app/countdown-utc";
 import { Avatar, CircleCover } from "@/components/art";
 import { PageHeader } from "@/components/app/page-header";
@@ -34,6 +35,7 @@ import {
   useCircle,
   useCircleMembers,
 } from "@/lib/circle";
+import { type CircleAsset, fmt } from "@/lib/asset";
 import { useCircleGov } from "@/lib/gov-hooks";
 import { votingRightsNote } from "@/lib/membership";
 import type { Address } from "viem";
@@ -80,6 +82,7 @@ function CircleOverview() {
   if (c.isError) return <StateView state="error" onRetry={() => c.refetch()} />;
 
   const d = c.data;
+  const asset = d.asset;
   const gov = g.data;
   const explorer = chainId ? explorerAddressUrl(chainId, id) : null;
   const refetchAll = () => {
@@ -96,8 +99,8 @@ function CircleOverview() {
         title={d.name}
         subtitle={
           <>
-            {String(d.memberCount)} members · {formatAvax(d.installment)} AVAX a month · due on day{" "}
-            {d.dueDay}
+            {String(d.memberCount)} members · {fmt(d.installment, asset)} {asset.symbol} a month ·
+            due on day {d.dueDay}
             {explorer && (
               <>
                 {" · "}
@@ -111,12 +114,13 @@ function CircleOverview() {
                 </a>
               </>
             )}
+            <AssetBadge asset={asset} className="ml-2.5 align-[2px]" />
           </>
         }
         actions={
           d.isMember && d.due?.payable ? (
             <Button icon={HandCoins} onClick={() => router.push(`/app/circle/pay/?id=${id}`)}>
-              Pay {formatAvax(d.due.amount)} AVAX
+              Pay {fmt(d.due.amount, asset)} {asset.symbol}
             </Button>
           ) : undefined
         }
@@ -150,14 +154,14 @@ function CircleOverview() {
       <div className="grid gap-5 sm:grid-cols-3">
         <StatCard
           label="Circle value"
-          value={formatAvax(d.totalAssets)}
-          unit="AVAX"
+          value={fmt(d.totalAssets, asset)}
+          unit={asset.symbol}
           meta="Everything members have put in, plus fees"
         />
         <StatCard
           label="My stake"
-          value={d.isMember ? formatAvax(d.stake) : "–"}
-          unit={d.isMember ? "AVAX" : undefined}
+          value={d.isMember ? fmt(d.stake, asset) : "–"}
+          unit={d.isMember ? asset.symbol : undefined}
           meta={
             d.isMember ? "Your share of the circle right now" : "You're not a member of this circle"
           }
@@ -166,14 +170,14 @@ function CircleOverview() {
           d.due.payable ? (
             <StatCard
               label={`You owe for ${periodLabel(d.due.period)}`}
-              value={formatAvax(d.due.amount)}
-              unit="AVAX"
+              value={fmt(d.due.amount, asset)}
+              unit={asset.symbol}
               tone="due"
             >
               <CountdownUTC period={Number(d.due.period)} dueDay={d.dueDay} />
               {d.due.fees > 0n && (
                 <span className="text-[12.5px] text-warn">
-                  Includes {formatAvax(d.due.fees)} AVAX in late fees
+                  Includes {fmt(d.due.fees, asset)} {asset.symbol} in late fees
                 </span>
               )}
             </StatCard>
@@ -187,9 +191,9 @@ function CircleOverview() {
         ) : (
           <StatCard
             label="Late fees"
-            value={formatAvax(d.fee1)}
-            unit="AVAX"
-            meta={`After day ${d.dueDay}, plus ${formatAvax(d.fee2)} after day ${d.secondFeeDay}`}
+            value={fmt(d.fee1, asset)}
+            unit={asset.symbol}
+            meta={`After day ${d.dueDay}, plus ${fmt(d.fee2, asset)} after day ${d.secondFeeDay}`}
           />
         )}
       </div>
@@ -287,6 +291,7 @@ function CircleOverview() {
         </h2>
         <ErrorBoundary preset="widget" name="Members">
           <MembersTable
+            asset={asset}
             id={id}
             total={Number(d.memberListLength)}
             canPropose={d.isMember && !d.iAmDormant}
@@ -301,6 +306,7 @@ function CircleOverview() {
 }
 
 function MembersTable({
+  asset,
   id,
   total,
   canPropose,
@@ -308,6 +314,7 @@ function MembersTable({
   minPaidToVote,
   onChanged,
 }: {
+  asset: CircleAsset;
   id: Address;
   total: number;
   /** The viewer is an active member, so they may start a dormant vote. */
@@ -338,7 +345,7 @@ function MembersTable({
             <thead>
               <tr className="border-b border-line-soft text-left text-[12.5px] text-muted-foreground">
                 <th className="px-6 py-3.5 font-medium">Member</th>
-                <th className="px-6 py-3.5 text-right font-medium">Stake (AVAX)</th>
+                <th className="px-6 py-3.5 text-right font-medium">Stake ({asset.symbol})</th>
                 <th className="px-6 py-3.5 font-medium">Paid up to</th>
                 <th className="px-6 py-3.5 font-medium">
                   <span className="sr-only">Actions</span>
@@ -374,7 +381,7 @@ function MembersTable({
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-[18px] text-right tabular">{formatAvax(r.stake)}</td>
+                    <td className="px-6 py-[18px] text-right tabular">{fmt(r.stake, asset)}</td>
                     <td className="px-6 py-[18px]">
                       {!r.active ? (
                         <span className="text-[12.5px] text-muted-foreground">Left</span>

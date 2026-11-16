@@ -1,7 +1,6 @@
 "use client";
 
 import { formatAvax, periodLabel } from "@wealthkart/sdk";
-import { formatEther } from "viem";
 import {
   Area,
   AreaChart,
@@ -23,12 +22,12 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import type { MonthPoint } from "@/lib/analytics";
+import { type CircleAsset, fmt, toNumber } from "@/lib/asset";
 
 import { ChartFrame } from "./chart-frame";
 
 /** Phase 1 circle charts (PLAN.md D7): value, money in per month, value of one share. */
 
-const avax = (wei: bigint) => Number(formatEther(wei));
 /** Axis label like "Dec '26" (periodLabel gives "December 2026"). */
 const short = (p: number) => {
   const label = periodLabel(p);
@@ -47,15 +46,15 @@ const valueConfig = {
   value: { label: "Circle value", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
-export function ValueChart({ points }: { points: MonthPoint[] }) {
-  const data = points.map((p) => ({ month: short(p.period), value: avax(p.value) }));
+export function ValueChart({ points, asset }: { points: MonthPoint[]; asset: CircleAsset }) {
+  const data = points.map((p) => ({ month: short(p.period), value: toNumber(p.value, asset) }));
   return (
     <ChartFrame
       title="Circle value"
-      subtitle="Everything paid in so far, month by month (AVAX)."
+      subtitle={`Everything paid in so far, month by month (${asset.symbol}).`}
       table={{
-        columns: ["Month", "Value (AVAX)"],
-        rows: points.map((p) => [periodLabel(p.period), formatAvax(p.value)]),
+        columns: ["Month", `Value (${asset.symbol})`],
+        rows: points.map((p) => [periodLabel(p.period), fmt(p.value, asset)]),
       }}
     >
       <ChartContainer config={valueConfig} className="aspect-auto h-[240px] w-full">
@@ -89,22 +88,22 @@ const inflowConfig = {
   fees: { label: "Late fees", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
-export function InflowChart({ points }: { points: MonthPoint[] }) {
+export function InflowChart({ points, asset }: { points: MonthPoint[]; asset: CircleAsset }) {
   const data = points.map((p) => ({
     month: short(p.period),
-    installments: avax(p.installments),
-    fees: avax(p.fees),
+    installments: toNumber(p.installments, asset),
+    fees: toNumber(p.fees, asset),
   }));
   return (
     <ChartFrame
       title="Money in each month"
-      subtitle="Installments and late fees, by the month they're for (AVAX)."
+      subtitle={`Installments and late fees, by the month they're for (${asset.symbol}).`}
       table={{
         columns: ["Month", "Installments", "Late fees"],
         rows: points.map((p) => [
           periodLabel(p.period),
-          formatAvax(p.installments),
-          formatAvax(p.fees),
+          fmt(p.installments, asset),
+          fmt(p.fees, asset),
         ]),
       }}
     >
@@ -143,15 +142,16 @@ const navConfig = {
   nav: { label: "One share", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
-export function NavChart({ points }: { points: MonthPoint[] }) {
+export function NavChart({ points, asset }: { points: MonthPoint[]; asset: CircleAsset }) {
   const withNav = points.filter((p) => p.navE18 !== null);
-  const data = withNav.map((p) => ({ month: short(p.period), nav: avax(p.navE18!) }));
+  // navE18 is an index scaled by 1e18 whatever the asset (1.00 = what was paid in).
+  const data = withNav.map((p) => ({ month: short(p.period), nav: toNumber(p.navE18!) }));
   return (
     <ChartFrame
       title="Value of one share"
-      subtitle="What 1 AVAX paid in at the start is worth now. Late fees lift it for everyone; loan interest will too."
+      subtitle={`What 1 ${asset.symbol} paid in at the start is worth now. Late fees and loan interest lift it for everyone.`}
       table={{
-        columns: ["Month", "Worth of 1 AVAX"],
+        columns: ["Month", `Worth of 1 ${asset.symbol}`],
         rows: withNav.map((p) => [periodLabel(p.period), formatAvax(p.navE18!)]),
       }}
     >

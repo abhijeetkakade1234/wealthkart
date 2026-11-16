@@ -1,6 +1,6 @@
 "use client";
 
-import { circleVaultAbi, formatAvax, shortAddress } from "@wealthkart/sdk";
+import { circleVaultAbi, shortAddress } from "@wealthkart/sdk";
 import { ArrowRight, Check, LogIn, Undo2, UserPlus, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -16,6 +16,7 @@ import { DisplayNameField, useNameCheck } from "@/components/membership/display-
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { fmt } from "@/lib/asset";
 import { parseCircleId, useChainNow, useCircle, useJoinRequest } from "@/lib/circle";
 import {
   ADMISSION_PASS_PCT,
@@ -196,12 +197,14 @@ function Join() {
 
 function CircleFacts({ d }: { d: NonNullable<ReturnType<typeof useCircle>["data"]> }) {
   const hours = Math.round(d.votingWindow / 3600);
+  const asset = d.asset;
   const facts: Array<[string, string]> = [
-    ["Each month", `${formatAvax(d.installment)} AVAX`],
+    ["Money", asset.symbol === "USDT" ? "USDT (network fees in AVAX)" : "AVAX"],
+    ["Each month", `${fmt(d.installment, asset)} ${asset.symbol}`],
     ["Due", `Day ${d.dueDay}, 23:59 UTC`],
     [
       "Late fees",
-      `${formatAvax(d.fee1)} AVAX after day ${d.dueDay}, ${formatAvax(d.fee2)} more after day ${d.secondFeeDay}`,
+      `${fmt(d.fee1, asset)} ${asset.symbol} after day ${d.dueDay}, ${fmt(d.fee2, asset)} more after day ${d.secondFeeDay}`,
     ],
     ["Members", d.maxMembers > 0 ? `${d.memberCount} of ${d.maxMembers}` : String(d.memberCount)],
     [

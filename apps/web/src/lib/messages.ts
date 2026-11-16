@@ -87,7 +87,7 @@ export const messages = {
   noOtherVoters: () => "There's nobody else in the circle who could vote on this yet.",
   nothingToWithdraw: () => "There's nothing waiting for you to withdraw.",
   withdrawFailed: () =>
-    "Your wallet didn't accept the AVAX. Try again from a wallet that can receive AVAX.",
+    "Your wallet didn't accept the payout. Try again from a wallet that can receive it.",
   insufficientCash: () =>
     "The circle doesn't have enough cash for this right now. Some of its money is lent out.",
   // USDT circles (ADR 0046).
@@ -95,6 +95,11 @@ export const messages = {
   tokenAllowanceTooLow: () =>
     "Approve the USDT payment in your wallet first, then pay. If the amount changed, approve again.",
   tokenBalanceTooLow: () => "Your wallet doesn't have enough USDT for this payment.",
+  needGasAvax: (fee: string) =>
+    `Network fees are paid in AVAX, even in a USDT circle. Add about ${fee} AVAX to your wallet, then pay.`,
+  /** Checked before anything is sent, so the member never approves a payment they can't make. */
+  notEnoughToken: (p: { needed: string; have: string; symbol: string }) =>
+    `Your wallet has ${p.have} ${p.symbol}, but this payment needs ${p.needed} ${p.symbol}. Add ${p.symbol} to your wallet, then try again.`,
   tokenAmountMismatch: () =>
     "The circle received a different amount of USDT than was sent, so the payment was refused.",
   tokenTransferFailed: () =>
@@ -190,8 +195,8 @@ export const messages = {
     "That member already has 3 open invites or proposals. Ask them to wait until one is decided, or ask another member to invite you.",
 
   // Success
-  paid: (month: string, amountAvax: string) =>
-    `Paid. Your ${month} installment of ${amountAvax} AVAX is in.`,
+  paid: (month: string, amount: string, symbol = "AVAX") =>
+    `Paid. Your ${month} installment of ${amount} ${symbol} is in.`,
   voted: (votes: number, members: number) => `Vote counted. ${votes} of ${members} have voted.`,
   copied: (what = "Address") => `${what} copied.`,
 

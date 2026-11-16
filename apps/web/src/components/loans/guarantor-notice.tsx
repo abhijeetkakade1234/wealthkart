@@ -7,8 +7,8 @@ import type { Address } from "viem";
 import { TxFor } from "@/components/app/tx-for";
 import { Avatar } from "@/components/art";
 import { Button } from "@/components/kit";
+import { money, useCircleAsset } from "@/lib/asset";
 import { type LoanRequestView, useLoanTx } from "@/lib/loan-hooks";
-import { avax } from "@/lib/loans";
 import { notify } from "@/lib/toast";
 
 /**
@@ -25,6 +25,7 @@ export function GuarantorNotice({
   onChanged: () => void;
 }) {
   const action = useLoanTx(circle);
+  const { asset } = useCircleAsset(circle);
   const who = r.borrowerName || shortAddress(r.borrower);
 
   async function accept() {
@@ -45,7 +46,7 @@ export function GuarantorNotice({
         <Avatar address={r.borrower} size={40} />
         <div className="grid gap-1.5">
           <h3 className="text-[15px] font-semibold">
-            {who} asked you to back a {r.medical ? "medical " : ""}loan of {avax(r.amount)} AVAX
+            {who} asked you to back a {r.medical ? "medical " : ""}loan of {money(r.amount, asset)}
           </h3>
           <p className="max-w-[62ch] text-[13.5px] leading-relaxed text-foreground/80">
             Backing it means your savings count towards their limit. If they stop paying and the

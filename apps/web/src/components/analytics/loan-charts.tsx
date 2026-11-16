@@ -2,7 +2,7 @@
 
 import { circleVaultAbi, shortAddress } from "@wealthkart/sdk";
 import { useMemo } from "react";
-import { type Address, formatEther } from "viem";
+import type { Address } from "viem";
 import { useReadContracts } from "wagmi";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
@@ -13,6 +13,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { ErrorBoundary } from "@/components/kit";
+import { type CircleAsset, money, toNumber } from "@/lib/asset";
 import type { DecodedLog } from "@/lib/events";
 import {
   avax,
@@ -32,11 +33,13 @@ import { ChartFrame } from "./chart-frame";
 export function CircleLoanCharts({
   id,
   logs,
-  money,
+  money: totals,
+  asset,
 }: {
   id: Address;
   logs: readonly DecodedLog[];
   money: { totalAssets: bigint; loansOutstanding: bigint; reserveBps: number };
+  asset: CircleAsset;
 }) {
   const rows = useMemo(() => outstandingByMember(loansFromLogs(logs)), [logs]);
   const names = useReadContracts({
@@ -61,11 +64,12 @@ export function CircleLoanCharts({
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <ErrorBoundary preset="widget" name="Loans outstanding per member">
-        <OutstandingChart rows={rows} name={name} />
+        <OutstandingChart rows={rows} name={name} asset={asset} />
       </ErrorBoundary>
       <ErrorBoundary preset="widget" name="Where the money is">
         <MoneySplitChart
-          split={moneySplit(money.totalAssets, money.loansOutstanding, money.reserveBps)}
+          split={moneySplit(totals.totalAssets, totals.loansOutstanding, totals.reserveBps)}
+          asset={asset}
         />
       </ErrorBoundary>
     </div>
@@ -81,28 +85,30 @@ const axis = {
 } as const;
 
 const outstandingConfig = {
-  owed: { label: "Still owed (AVAX)", color: "var(--chart-1)" },
+  owed: { label: "Still owed", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 /** Ranked horizontal bars, one hue (magnitude, not identity), biggest first. */
 export function OutstandingChart({
   rows,
   name,
+  asset,
 }: {
   rows: MemberOutstanding[];
   name: (address: string) => string;
+  asset: CircleAsset;
 }) {
   const data = rows.map((r) => ({
     member: name(r.borrower),
-    owed: Number(formatEther(r.outstanding)),
+    owed: toNumber(r.outstanding, asset),
   }));
   return (
     <ChartFrame
       title="Loans outstanding per member"
-      subtitle="What each borrower still owes the circle, in AVAX."
+      subtitle={`What each borrower still owes the circle, in ${asset.symbol}.`}
       table={{
-        columns: ["Member", "Still owed (AVAX)"],
-        rows: rows.map((r) => [name(r.borrower), avax(r.outstanding)]),
+        columns: ["Member", `Still owed (${asset.symbol})`],
+        rows: rows.map((r) => [name(r.borrower), avax(r.outstanding, asset)]),
       }}
     >
       {rows.length === 0 ? (
@@ -141,15 +147,19 @@ const PARTS = [
  * "Where the money is": one tall segmented bar (dataviz Figures: 28px, 4px corners, 2px
  * surface gaps, share printed inside where it fits) with a legend in block order.
  */
-export function MoneySplitChart({ split }: { split: MoneySplit }) {
+export function MoneySplitChart({ split, asset }: { split: MoneySplit; asset: CircleAsset }) {
   const parts = PARTS.map((p) => ({ ...p, value: split[p.key] })).filter((p) => p.value > 0n);
   return (
     <ChartFrame
       title="Where the money is"
       subtitle="The circle's value split into cash free to lend, money lent out, and the reserve it always keeps."
       table={{
-        columns: ["Part", "AVAX", "Share"],
-        rows: PARTS.map((p) => [p.label, avax(split[p.key]), shareText(split[p.key], split.total)]),
+        columns: ["Part", asset.symbol, "Share"],
+        rows: PARTS.map((p) => [
+          p.label,
+          avax(split[p.key], asset),
+          shareText(split[p.key], split.total),
+        ]),
       }}
     >
       {split.total === 0n ? (
@@ -159,16 +169,18 @@ export function MoneySplitChart({ split }: { split: MoneySplit }) {
       ) : (
         <div className="grid gap-6 pt-2">
           <p className="font-display text-[34px] leading-none tracking-tight">
-            {avax(split.total)}
+            {avax(split.total, asset)}
             <small className="ml-1.5 font-sans text-[13px] tracking-normal text-muted-foreground">
-              AVAX in total
+              {asset.symbol} in total
             </small>
           </p>
           <div
             className="flex h-7 w-full gap-[2px]"
             role="img"
             aria-label={parts
-              .map((p) => `${p.label}: ${avax(p.value)} AVAX, ${shareText(p.value, split.total)}`)
+              .map(
+                (p) => `${p.label}: ${money(p.value, asset)}, ${shareText(p.value, split.total)}`,
+              )
               .join("; ")}
             data-testid="money-split"
           >
@@ -179,7 +191,7 @@ export function MoneySplitChart({ split }: { split: MoneySplit }) {
                   key={p.key}
                   className="flex h-full min-w-[3px] items-center overflow-hidden rounded-[4px] px-2 text-[12px] font-medium text-white tabular"
                   style={{ width: `${pct}%`, background: p.color }}
-                  title={`${p.label}: ${avax(p.value)} AVAX (${shareText(p.value, split.total)})`}
+                  title={`${p.label}: ${money(p.value, asset)} (${shareText(p.value, split.total)})`}
                 >
                   {pct >= 12 ? shareText(p.value, split.total) : ""}
                 </div>
@@ -197,7 +209,7 @@ export function MoneySplitChart({ split }: { split: MoneySplit }) {
                   />
                   {p.label}
                 </span>
-                <span className="font-mono text-[14px] tabular">{avax(split[p.key])} AVAX</span>
+                <span className="font-mono text-[14px] tabular">{money(split[p.key], asset)}</span>
               </li>
             ))}
           </ul>
