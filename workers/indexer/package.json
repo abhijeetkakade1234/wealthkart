@@ -10,9 +10,11 @@
     "test": "vitest run",
     "lint": "tsc -p tsconfig.json --noEmit",
     "migrate:local": "wrangler d1 migrations apply DB --local",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "vapid:keys": "node scripts/vapid-keys.mjs"
   },
   "dependencies": {
+    "@block65/webcrypto-web-push": "2.0.0",
     "@wealthkart/sdk": "workspace:*",
     "viem": "^2.37.0"
   },

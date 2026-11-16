@@ -1,6 +1,8 @@
 import { decode } from "./codec";
 import { type ChainReader, type Config, indexStep } from "./indexer";
 import { openAlerts } from "./monitor";
+import { handlePush, type PushConfig } from "./push/api";
+import type { Fetcher } from "./push/send";
 import {
   checkedAt,
   circleLogs,
@@ -18,6 +20,7 @@ import {
  *   GET /v1/health
  *   GET /v1/alerts           open monitoring alerts (ADR 0041)
  *   GET /v1/circles/:address/logs?fromBlock=&fromLogIndex=&limit=
+ *   POST /v1/push/*          payment reminders (ADR 0052), see `push/api.ts`
  */
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -30,7 +33,8 @@ const REQUEST_CHUNKS = 4;
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET, OPTIONS",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
   "access-control-max-age": "86400",
 };
 
@@ -62,11 +66,26 @@ export async function handle(
   chain: ChainReader,
   cfg: Config,
   nowMs: number,
+  push?: PushConfig,
+  fetcher?: Fetcher,
 ): Promise<Response> {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+  const url = new URL(request.url);
+  if (url.pathname.startsWith("/v1/push/")) {
+    const off: PushConfig = { chainId: cfg.chainId, vapid: null, domains: [], extraOrigins: [] };
+    // Circles must be known (factory-created) to get reminders; a circle made a moment ago may
+    // not be indexed yet, so catch up first, like a logs request does.
+    if (push?.vapid && /^\/v1\/push\/(subscribe|circle)$/.test(url.pathname)) {
+      try {
+        await catchUp(db, chain, cfg, nowMs);
+      } catch {
+        // RPC trouble: use what is indexed.
+      }
+    }
+    return handlePush(request, url.pathname, db, push ?? off, nowMs, json, fetcher);
+  }
   if (request.method !== "GET") return json({ error: "Only GET is supported." }, 405);
 
-  const url = new URL(request.url);
   if (url.pathname === "/v1/health") {
     const to = await indexedTo(db);
     return json({
@@ -74,6 +93,7 @@ export async function handle(
       indexedTo: to === null ? null : to.toString(),
       sizeBytes: await dbSize(db),
       full: await isFull(db),
+      push: Boolean(push?.vapid),
     });
   }
 

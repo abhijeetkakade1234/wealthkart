@@ -28,6 +28,15 @@ LOG_CHUNK = "2048"
 CONFIRMATIONS = "1"
 # D1 free tier: 500 MB per database. Stop storing new events at this many MB (ADR 0047).
 D1_SOFT_LIMIT_MB = "450"
+# Payment reminders by Web Push (ADR 0052). Owner action: `npx web-push generate-vapid-keys`
+# (or any P-256 key pair), paste the public key here and in the web build's
+# NEXT_PUBLIC_VAPID_PUBLIC_KEY, and `wrangler secret put VAPID_PRIVATE_KEY` for the private one.
+# Reminders stay off (the push API answers 503) until both are set.
+VAPID_PUBLIC_KEY = ""
+# Contact for push services: a URL, so no email address is needed anywhere.
+VAPID_SUBJECT = "https://wealthkart.pages.dev"
+# Sites allowed in signed reminder messages (Pages production and its preview subdomains).
+APP_DOMAINS = "wealthkart.pages.dev,*.wealthkart.pages.dev"
 
 # Avalanche mainnet (ADR 0051): `wrangler deploy --env mainnet`. Own D1 database and factory.
 # Keep this section before [env.e2e]: the deploy workflow reads it up to that line.
@@ -44,6 +53,10 @@ FROM_BLOCK = "0"
 LOG_CHUNK = "2048"
 CONFIRMATIONS = "1"
 D1_SOFT_LIMIT_MB = "450"
+# Own key pair for mainnet (`wrangler secret put VAPID_PRIVATE_KEY --env mainnet`).
+VAPID_PUBLIC_KEY = ""
+VAPID_SUBJECT = "https://wealthkart.pages.dev"
+APP_DOMAINS = "wealthkart.pages.dev"
 [[env.mainnet.d1_databases]]
 binding = "DB"
 database_name = "wealthkart-indexer-mainnet"
@@ -51,7 +64,9 @@ database_name = "wealthkart-indexer-mainnet"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
-# Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs.
+# Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs, which also passes a fresh
+# VAPID key pair, APP_DOMAINS for the local web port and PUSH_EXTRA_ORIGINS for a fake push
+# service on 127.0.0.1 as --var flags. Never copy those settings to Fuji or mainnet.
 [env.e2e]
 name = "wealthkart-indexer-e2e"
 [env.e2e.vars]
@@ -61,6 +76,11 @@ FACTORY = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 FROM_BLOCK = "0"
 LOG_CHUNK = "2048"
 CONFIRMATIONS = "0"
+D1_SOFT_LIMIT_MB = "450"
+# Filled by e2e/indexer.mjs with --var for each run.
+VAPID_PUBLIC_KEY = ""
+VAPID_SUBJECT = "https://wealthkart.pages.dev"
+APP_DOMAINS = ""
 [[env.e2e.d1_databases]]
 binding = "DB"
 database_name = "wealthkart-indexer-e2e"
