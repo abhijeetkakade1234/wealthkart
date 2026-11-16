@@ -295,6 +295,18 @@ Known gaps:
 - S-WEB-60 Every loan event reads as a plain sentence in the activity feed (request, guarantee, vote, payout, interest, repayment, default, cure, settle, not approved) under the "Loans" filter
 - S-WEB-61 One stake, one loan (ADR 0043): borrowers with a live request or loan and guarantors who accepted one are tied, so the guarantor picker leaves them out and a guarantor can't ask; asking is also refused while you've asked to leave; a loan's own `defaultAfter` decides when it can be marked as defaulted
 
+### Landing page (S-LAND)
+
+ADR 0049. E2E in `apps/web/e2e/landing.e2e.ts`; copy checks in `apps/web/src/lib/__tests__/seo.test.ts`.
+
+- S-LAND-01 `/` loads with one h1, every section, canonical and `SoftwareApplication` JSON-LD, no noindex; motion starts and a full scroll logs no console errors
+- S-LAND-02 The hero "Open the app" goes to `/login/`
+- S-LAND-03 Footer links reach how-it-works, FAQ, rules and security
+- S-LAND-04 No sideways scroll at 360px wide, anywhere down the page
+- S-LAND-05 Reduced motion: GSAP never starts, every section and all four month steps are fully visible, the diagram shows "3 of 4 said yes", the hero has no entrance animation
+- S-LAND-06 Scrolling the month scene highlights step 1 at the start and step 4 at the end
+- S-LAND-07 Landing copy never advertises returns, the description fits search limits, FAQ teaser answers match `/faq`, and llms-full.txt carries the landing copy
+
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
 Real static export, local anvil chain posing as Fuji (chain id 43113), test wallet that announces itself as Core and forwards to anvil. Every user-facing feature adds one here (CLAUDE.md).

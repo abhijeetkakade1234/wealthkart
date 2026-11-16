@@ -12,6 +12,7 @@
 - `governance/`: circle proposals, new-proposal dialog, rule-change and dissolve notices, rules card (own README)
 - `art/`: cut-paper art, avatars, circle covers, empty-state scenes
 - `kit/`: interaction kit (ADR 0026)
+- `landing/`: landing page sections, hero art, line diagrams and GSAP motion (own README)
 - `login/`: sign-in screen and return-path guard
 - `public/`: public-site header, footer, content blocks
 - `pwa/`: service-worker registration

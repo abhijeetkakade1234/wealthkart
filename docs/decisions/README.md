@@ -53,3 +53,4 @@
 | [0043](0043-voting-bars-and-rage-quit.md)               | Review fixes: member-bar votes, auto rule switch-over, rage-quit notice, linked exit queue, loans | Accepted                                                                 |
 | [0044](0044-loans-screens.md)                           | Loans screens: one hook file, loan list from events, tall segmented money bar, `--chart-6`        | Accepted                                                                 |
 | [0047](0047-indexer-d1-size-guard.md)                   | Indexer stays inside D1's free tier: soft size limit, alert, app reads newer blocks from the RPC  | Accepted                                                                 |
+| [0049](0049-landing-page-design-and-motion.md)          | Landing page: plain words, one scroll story, GSAP only on `/`, static first, reduced motion still | Accepted                                                                 |

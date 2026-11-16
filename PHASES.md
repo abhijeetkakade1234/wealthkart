@@ -3,7 +3,7 @@
 Where WealthKart is, phase by phase. The open items for right now are in [TODO.md](TODO.md).
 Every task with its tick box is in [docs/STATUS.md](docs/STATUS.md); what each phase is for is in [PLAN.md](PLAN.md) §5.
 
-Last updated: 2026-11-15
+Last updated: 2026-11-16
 
 | Phase | What it delivers                                                                   | Status                                                                                |
 | ----- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -11,7 +11,7 @@ Last updated: 2026-11-15
 | 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                              |
 | 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Done**: contracts reviewed and fixed (239 tests), all screens with Playwright tests |
 | 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: bug bounty, external audit and mainnet deploy are owner/external       |
-| 4     | Growth: reminders, circle templates, Hindi and Marathi, onboarding                 | Next                                                                                  |
+| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page done                                                        |
 | 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                 |
 | 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                 |
 

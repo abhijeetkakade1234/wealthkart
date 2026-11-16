@@ -1,7 +1,7 @@
 # Status: where we are and what's left
 
 **Current phase: Phase 4, growth** (Phases 0–2 done; Phase 3 code done, its audit, bug bounty and mainnet deploy are owner/external; the Phase 1 milestone is deferred by the owner). Work lands on `abhijeet`.
-Last updated: 2026-11-14
+Last updated: 2026-11-16
 
 How to use this file:
 
@@ -140,6 +140,7 @@ How to use this file:
 
 ## Phase 4: Growth
 
+- [x] Landing page: plain-language sections, cut-paper hero, GSAP scroll scene (ADR 0049)
 - [ ] Reminders (Web Push, wallet-keyed)
 - [ ] Circle templates (friends / family / office)
 - [ ] Hindi + Marathi

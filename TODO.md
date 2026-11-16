@@ -2,7 +2,7 @@
 
 What's open right now. Phase-level progress is in [PHASES.md](PHASES.md); the full checklist is in [docs/STATUS.md](docs/STATUS.md).
 
-Last updated: 2026-11-15
+Last updated: 2026-11-16
 
 ## Done in Phase 1
 
@@ -32,6 +32,7 @@ Last updated: 2026-11-15
 
 ## Next: Phase 4 (growth)
 
+- [x] Landing page with the "one month" scroll scene (ADR 0049)
 - [ ] Reminders (Web Push, keyed by wallet)
 - [ ] Circle templates (friends, family, office)
 - [ ] Hindi and Marathi
@@ -46,6 +47,6 @@ Last updated: 2026-11-15
 - [ ] Fuji deploy: GitHub environment `fuji` with `DEPLOYER_PRIVATE_KEY`, faucet AVAX, run the deploy workflow
 - [ ] Branch protection on `main` and `dev`
 - [ ] Reown project id (WalletConnect for Core mobile)
-- [ ] Commission the illustrator
+- [ ] Commission the illustrator (the landing hero is still the placeholder piece)
 - [ ] Cloudflare Pages project and preview deploys
 - [ ] Book the lawyer review (before mainnet)

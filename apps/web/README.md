@@ -9,12 +9,13 @@
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
 | `src/app/globals.css`          | "Gallery" theme tokens for Tailwind v4 + shadcn (ADR 0025), z-index scale                      |
 | `src/app/layout.tsx`           | Fonts, metadata, app error boundary, Toaster, global error handlers                            |
-| `src/app/(public)/`            | Indexed pages: landing placeholder, how-it-works, rules, security, faq                         |
+| `src/app/(public)/`            | Indexed pages: landing (ADR 0049), how-it-works, rules, security, faq                          |
 | `src/app/robots.ts` etc.       | Build-time `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, llms, OG, icons                |
 | `src/content/`                 | Public page copy as typed data (ADR 0027); feeds pages, llms.txt, JSON-LD                      |
 | `src/lib/seo/`                 | Metadata, JSON-LD, Markdown/llms output, OG and icon renderers                                 |
 | `public/sw.js`                 | Service worker: app-shell cache, never caches RPC (registered in production)                   |
 | `src/app/kit/`                 | `/kit` dev showcase: every interaction-kit component in every state (noindex)                  |
+| `src/components/landing/`      | Landing sections, hero art, line diagrams, GSAP scroll motion (loaded only on `/`)             |
 | `src/components/art/`          | Cut-paper placeholder art + address-seeded Avatar, CircleCover, EmptyArt (ADR 0025)            |
 | `src/components/kit/`          | Interaction kit (ADR 0026): Button, StateView, TxTracker, ErrorBoundary, alerts                |
 | `src/components/ui/`           | shadcn primitives restyled to Gallery (button, dialog, tooltip, skeleton)                      |
