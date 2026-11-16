@@ -36,6 +36,8 @@ import { cn } from "@/lib/utils";
 import { useVaultAction } from "@/lib/use-vault-action";
 
 import { RuleDiffList } from "./rule-diff-list";
+import "@/i18n/en/loans";
+import "@/i18n/en/votes";
 
 const KINDS: Array<{ kind: ProposalKind; icon: LucideIcon; short: PlainKey }> = [
   { kind: "rule-change", icon: ScrollText, short: "votes.dialog.shortRules" },

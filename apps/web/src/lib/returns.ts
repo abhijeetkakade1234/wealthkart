@@ -2,6 +2,7 @@ import { type CashFlow, dueMoment, xirr } from "@wealthkart/rules";
 import { t } from "@/i18n/runtime";
 import type { CircleEvent } from "@/lib/analytics";
 import { AVAX, type CircleAsset, toNumber } from "@/lib/asset";
+import "@/i18n/en/analytics";
 
 /**
  * Returns, projections and CSV export (PLAN.md D7, Phase 3). Pure and unit tested.

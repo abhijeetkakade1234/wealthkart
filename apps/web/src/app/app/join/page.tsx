@@ -29,6 +29,8 @@ import {
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
+import "@/i18n/en/join";
+import "@/i18n/en/membership";
 
 export default function JoinPage() {
   return (

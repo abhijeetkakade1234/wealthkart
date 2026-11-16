@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Circle analytics, charts, heatmap, portfolio and "Your returns" (PLAN.md D7). */
 export const analytics = {
   // Shared chart frame
@@ -111,3 +113,5 @@ export const analytics = {
   rateNotEnough: "Not enough history yet",
   ratePerYear: "{rate}% a year",
 } as const;
+
+registerEn("analytics", analytics);

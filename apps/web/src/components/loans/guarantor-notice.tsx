@@ -11,6 +11,7 @@ import { useT } from "@/i18n/react";
 import { money, useCircleAsset } from "@/lib/asset";
 import { type LoanRequestView, useLoanTx } from "@/lib/loan-hooks";
 import { notify } from "@/lib/toast";
+import "@/i18n/en/loans";
 
 /**
  * Someone named you as their guarantor (rule 11): what backing a loan means and "Back this

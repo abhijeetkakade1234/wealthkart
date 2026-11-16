@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Activity page and the feed sentences built from circle events (PLAN.md D7). */
 export const activity = {
   // Page
@@ -110,3 +112,5 @@ export const activity = {
     "{name}'s defaulted loan was settled: {fromBorrower} from their savings and {fromGuarantor} from {guarantor}'s.",
   settledLoss: "{lost} couldn't be covered and is shared by everyone.",
 } as const;
+
+registerEn("activity", activity);

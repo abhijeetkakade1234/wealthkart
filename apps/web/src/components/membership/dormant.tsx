@@ -10,6 +10,7 @@ import { rich, useT } from "@/i18n/react";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
+import "@/i18n/en/membership";
 
 /**
  * Shown to a member the circle voted dormant (ADR 0032). Their savings are untouched; waking

@@ -20,6 +20,7 @@ import {
 } from "@/lib/analytics";
 import { MEMBERS_PAGE_SIZE, useCircleMembers } from "@/lib/circle";
 import { cn } from "@/lib/utils";
+import "@/i18n/en/analytics";
 
 const MONTH_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 

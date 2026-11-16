@@ -28,6 +28,7 @@ import {
 } from "@/lib/loans";
 
 import { ChartFrame } from "./chart-frame";
+import "@/i18n/en/analytics";
 
 /** Loan charts on the overview (PLAN.md D7): who owes what, and where the circle's money is. */
 

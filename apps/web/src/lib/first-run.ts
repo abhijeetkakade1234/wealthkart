@@ -8,6 +8,7 @@
  */
 
 import { t } from "@/i18n/runtime";
+import "@/i18n/en/checklist";
 
 export interface FirstRunState {
   dismissed: boolean;

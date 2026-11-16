@@ -9,6 +9,7 @@ import { useT } from "@/i18n/react";
 import { displayNameProblem, NAME_MAX } from "@/lib/membership";
 import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
+import "@/i18n/en/membership";
 
 export const inputCls =
   "w-full rounded-[10px] border border-border bg-card px-3.5 py-2.5 text-[15px] outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15";

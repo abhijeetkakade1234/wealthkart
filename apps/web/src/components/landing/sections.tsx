@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { LeaveDiagram, RingDiagram, SaveDiagram, VoteDiagram } from "./diagrams";
 import { HeroArt } from "./hero-art";
 import { PotDiagram } from "./pot-diagram";
+import "@/i18n/en/site";
 
 interface SectionProps {
   locale?: Locale;

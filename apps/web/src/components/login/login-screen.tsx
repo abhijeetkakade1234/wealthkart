@@ -23,6 +23,7 @@ import { CORE_DOWNLOAD_URL } from "@/lib/wagmi";
 
 import { PaperCircle } from "./paper-circle";
 import { safeNext } from "./safe-next";
+import "@/i18n/en/login";
 
 const agreeLinkCls =
   "text-foreground underline decoration-foreground/30 underline-offset-2 transition-colors hover:decoration-foreground";

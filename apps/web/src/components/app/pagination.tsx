@@ -43,7 +43,7 @@ export function Pagination({
   page: number;
   pageSize: number;
   total: number;
-  /** Translated plural noun, e.g. t("home.circlesNoun"). Defaults to "items". */
+  /** Translated plural noun (e.g. the home page's "circles"). Defaults to "items". */
   noun?: string;
   /** URL param this list pages with; set it when a page has two paginated lists. */
   param?: string;

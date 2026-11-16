@@ -13,6 +13,7 @@ import { InflowChart, NavChart, ValueChart } from "./circle-charts";
 import { CircleLoanCharts } from "./loan-charts";
 import { PaymentsHeatmap } from "./payments-heatmap";
 import { ReturnsCard } from "./returns-card";
+import "@/i18n/en/analytics";
 
 /** Months shown in the charts: the last year, never before the circle started. */
 const CHART_MONTHS = 12;

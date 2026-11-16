@@ -21,6 +21,7 @@ import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 import { DisplayNameField, useNameCheck } from "./display-name-field";
+import "@/i18n/en/membership";
 
 /** "Your name in this circle": shows the current name and lets the member set or change it. */
 export function NameCard({

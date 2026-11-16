@@ -20,6 +20,7 @@ import { annualReturn, cashFlows, formatRate, memberHistoryCsv, project } from "
 import { cn } from "@/lib/utils";
 
 import { ChartFrame } from "./chart-frame";
+import "@/i18n/en/analytics";
 
 const YEARS = [5, 10, 30] as const;
 

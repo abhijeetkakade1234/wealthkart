@@ -9,6 +9,7 @@ import { useT } from "@/i18n/react";
 import { fmt, useCircleAsset } from "@/lib/asset";
 import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
+import "@/i18n/en/exits";
 
 /**
  * A payout the circle tried to send but the wallet refused (RT-20), or USDT that Tether

@@ -1,7 +1,8 @@
 /**
  * Translation runtime (ADR 0057): a tiny typed dictionary layer, no library.
  *
- * - English is bundled; Hindi and Marathi load on demand (`import()`), so English users never
+ * - English is bundled (core namespaces always, the rest with the screens that use them, see
+ *   registry.ts); Hindi and Marathi load on demand (`import()`), so English users never
  *   download them.
  * - `t(key, params)` works anywhere (React or not) and reads the active language at call time.
  *   React components use `useT()` (react.tsx) so they re-render when the language changes.
@@ -10,7 +11,7 @@
  *   grouping). Money keeps going through `src/lib/asset.ts`; amounts stay in AVAX or USDT.
  */
 import { DEFAULT_LOCALE, INTL_LOCALE, type Locale } from "./config";
-import { en } from "./en";
+import { enLoaded as en } from "./registry";
 import type { Dict, Key, PluralKey, PluralParams, TArgs } from "./types";
 
 const loaders: Record<Locale, () => Promise<Dict>> = {

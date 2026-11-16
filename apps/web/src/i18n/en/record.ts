@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Public repayment record page (ADR 0042). */
 export const record = {
   openApp: "Open the app",
@@ -32,3 +34,5 @@ export const record = {
   across_one: "{parts}, across {count} circle.",
   across_other: "{parts}, across {count} circles.",
 } as const;
+
+registerEn("record", record);

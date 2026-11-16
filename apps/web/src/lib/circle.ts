@@ -8,6 +8,7 @@ import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { formatDate, getLocale, t } from "@/i18n/runtime";
 import { type CircleAsset, ZERO_ADDRESS, circleAsset } from "@/lib/asset";
 import { type RequestKind, requestKind } from "@/lib/membership";
+import "@/i18n/en/circle";
 
 export const CIRCLES_PAGE_SIZE = 12;
 

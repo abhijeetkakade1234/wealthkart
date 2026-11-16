@@ -8,6 +8,7 @@ import { createSiweMessage, generateSiweNonce } from "viem/siwe";
 
 import type { PlainKey } from "@/i18n/types";
 import { INDEXER_URL } from "@/lib/events";
+import "@/i18n/en/reminders";
 
 /** Public VAPID key (base64url). Empty = reminders aren't set up for this build. */
 export const VAPID_PUBLIC_KEY = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "").trim();

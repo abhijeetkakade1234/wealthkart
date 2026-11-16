@@ -4,6 +4,7 @@ import { formatBps } from "@/lib/rules";
 import { cn } from "@/lib/utils";
 
 import { usePeriodText } from "./parts";
+import "@/i18n/en/loans";
 
 /**
  * The loan's three terms as a quiet stepped rule (rule 15): each term's months and rate, the

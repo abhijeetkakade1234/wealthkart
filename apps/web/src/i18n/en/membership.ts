@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Display names, join and dormant votes, invites (membership components and lib). */
 export const membership = {
   // Display name rules (lib/membership.ts displayNameProblem)
@@ -134,3 +136,5 @@ export const membership = {
   voteYes: "Vote yes",
   voteNo: "Vote no",
 } as const;
+
+registerEn("membership", membership);

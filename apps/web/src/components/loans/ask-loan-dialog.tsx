@@ -24,6 +24,7 @@ import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
 
 import { inputCls, usePeriodText } from "./parts";
+import "@/i18n/en/loans";
 
 /**
  * "Ask for a loan" (ADR 0038, PLAN.md D4b): amount with live checks against every limit, the

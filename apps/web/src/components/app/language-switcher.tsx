@@ -1,15 +1,8 @@
 "use client";
 
-import { Check, Languages } from "lucide-react";
+import { Languages } from "lucide-react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { type Locale, LOCALE_NAMES, LOCALES } from "@/i18n/config";
+import { isLocale, type Locale, LOCALE_NAMES, LOCALES } from "@/i18n/config";
 import { chooseLocale, useT } from "@/i18n/react";
 import { t as tNow } from "@/i18n/runtime";
 import { notify } from "@/lib/toast";
@@ -21,42 +14,40 @@ async function pick(locale: Locale) {
   if (ok) notify.success(tNow("nav.languageChanged"));
 }
 
-/** Compact language menu for the app header and the sign-in page (ADR 0057). */
+/**
+ * Compact language picker for the app header and the sign-in page (ADR 0057). A native
+ * <select> under a pill: the phone's own picker, keyboard and screen reader support, and no
+ * menu library on pages that don't already load one.
+ */
 export function LanguageMenu({ className }: { className?: string }) {
   const { t, locale } = useT();
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
+    <label
+      className={cn(
+        "relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border px-2.5 text-[13px] text-foreground transition-colors focus-within:ring-2 focus-within:ring-ring hover:bg-secondary",
+        className,
+      )}
+    >
+      <Languages className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+      <span className="uppercase" aria-hidden>
+        {locale}
+      </span>
+      <select
         aria-label={t("nav.language")}
         data-testid="language-menu"
-        className={cn(
-          "inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-2.5 text-[13px] text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          className,
-        )}
+        value={locale}
+        onChange={(e) => {
+          if (isLocale(e.target.value)) void pick(e.target.value);
+        }}
+        className="absolute inset-0 cursor-pointer appearance-none rounded-full opacity-0"
       >
-        <Languages className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
-        <span className="uppercase" lang={locale}>
-          {locale}
-        </span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48 p-1.5">
-        <DropdownMenuLabel className="text-[12px] font-normal text-muted-foreground">
-          {t("nav.language")}
-        </DropdownMenuLabel>
         {LOCALES.map((l) => (
-          <DropdownMenuItem
-            key={l}
-            onSelect={() => void pick(l)}
-            className="flex items-center gap-2 py-2"
-          >
-            <span lang={l}>{LOCALE_NAMES[l]}</span>
-            {l === locale && (
-              <Check className="ml-auto size-4 text-brand" strokeWidth={1.5} aria-hidden />
-            )}
-          </DropdownMenuItem>
+          <option key={l} value={l} lang={l}>
+            {LOCALE_NAMES[l]}
+          </option>
         ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </select>
+    </label>
   );
 }
 

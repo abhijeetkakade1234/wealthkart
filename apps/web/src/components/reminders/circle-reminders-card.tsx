@@ -14,6 +14,7 @@ import { reminderError, useReminders } from "@/lib/use-reminders";
 
 import { ReminderGate } from "./reminder-gate";
 import { ReminderSwitch } from "./reminder-switch";
+import "@/i18n/en/reminders";
 
 /**
  * Reminders for one circle (ADR 0052), on the circle overview. Before reminders are on for this

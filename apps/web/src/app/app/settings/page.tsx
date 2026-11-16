@@ -22,6 +22,7 @@ import { ALL_KINDS, KIND_ROWS, hasKind } from "@/lib/push";
 import { notify } from "@/lib/toast";
 import { reminderError, useReminders } from "@/lib/use-reminders";
 import { wagmiConfig } from "@/lib/wagmi";
+import "@/i18n/en/settings";
 
 /** Most circles switched on in one go when reminders are turned on here. */
 const TURN_ON_MAX = 50n;

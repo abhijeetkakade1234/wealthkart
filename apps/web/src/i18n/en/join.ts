@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** The join page: founder invites, asking to join and following the vote. */
 export const join = {
   loadingCircle: "Loading the circle",
@@ -57,3 +59,5 @@ export const join = {
   cancelling: "Cancelling…",
   cancelRequest: "Cancel my request",
 } as const;
+
+registerEn("join", join);

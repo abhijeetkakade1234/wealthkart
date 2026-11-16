@@ -10,6 +10,7 @@ import { messages } from "@/lib/messages";
 import { displayAddress } from "@/lib/push";
 import { notify } from "@/lib/toast";
 import { reminderError, type ReminderStatus } from "@/lib/use-reminders";
+import "@/i18n/en/reminders";
 
 /**
  * Everything before reminders are on for this device (ADR 0052): loading, not set up on this

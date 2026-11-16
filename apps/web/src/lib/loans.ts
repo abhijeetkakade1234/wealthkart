@@ -10,6 +10,7 @@ import { t } from "@/i18n/runtime";
 import type { PlainKey } from "@/i18n/types";
 import type { DecodedLog } from "@/lib/events";
 import { formatBps, type RulesParams } from "@/lib/rules";
+import "@/i18n/en/loans";
 
 /**
  * Pure helpers that mirror the LoanBook library (ADR 0038), so the Loans screens can explain

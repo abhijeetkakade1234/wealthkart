@@ -7,6 +7,7 @@ import { useReadContract, useReadContracts } from "wagmi";
 import { t, tn } from "@/i18n/runtime";
 import { FACTORY_OVERRIDE } from "@/lib/circle";
 import { TARGET_CHAIN } from "@/lib/wagmi";
+import "@/i18n/en/record";
 
 /**
  * The public repayment record (ADR 0042): a wallet's soulbound counters across every circle.

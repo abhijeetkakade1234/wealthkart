@@ -25,6 +25,7 @@ import { notify } from "@/lib/toast";
 import { useAssetPayment } from "@/lib/use-asset-payment";
 import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
+import "@/i18n/en/pay";
 
 /** Rough upper bound for the network fee shown in the "not enough AVAX" check. */
 const FEE_BUFFER_WEI = 10n ** 16n; // 0.01 AVAX

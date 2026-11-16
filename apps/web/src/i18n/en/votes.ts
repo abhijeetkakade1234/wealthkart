@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Votes page and circle proposals (ADR 0040): rule changes, fee waivers, closing, guardian. */
 export const votes = {
   kind: {
@@ -138,3 +140,5 @@ export const votes = {
     proposeWaiver: "Propose the waiver",
   },
 } as const;
+
+registerEn("votes", votes);

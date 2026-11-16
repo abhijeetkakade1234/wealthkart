@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Start a circle: the form (/app/new), its checks (circle-form.ts) and templates (templates.ts). */
 export const create = {
   title: "Start a circle",
@@ -143,3 +145,5 @@ export const create = {
       "That's {count} members with you, more than the limit of {max}. Raise the limit or invite fewer friends.",
   },
 } as const;
+
+registerEn("create", create);

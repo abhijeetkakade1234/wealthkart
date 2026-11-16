@@ -23,6 +23,7 @@ import { useBackupCoverage } from "@/lib/nominee-hooks";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { TARGET_CHAIN } from "@/lib/wagmi";
+import "@/i18n/en/checklist";
 
 /**
  * "Before you start" on the home screen (ADR 0054). Shows for a wallet until every item is

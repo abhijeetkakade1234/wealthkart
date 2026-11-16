@@ -27,6 +27,7 @@ import {
   useJoinRequests,
 } from "@/lib/circle";
 import type { Address } from "viem";
+import "@/i18n/en/votes";
 
 export default function VotesPage() {
   return (

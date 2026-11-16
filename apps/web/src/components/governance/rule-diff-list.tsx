@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 
 import { useT } from "@/i18n/react";
 import type { RuleChange } from "@/lib/rules";
+import "@/i18n/en/rules";
 
 /** Changed settings as "label: before -> after", one per row. */
 export function RuleDiffList({ changes }: { changes: RuleChange[] }) {

@@ -24,6 +24,7 @@ import { messages } from "@/lib/messages";
 import { formatBps } from "@/lib/rules";
 import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
+import "@/i18n/en/exits";
 
 /**
  * Gas limit for `claimExit`. The exit queue walk stops quietly when less than 150k gas is left

@@ -14,6 +14,7 @@ import { StartHeroArt, StepArt } from "./start-art";
 import { StartMotion } from "./start-motion";
 
 import "./start.css";
+import "@/i18n/en/site";
 
 const ROOT_ID = "start-guide";
 

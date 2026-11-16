@@ -35,6 +35,8 @@ import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
 
 import { RuleDiffList } from "./rule-diff-list";
+import "@/i18n/en/loans";
+import "@/i18n/en/votes";
 
 const ICONS: Record<ProposalKind, LucideIcon> = {
   "rule-change": ScrollText,

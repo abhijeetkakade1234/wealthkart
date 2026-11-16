@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useT } from "@/i18n/react";
 import { fmt } from "@/lib/asset";
 import { PORTFOLIO_MAX, usePortfolio } from "@/lib/circle";
+import "@/i18n/en/analytics";
 
 /** Percent with one decimal from basis points. */
 const pct = (bps: number) => `${(bps / 100).toFixed(bps > 0 && bps < 100 ? 1 : 0)}%`;

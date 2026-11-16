@@ -4,6 +4,7 @@ import type { Address } from "viem";
 import { useT } from "@/i18n/react";
 import { useCircleAsset } from "@/lib/asset";
 import { formatRule, RULE_META, type RuleKey, type RulesParams } from "@/lib/rules";
+import "@/i18n/en/rules";
 
 /** The settings most members ask about, in this order. The full list is in the proposal form. */
 const SHOWN: readonly RuleKey[] = [

@@ -14,6 +14,7 @@ import { money, useCircleAsset } from "@/lib/asset";
 import { type LoanRequestView, useLoanTx } from "@/lib/loan-hooks";
 import { loanSettledLine } from "@/lib/loans";
 import { notify } from "@/lib/toast";
+import "@/i18n/en/loans";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 

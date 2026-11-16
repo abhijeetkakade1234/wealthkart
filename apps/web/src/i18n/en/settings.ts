@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Settings page. */
 export const settings = {
   title: "Settings",
@@ -12,3 +14,5 @@ export const settings = {
   chooseWhich: "Choose which",
   circlesNoun: "circles",
 } as const;
+
+registerEn("settings", settings);

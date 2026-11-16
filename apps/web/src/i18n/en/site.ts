@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /**
  * Public page chrome (header, footer) and the small labels on the landing page and `/start`
  * (ADR 0057). Page copy itself lives in `src/content/` (and `content/hi`, `content/mr`).
@@ -54,3 +56,5 @@ export const site = {
     readFaq: "Read the FAQ",
   },
 } as const;
+
+registerEn("site", site);

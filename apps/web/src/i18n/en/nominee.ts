@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Backup wallet (nominee, ADR 0016 and 0056): naming one, claims, and the nominee's view. */
 export const nominee = {
   // Address check (lib/nominee.ts)
@@ -69,3 +71,5 @@ export const nominee = {
   stillCancel:
     "{who} can still cancel until then. The amount is their share on the day it is paid.",
 } as const;
+
+registerEn("nominee", nominee);

@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Paying an installment (/app/circle/pay) and the shared pay button (asset-pay.tsx). */
 export const pay = {
   title: "Pay",
@@ -36,3 +38,5 @@ export const pay = {
     failed: "Didn't go through",
   },
 } as const;
+
+registerEn("pay", pay);

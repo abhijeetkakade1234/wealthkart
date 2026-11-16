@@ -8,6 +8,7 @@ import { Button } from "@/components/kit";
 import { useT } from "@/i18n/react";
 import { inviteLink } from "@/lib/membership";
 import { notify } from "@/lib/toast";
+import "@/i18n/en/membership";
 
 /**
  * "Invite a friend": a link that carries only the circle address and who invited (RT-04:

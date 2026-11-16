@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { useT } from "@/i18n/react";
 import { parseAddress, recordSummary, useRecord } from "@/lib/record";
+import "@/i18n/en/record";
 
 /**
  * Public repayment record (ADR 0042): anyone with a link can see a wallet's soulbound track

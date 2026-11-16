@@ -26,6 +26,7 @@ import { type ClaimState, useExitQueue, useMyBackupWallet, useNamedBy } from "@/
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useVaultAction } from "@/lib/use-vault-action";
+import "@/i18n/en/nominee";
 
 const inputCls =
   "h-11 w-full rounded-[10px] border border-border bg-background px-3.5 font-mono text-[13.5px] outline-none transition focus-visible:border-brand focus-visible:ring-[3px] focus-visible:ring-brand/20 aria-[invalid=true]:border-bad";

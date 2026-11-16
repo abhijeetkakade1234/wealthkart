@@ -47,6 +47,7 @@ import { type CircleAsset, fmt } from "@/lib/asset";
 import { useCircleGov } from "@/lib/gov-hooks";
 import { votingRightsNote } from "@/lib/membership";
 import type { Address } from "viem";
+import "@/i18n/en/circle";
 
 export default function CirclePage() {
   return (

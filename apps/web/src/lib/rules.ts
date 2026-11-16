@@ -1,5 +1,6 @@
 import { t, tn } from "@/i18n/runtime";
 import { AVAX, type CircleAsset, fmt, parseAmount, toInputText } from "@/lib/asset";
+import "@/i18n/en/rules";
 
 /**
  * Mirror of `Rules.defaults`, `Rules.Params` and `Rules.validate`

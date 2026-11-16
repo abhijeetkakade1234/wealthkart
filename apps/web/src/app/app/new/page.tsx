@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 import { TARGET_CHAIN } from "@/lib/wagmi";
+import "@/i18n/en/create";
 
 export default function NewCirclePage() {
   return (

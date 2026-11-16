@@ -12,6 +12,7 @@ import { notify } from "@/lib/toast";
 import { reminderError, type useReminders } from "@/lib/use-reminders";
 
 import { ReminderGate } from "./reminder-gate";
+import "@/i18n/en/reminders";
 
 /**
  * Reminders on this device (ADR 0052), on the Settings page: the permission flow, then which

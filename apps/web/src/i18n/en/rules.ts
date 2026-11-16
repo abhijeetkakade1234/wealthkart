@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Circle rules (src/lib/rules.ts): labels, hints, values and checks; the rules card and diff. */
 export const rules = {
   label: {
@@ -90,3 +92,5 @@ export const rules = {
     becomes: "becomes",
   },
 } as const;
+
+registerEn("rules", rules);

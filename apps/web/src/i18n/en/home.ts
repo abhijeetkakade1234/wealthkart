@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Home: the wallet's circles. */
 export const home = {
   title: "Your circles",
@@ -17,3 +19,5 @@ export const home = {
   due: "{amount} {symbol} due · {month}",
   allPaid: "All paid",
 } as const;
+
+registerEn("home", home);

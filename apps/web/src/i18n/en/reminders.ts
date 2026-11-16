@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Reminders (ADR 0052): cards, the permission flow and the switch labels. */
 export const reminders = {
   circleTitle: "Reminders for this circle",
@@ -38,3 +40,5 @@ export const reminders = {
   kindCollect: "Money to collect",
   kindCollectHint: "When your exit payout or a refused payment is ready",
 } as const;
+
+registerEn("reminders", reminders);

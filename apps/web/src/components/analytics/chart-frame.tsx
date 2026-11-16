@@ -4,6 +4,7 @@ import { Table2, LineChart as LineIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useT } from "@/i18n/react";
+import "@/i18n/en/analytics";
 
 /**
  * Card around one chart: title, one-line explanation, and a "Table" toggle so every chart

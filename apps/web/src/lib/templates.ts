@@ -2,6 +2,7 @@ import { getLocale, t, tn } from "@/i18n/runtime";
 import { type AssetSymbol, parseAmount } from "@/lib/asset";
 import { DEFAULTS, formAsset, type FormState } from "@/lib/circle-form";
 import { formatBps } from "@/lib/rules";
+import "@/i18n/en/create";
 
 /**
  * Circle templates (ADR 0054): starting points for the create form. A template only fills

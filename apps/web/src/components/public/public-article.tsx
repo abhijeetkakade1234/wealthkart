@@ -7,6 +7,7 @@ import { serverT } from "@/i18n/server";
 import { pageLd } from "@/lib/seo/json-ld";
 
 import { JsonLd } from "./json-ld";
+import "@/i18n/en/site";
 
 /** "14 November 2026" in English; Hindi and Marathi use their own month names (ADR 0057). */
 export function formatDate(iso: string, locale: Locale = "en") {

@@ -8,6 +8,7 @@ import { useT } from "@/i18n/react";
 import { type CircleAsset, fmtSmall, isToken } from "@/lib/asset";
 import type { AssetPayment, StepStatus } from "@/lib/use-asset-payment";
 import { cn } from "@/lib/utils";
+import "@/i18n/en/pay";
 
 /**
  * Small pill naming the circle's money ("AVAX" / "USDT"), for circle headers and cards

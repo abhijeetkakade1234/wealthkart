@@ -9,6 +9,8 @@ import {
   rulesProblem,
   type RulesParams,
 } from "@/lib/rules";
+import "@/i18n/en/create";
+import "@/i18n/en/rules";
 
 /** Create-circle form: shape, defaults (G1 values) and validation mirroring the contract (ADR 0022). */
 

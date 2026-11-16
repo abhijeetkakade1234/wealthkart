@@ -8,6 +8,7 @@ import type { PlainKey } from "@/i18n/types";
 import { organizationLd, websiteLd } from "@/lib/seo/json-ld";
 
 import { LanguageLinks } from "./language-links";
+import "@/i18n/en/site";
 
 /** Public help pages, in nav order (same as `PUBLIC_PAGES`). */
 const NAV: { path: string; label: PlainKey }[] = [

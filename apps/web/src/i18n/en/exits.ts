@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Leaving the circle, the guardian pause and payouts waiting to be withdrawn. */
 export const exits = {
   // Leaving (ADR 0039)
@@ -78,3 +80,5 @@ export const exits = {
   withdrawBodyAvax:
     "The circle tried to pay you, but your wallet didn't accept it. It's kept safe here until you withdraw it.",
 } as const;
+
+registerEn("exits", exits);

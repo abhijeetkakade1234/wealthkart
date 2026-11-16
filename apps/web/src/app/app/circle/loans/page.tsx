@@ -27,6 +27,7 @@ import { useCircleGov } from "@/lib/gov-hooks";
 import { isAhead } from "@/lib/governance";
 import { useMemberName, useMyLoan, useOpenLoanRequests } from "@/lib/loan-hooks";
 import { askBlocker, loanTies, loansFromLogs } from "@/lib/loans";
+import "@/i18n/en/loans";
 
 export default function LoansPage() {
   return (

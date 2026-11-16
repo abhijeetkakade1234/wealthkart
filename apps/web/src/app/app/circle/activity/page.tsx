@@ -24,6 +24,7 @@ import { FEED_FILTERS, type FeedKind, filterFeed, toFeed } from "@/lib/feed";
 import { formatWhen, useBlockTimes } from "@/lib/use-block-times";
 import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
+import "@/i18n/en/activity";
 
 const PAGE_SIZE = 20;
 

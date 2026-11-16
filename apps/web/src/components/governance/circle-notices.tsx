@@ -15,6 +15,7 @@ import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
 
 import { RuleDiffList } from "./rule-diff-list";
+import "@/i18n/en/votes";
 
 const DATE: Intl.DateTimeFormatOptions = {
   day: "numeric",

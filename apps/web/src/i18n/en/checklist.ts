@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** First-run checklist on the home screen (ADR 0054). */
 export const checklist = {
   title: "Before you start",
@@ -25,3 +27,5 @@ export const checklist = {
   circleTitle: "Join or start a circle",
   circleHint: "Open a friend's invite link, or start one yourself.",
 } as const;
+
+registerEn("checklist", checklist);

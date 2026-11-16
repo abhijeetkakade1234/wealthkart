@@ -6,6 +6,7 @@
 import { isAddress } from "viem";
 
 import { t } from "@/i18n/runtime";
+import "@/i18n/en/nominee";
 
 /** Same as Exits.MIN_CLAIM_NOTICE: a passed claim waits at least this long. */
 export const MIN_CLAIM_NOTICE_DAYS = 30;

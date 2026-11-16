@@ -20,6 +20,7 @@ import { type CircleGov, useCircleGov } from "@/lib/gov-hooks";
 import { isAhead, PAUSE_COOLDOWN_DAYS, PAUSE_DAYS } from "@/lib/governance";
 import { notify } from "@/lib/toast";
 import { useVaultAction } from "@/lib/use-vault-action";
+import "@/i18n/en/exits";
 
 /**
  * Guardian pause banner (ADR 0020, 0039), shown on circle pages while `pausedUntil` is ahead.

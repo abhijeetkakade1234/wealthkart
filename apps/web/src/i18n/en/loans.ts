@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Loans: the Loans page, asking, repaying, the loan list and loan votes (ADR 0038). */
 export const loans = {
   aMonth: "a month",
@@ -310,3 +312,5 @@ export const loans = {
     notAgreedHint: "Hasn't agreed yet. The money goes out only after they do.",
   },
 } as const;
+
+registerEn("loans", loans);

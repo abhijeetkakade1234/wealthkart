@@ -6,6 +6,7 @@ import { periodName } from "@/lib/analytics";
 import { AVAX, type CircleAsset, fmt, money } from "@/lib/asset";
 
 import type { DecodedLog } from "@/lib/events";
+import "@/i18n/en/activity";
 
 /**
  * Activity feed (PLAN.md D7): every circle event as one plain sentence, newest first, with

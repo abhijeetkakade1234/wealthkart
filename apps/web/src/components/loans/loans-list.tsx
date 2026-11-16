@@ -51,6 +51,7 @@ import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
 
 import { StatusPill } from "./parts";
+import "@/i18n/en/loans";
 
 const PAGE_SIZE = 10;
 const ZERO = "0x0000000000000000000000000000000000000000";

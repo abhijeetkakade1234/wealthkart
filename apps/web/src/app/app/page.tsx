@@ -19,6 +19,7 @@ import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useT } from "@/i18n/react";
 import { fmt } from "@/lib/asset";
 import { CIRCLES_PAGE_SIZE, type CircleSummary, useMyCircles } from "@/lib/circle";
+import "@/i18n/en/home";
 
 /** Home / Portfolio: every circle this wallet is in, and what needs doing now. */
 export default function PortfolioPage() {

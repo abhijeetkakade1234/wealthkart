@@ -26,6 +26,7 @@ import { type MonthPoint, periodName, periodShort } from "@/lib/analytics";
 import { type CircleAsset, fmt, toNumber } from "@/lib/asset";
 
 import { ChartFrame } from "./chart-frame";
+import "@/i18n/en/analytics";
 
 /** Phase 1 circle charts (PLAN.md D7): value, money in per month, value of one share. */
 

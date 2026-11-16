@@ -3,6 +3,7 @@ import { periodLabel } from "@wealthkart/sdk";
 
 import { formatDate, getLocale, t } from "@/i18n/runtime";
 import type { PlainKey } from "@/i18n/types";
+import "@/i18n/en/analytics";
 
 /**
  * Pure analytics over a circle's on-chain events (PLAN.md D7). Everything here is derived

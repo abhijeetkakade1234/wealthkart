@@ -4,6 +4,7 @@
  */
 
 import { t, tn } from "@/i18n/runtime";
+import "@/i18n/en/membership";
 
 export const NAME_MIN = 3;
 export const NAME_MAX = 24;

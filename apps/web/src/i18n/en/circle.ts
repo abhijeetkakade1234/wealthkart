@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** The circle overview (/app/circle) and circle data fallbacks (src/lib/circle.ts). */
 export const circle = {
   fallbackName: "Circle",
@@ -57,3 +59,5 @@ export const circle = {
     noun: "members",
   },
 } as const;
+
+registerEn("circle", circle);

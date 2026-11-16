@@ -1,5 +1,6 @@
 import { t, tn } from "@/i18n/runtime";
 import type { PlainKey } from "@/i18n/types";
+import "@/i18n/en/votes";
 
 /**
  * Pure helpers that mirror the Governance (ADR 0040) and Exits (ADR 0039) libraries, so the

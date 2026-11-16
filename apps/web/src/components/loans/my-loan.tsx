@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 
 import { Fact, inputCls, usePeriodText } from "./parts";
 import { TenorTimeline } from "./tenor-timeline";
+import "@/i18n/en/loans";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 

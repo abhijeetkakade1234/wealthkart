@@ -1,3 +1,5 @@
+import { registerEn } from "../registry";
+
 /** Sign-in page. */
 export const login = {
   taglineSave: "Save together.",
@@ -23,3 +25,5 @@ export const login = {
   wrongNetwork: "Your wallet is connected but on a different network.",
   openingCircles: "Opening your circles…",
 } as const;
+
+registerEn("login", login);
