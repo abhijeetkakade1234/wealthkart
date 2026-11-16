@@ -14,5 +14,6 @@
 | [`engineering.md`](engineering.md)  | Folder READMEs, git, Husky, CI/CD, code and security rules              |
 | [`redteam/`](redteam/README.md)     | Red-team reviews: attacks found and how each was fixed                  |
 | [`audit/`](audit/README.md)         | Audit pack: scope, architecture, invariants, known limitations          |
+| [`legal/`](legal/README.md)         | Legal pages brief: what the app stores, lawyer checklist (ADR 0055)     |
 
 Product plan and system design: [`../PLAN.md`](../PLAN.md). Context about the original G1 group: [`../WealthKart-Guide.md`](../WealthKart-Guide.md).

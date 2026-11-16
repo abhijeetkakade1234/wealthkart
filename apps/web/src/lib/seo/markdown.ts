@@ -1,3 +1,4 @@
+import { LEGAL_PAGES } from "@/content/legal";
 import { PUBLIC_PAGES, type Block, type PublicPage } from "@/content/pages";
 import { landingToMarkdown } from "@/content/landing";
 import { SITE_NAME, SITE_SUMMARY, absoluteUrl } from "@/content/site";
@@ -15,6 +16,8 @@ function blockToMarkdown(block: Block): string {
         `| ${cells.map((c) => c.replace(/\|/g, "\\|")).join(" | ")} |`;
       return [row(block.head), row(block.head.map(() => "---")), ...block.rows.map(row)].join("\n");
     }
+    case "links":
+      return block.items.map((l) => `- [${l.label}](${l.href})`).join("\n");
   }
 }
 
@@ -23,6 +26,7 @@ export function pageToMarkdown(page: PublicPage): string {
   const parts = [
     `# ${page.h1}`,
     `> ${page.description}`,
+    ...(page.draftNote ? [`**${page.draftNote}**`] : []),
     page.intro,
     `Source: ${absoluteUrl(page.path)} · Updated ${page.updated}`,
   ];
@@ -44,17 +48,30 @@ const LLMS_BLURB: Record<string, string> = {
   faq: "common questions",
 };
 
+/** Legal pages (ADR 0055), listed in their own llms.txt section. */
+const LEGAL_BLURB: Record<string, string> = {
+  privacy: "what WealthKart stores (almost nothing), what is public on-chain, browser storage",
+  terms: "open-source, non-custodial, private circles, no promises about money",
+  risks: "contract bugs, lost wallets, price moves, USDT freezes, unpaid loans, notice periods",
+};
+
 /** `/llms.txt` in the llms.txt format (docs/seo.md §4). */
 export function llmsTxt(): string {
   const docs = PUBLIC_PAGES.map(
     (p) =>
       `- [${p.eyebrow}](${absoluteUrl(markdownPath(p))}): ${LLMS_BLURB[p.slug] ?? p.description}`,
   );
+  const legal = LEGAL_PAGES.map(
+    (p) =>
+      `- [${p.title}](${absoluteUrl(markdownPath(p))}): ${LEGAL_BLURB[p.slug] ?? p.description}`,
+  );
   return [
     `# ${SITE_NAME}`,
     `> ${SITE_SUMMARY}`,
     "## Docs",
     docs.join("\n"),
+    "## Legal",
+    legal.join("\n"),
     "## Optional",
     `- [Full docs](${absoluteUrl("/llms-full.txt")})`,
   ]
@@ -62,11 +79,12 @@ export function llmsTxt(): string {
     .concat("\n");
 }
 
-/** `/llms-full.txt`: the landing page, then every public page, as Markdown. */
+/** `/llms-full.txt`: the landing page, every public page, then the legal pages, as Markdown. */
 export function llmsFullTxt(): string {
   return [
     `# ${SITE_NAME}\n\n> ${SITE_SUMMARY}\n`,
     `Source: ${absoluteUrl("/")}\n\n${landingToMarkdown()}`,
     ...PUBLIC_PAGES.map(pageToMarkdown),
+    ...LEGAL_PAGES.map(pageToMarkdown),
   ].join("\n---\n\n");
 }

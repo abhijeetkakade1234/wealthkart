@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { PortfolioSummary } from "@/components/analytics/portfolio-summary";
 import { AssetBadge } from "@/components/app/asset-pay";
 import { PageHeader } from "@/components/app/page-header";
+import { TestUsdtFaucet } from "@/components/app/test-usdt-faucet";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { CircleCover, EmptyArt } from "@/components/art";
 import { Button, ErrorBoundary, StateView } from "@/components/kit";
@@ -91,6 +92,7 @@ function Portfolio() {
               : "WealthKart isn't live on this network yet. Check back soon."
           }
         />
+        {q.factory && <TestUsdtFaucet className="mx-auto mt-10 max-w-[640px]" />}
       </>
     );
   }

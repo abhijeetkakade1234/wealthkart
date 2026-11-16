@@ -1,3 +1,5 @@
+import { FileText } from "lucide-react";
+
 import type { Block, PublicPage } from "@/content/pages";
 import { pageLd } from "@/lib/seo/json-ld";
 
@@ -45,6 +47,23 @@ function BlockView({ block }: { block: Block }) {
           ))}
         </ol>
       );
+    case "links":
+      return (
+        <ul className="flex flex-col gap-3 text-[16px] leading-[1.7]">
+          {block.items.map((l) => (
+            <li key={l.href}>
+              <a
+                href={l.href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand underline decoration-brand/30 underline-offset-4 transition-colors hover:decoration-brand"
+              >
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      );
     case "table":
       return (
         <div className="overflow-x-auto rounded-[14px] border border-border">
@@ -83,13 +102,14 @@ function BlockView({ block }: { block: Block }) {
 }
 
 /**
- * A public help page rendered from `content/pages.ts`: one h1, question-style h2s with a
- * direct answer first (GEO, docs/seo.md §3), JSON-LD, and wide margins (ADR 0025).
+ * A public help or legal page rendered from `content/pages.ts` or `content/legal.ts`: one h1,
+ * question-style h2s with a direct answer first (GEO, docs/seo.md §3), JSON-LD when the page
+ * has a schema, a quiet draft note on legal pages (ADR 0055), and wide margins (ADR 0025).
  */
 export function PublicArticle({ page }: { page: PublicPage }) {
   return (
     <main className="mx-auto max-w-[1180px] px-4 sm:px-10">
-      <JsonLd data={pageLd(page)} />
+      {page.schema && <JsonLd data={pageLd(page)} />}
       <header className="max-w-[760px] pb-16 pt-16 sm:pt-28">
         <p className="text-xs uppercase tracking-[0.14em] text-brand">{page.eyebrow}</p>
         <h1 className="mt-6 font-display text-[clamp(38px,5vw,64px)] leading-[1.02] tracking-tight">
@@ -97,6 +117,16 @@ export function PublicArticle({ page }: { page: PublicPage }) {
         </h1>
         <p className="mt-7 text-[17.5px] leading-relaxed text-muted-foreground">{page.intro}</p>
         <p className="mt-6 text-[13px] text-muted-foreground">Updated {formatDate(page.updated)}</p>
+        {page.draftNote && (
+          <p
+            role="note"
+            data-draft-note
+            className="mt-8 flex gap-3 rounded-[14px] border border-line-soft bg-secondary/40 px-5 py-4 text-[13.5px] leading-relaxed text-muted-foreground"
+          >
+            <FileText className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={1.5} aria-hidden />
+            <span>{page.draftNote}</span>
+          </p>
+        )}
       </header>
 
       <div className="flex max-w-[760px] flex-col gap-20 border-t border-line-soft pt-16">

@@ -11,6 +11,9 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 | `/faq`          | yes     | Real questions people ask; `FAQPage` schema                             |
 | `/rules`        | yes     | Every circle setting with defaults and bounds (from ADR 0022)           |
 | `/security`     | yes     | Immutable contracts, audits, addresses, bug bounty, what we never store |
+| `/privacy`      | yes     | Privacy policy (ADR 0055); footer only, no page JSON-LD                 |
+| `/terms`        | yes     | Terms of use (ADR 0055); footer only, no page JSON-LD                   |
+| `/risks`        | yes     | Risk disclosure (ADR 0055); footer only, no page JSON-LD                |
 | `/blog/*`       | yes     | Later (Phase 4)                                                         |
 | `/app/*`        | **no**  | `noindex`, disallowed in robots, excluded from sitemap                  |
 
@@ -27,13 +30,13 @@ Decision: [ADR 0024](decisions/0024-seo-geo-llms-txt.md). The app is a static ex
 
 - Write each section as a **question heading plus a direct 1–3 sentence answer**, then detail. Answer engines quote these blocks.
 - Include **concrete, checkable facts**: default rules (1%/month, 20% reserve, 30-day notice), chain (Avalanche C-Chain), contract addresses with Snowtrace links, audit report link, "we store no personal data".
-- **JSON-LD:** `Organization` + `WebSite` (site-wide), `SoftwareApplication` (home), `HowTo` (how-it-works), `FAQPage` (faq), `TechArticle` (rules, security).
+- **JSON-LD:** `Organization` + `WebSite` (site-wide), `SoftwareApplication` (home), `HowTo` (how-it-works), `FAQPage` (faq), `TechArticle` (rules, security). Legal pages (privacy, terms, risks) carry no page-level JSON-LD (ADR 0055).
 - Keep headings and URLs stable; update dates shown on pages.
 - Target questions, e.g.: "How do friends pool money and lend to each other safely?", "What is a savings circle on Avalanche?", "How does WealthKart decide loans?", "What happens if a member stops paying?", "Can WealthKart access our funds?", "What if I lose my wallet?"
 
 ## 4. llms.txt
 
-Generated at build from the same content as the pages (`apps/web/src/content/pages.ts`, ADR 0027).
+Generated at build from the same content as the pages (`apps/web/src/content/pages.ts` and `legal.ts`, ADR 0027, 0055).
 
 `/llms.txt`:
 
@@ -48,6 +51,12 @@ Generated at build from the same content as the pages (`apps/web/src/content/pag
 - [Rules and defaults](https://<domain>/rules.md): every circle setting with default values and limits
 - [Security](https://<domain>/security.md): immutable contracts, audits, contract addresses
 - [FAQ](https://<domain>/faq.md): common questions
+
+## Legal
+
+- [Privacy policy](https://<domain>/privacy.md): what WealthKart stores (almost nothing), what is public on-chain, browser storage
+- [Terms of use](https://<domain>/terms.md): open-source, non-custodial, private circles, no promises about money
+- [Risks of saving in a WealthKart circle](https://<domain>/risks.md): contract bugs, lost wallets, price moves, USDT freezes, unpaid loans, notice periods
 
 ## Optional
 
@@ -77,5 +86,6 @@ Sitemap: https://<domain>/sitemap.xml
 ## 6. Copy rules
 
 - Never promise returns or show "earn X%" as marketing (ADR 0005). Showing a circle's own historical numbers inside the app is fine.
+- Legal pages follow the same rule, even in a denial: write "nobody promises that you will get back more than you put in", not "no returns" (S-LEGAL-02).
 - Say "private circles of friends", never "invest with us".
 - Plain language; write for someone who has never used crypto.

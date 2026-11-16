@@ -244,6 +244,7 @@ Known gaps:
 - S-USDT-08 AVAX circle `repay(amount)` needs `msg.value == amount`
 - S-USDT-09 Gas sweep, USDT circle (RT-USDT-01 / M-1, ADR 0050): as S-EXIT-14b → every call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; monotonic in gas
 - S-USDT-10 Tether turns on a 0.01% fee (RT-USDT-02, ADR 0050) → `contribute`, `payInterest` and `repay` succeed and count as paid in full; `TokenFeeAbsorbed` emitted; `totalAssets` short by exactly the fee; for a repayment `loansOutstanding` drops by the full amount; I-12u holds. S-USDT-10b: exactly 1% is absorbed, 2% reverts `TokenAmountMismatch`
+- S-USDT-11 "Get test USDT" shows only when the build isn't mainnet, it targets chain 43113, the factory has a USDT and that token answers `MINT_CAP()` > 0; one tap asks for 1,000 USDT or the cap if lower (ADR 0053)
 - S-DEPLOY-01 `DeployFactory.s.sol` on chain 43114 (RT-USDT-06, ADR 0050) → reverts without `CONFIRM_MAINNET=yes`, with a USDT other than C-Chain USDt, or with the mock token
 
 ### Analytics and activity (S-ACT)
@@ -332,6 +333,19 @@ ADR 0049. E2E in `apps/web/e2e/landing.e2e.ts`; copy checks in `apps/web/src/lib
 - S-LAND-06 Scrolling the month scene highlights step 1 at the start and step 4 at the end
 - S-LAND-07 Landing copy never advertises returns, the description fits search limits, FAQ teaser answers match `/faq`, and llms-full.txt carries the landing copy
 
+### Legal pages (S-LEGAL)
+
+ADR 0055. Unit checks in `apps/web/src/lib/__tests__/legal.test.ts`; E2E in `apps/web/e2e/legal.e2e.ts`.
+
+- S-LEGAL-01 Privacy, terms and risks each have a title (≤ 60), a description (≤ 155), an ISO last-updated date and the "Draft, pending legal review" note; question headings with unique anchors; no page JSON-LD
+- S-LEGAL-02 Legal copy never advertises returns, even in a denial (same banned words as S-LAND-07); the terms say nothing is promised, that WealthKart holds no keys or funds, and still show the court-city placeholder for the lawyer
+- S-LEGAL-03 Every legal page is in the sitemap, linked from llms.txt under "Legal", included in llms-full.txt, and its `.md` twin carries the draft note and links
+- S-LEGAL-04 The privacy policy matches the code: it names every browser storage key, every file that touches browser storage or cookies is on the known list, no analytics or tracker library is present, fonts are self-hosted
+- S-LEGAL-05 `/privacy/`, `/terms/` and `/risks/` load with one h1, the draft note, an "Updated" date, a canonical link and no noindex; the `.md` twins, sitemap and llms.txt serve them
+- S-LEGAL-06 The footer's Legal row reaches each page from home and from a help page
+- S-LEGAL-07 The sign-in page shows "By connecting you agree to the Terms and have read the Risks", and its Terms, Risks and Privacy links work
+- S-LEGAL-08 No sideways scroll at 360px wide on any legal page
+
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
 Real static export, local anvil chain posing as Fuji (chain id 43113), test wallet that announces itself as Core and forwards to anvil. Every user-facing feature adds one here (CLAUDE.md).
@@ -363,6 +377,7 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
 - S-E2E-31 Start a USDT circle: USDT is offered (factory has one), the freeze and AVAX-for-gas warning shows, amounts are in USDT; the Pay page says the wallet has too little USDT; after the faucet mint the member pays in two steps (approve up to installment plus both fees, then pay), exactly 50.00 USDT leaves the wallet, 2 USDT of allowance is left, and the overview shows the USDT badge and amounts
 - S-E2E-32 The create form refuses member caps of 2 and 51 before sending and notes slower votes above 20; a cap of 50 creates an AVAX circle with `maxMembers = 50` and the AVAX badge
+- S-E2E-40 A wallet with no circles sees "Get test USDT" on the empty dashboard with the plain note that test USDT has no value; one tap adds exactly 1,000 USDT; on a USDT circle's Pay page the button shows again, adds another 1,000 and Pay is enabled (ADR 0053)
 
 ## Gates in CI
 

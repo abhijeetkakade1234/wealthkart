@@ -34,7 +34,10 @@ test("S-E2E-15 the circle page charts the money and shows who paid on time, late
     (r) => r.url().includes(`/v1/circles/${circle}/logs`) && r.ok(),
   );
   await alice.goto(`/app/circle/?id=${circle}`);
-  const body = (await (await indexed).json()) as { known: boolean; logs: unknown[] };
+  // Read the same URL again from the test: the browser may drop the response body when the
+  // page re-renders straight after loading ("No resource with given identifier found").
+  const res = await fetch((await indexed).url());
+  const body = (await res.json()) as { known: boolean; logs: unknown[] };
   expect(body.known).toBe(true);
   expect(body.logs.length).toBeGreaterThan(0);
   await expect(alice.getByRole("heading", { name: "How the circle is doing" })).toBeVisible();

@@ -37,16 +37,18 @@ Last updated: 2026-11-16
 ## Next: Phase 4 (growth)
 
 - [x] Landing page with the "one month" scroll scene (ADR 0049)
+- [x] Legal pages (draft): privacy, terms and risks (ADR 0055)
+- [ ] Lawyer review of privacy/terms/risks (checklist in `docs/legal/README.md`)
 - [ ] Reminders (Web Push, keyed by wallet)
 - [ ] Circle templates (friends, family, office)
 - [ ] Hindi and Marathi
 - [ ] Onboarding guide (install Core, back up the phrase, get AVAX)
 - [x] Free space in the vault (now 22,109 B, 2,467 B left under 24 KB)
-- [ ] "Get test USDT" faucet button on Fuji builds
+- [x] "Get test USDT" faucet button on test network builds (ADR 0053)
 - [ ] E2E for USDT loans (pay interest, repay) and the approve retry
 - [ ] Confirm on Fuji/fork that Avalanche USDt allows re-approving over a non-zero allowance
-- [ ] `pnpm dev:local`: one command for anvil + contracts + app on a PC
-- [ ] Configurable E2E ports so parallel runs can't clash
+- [x] `pnpm dev:local`: one command for anvil + contracts + app on a PC (ADR 0053)
+- [x] Configurable E2E ports so parallel runs can't clash (`pnpm e2e:isolated`, ADR 0053)
 
 ## Owner actions (saved for after all phases are coded)
 
