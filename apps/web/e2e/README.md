@@ -15,6 +15,7 @@ How it works: `playwright.config.ts` starts a local **anvil** chain that uses Fu
 | `support/global-setup.ts` | Multicall3 + factory, libraries and faucet MockUSDT deploy                                                                       |
 | `support/usdt.ts`         | Factory USDT, faucet `mintUsdt`, token balance and allowance, `vaultView`                                                        |
 | `support/multicall3.ts`   | Multicall3 runtime bytecode (public)                                                                                             |
+| `support/push.ts`         | Reminders: mocked notification permission and `PushManager`, real P-256 device keys, a fake push service on 127.0.0.1            |
 | `serve.mjs`               | Dependency-free static server that mirrors Cloudflare Pages routing                                                              |
 
-Run: `FOUNDRY_DIR=/d/tools/foundry pnpm --filter @wealthkart/web e2e` (after `forge build` in `packages/contracts`). Browsers live in `PLAYWRIGHT_BROWSERS_PATH` (D:\tools\ms-playwright on the dev machine). Tests share one chain and run in order: each one creates its own circle, and chain time only moves forward.
+Run: `FOUNDRY_DIR=/d/tools/foundry pnpm --filter @wealthkart/web e2e` (after `forge build` in `packages/contracts`). Browsers live in `PLAYWRIGHT_BROWSERS_PATH` (D:\tools\ms-playwright on the dev machine). Tests share one chain and run in order: each one creates its own circle, and chain time only moves forward. Reminders (ADR 0052): `playwright.config.ts` makes a VAPID key pair per run and passes it to the web build and the local indexer.

@@ -20,6 +20,8 @@ export const ACCOUNTS = {
   dave: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
   /** Only the USDT tests use her, so her test USDT balance starts at zero on a fresh chain. */
   erin: "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
+  /** Only the reminder tests use her, so her circle list stays short. */
+  fay: "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
 } as const;
 
 /**

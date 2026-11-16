@@ -10,6 +10,16 @@ const here = dirname(fileURLToPath(import.meta.url));
 const worker = join(here, "..", "..", "..", "workers", "indexer");
 const persist = join(worker, ".wrangler-e2e");
 const port = process.env.INDEXER_PORT || "8787";
+const webPort = process.env.WEB_PORT || "4310";
+// Reminders (ADR 0052): a VAPID pair made for this run by playwright.config.ts, the local site as
+// the only domain allowed in signed messages, and a fake push service on 127.0.0.1 (the tests
+// start it). Local test values only; Fuji and mainnet never set PUSH_EXTRA_ORIGINS.
+const pushVars = [
+  `VAPID_PUBLIC_KEY:${process.env.VAPID_PUBLIC_KEY ?? ""}`,
+  `VAPID_PRIVATE_KEY:${process.env.VAPID_PRIVATE_KEY ?? ""}`,
+  `APP_DOMAINS:127.0.0.1:${webPort},localhost:${webPort}`,
+  "PUSH_EXTRA_ORIGINS:http://127.0.0.1:",
+].flatMap((v) => ["--var", v]);
 const env = { ...process.env, WRANGLER_SEND_METRICS: "false", CI: process.env.CI ?? "1" };
 const shell = process.platform === "win32";
 
@@ -60,6 +70,7 @@ const dev = spawn(
     "--persist-to",
     persist,
     "--show-interactive-dev-session=false",
+    ...pushVars,
   ],
   { cwd: worker, env, stdio: "inherit", shell },
 );
