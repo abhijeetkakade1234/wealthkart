@@ -33,7 +33,7 @@ Known gaps:
 - I-1 `trackedCash + loansOutstanding + pendingExitsOwed == totalAssets` (internal accounting, never `address(this).balance`)
 - I-2 `sum(member shares) == totalShares`
 - I-3 No member can withdraw more than `shares × NAV − owed`
-- I-4 NAV never decreases except through a voted loan write-off
+- I-4 NAV never decreases except through a voted loan write-off, or a USDT transfer fee of at most 1% that the circle absorbs (ADR 0050)
 - I-5 Free cash for loans never dips below the reserve %
 - I-6 A frozen member can't exit, borrow, or transfer anything
 - I-7 Each member pays at most one installment per period
@@ -73,6 +73,7 @@ Known gaps:
 - S-MEM-08 Dormant member comes back with `wake()` → dues restart this month (or next if the due moment passed); votes only on requests opened after waking; bad `dormantAfter` setting refused
 - S-MEM-09 Circle at the 50-member cap (ADR 0045) → every action still under the gas limit and flat in the member count (ADR 0015)
 - S-MEM-09a 50 founders (creator + 49) fit a cap of 50; a full circle refuses join requests; 51 founders are refused at creation (ADR 0045)
+- S-MEM-09b Founder invites hold their seats (RT-USDT-03, ADR 0050): cap 3, creator + f1 + f2, f1 accepts → a join request is refused `CircleFull` while f2's invite is live; f2 can still accept; after f2 declines or the 14 days pass, a join succeeds. Cap 4: an approval that would take a held seat closes as Full and the late founder still gets in
 - S-MEM-10 Joins (or circle created) after this month's due moment → first installment is next month; nobody starts already late (ADR 0028)
 - S-MEM-11 Smart-contract wallet that refuses plain AVAX is a member → can pay and vote
 - S-MEM-12 Only members who joined before the request can vote; outsiders, the applicant and later joiners can't; one vote each
@@ -130,6 +131,7 @@ Known gaps:
 - S-EXIT-11 Dormant member exits → paid for their shares; dormant count drops
 - S-EXIT-12 Rage-quit window open (ADR 0019, 0043) → exit matures at `min(now + notice, rageQuitUntil)` under the old rules, never instantly, and is paid at the switch even if an earlier exit is still in its notice
 - S-EXIT-13 Member takes a loan tie or is frozen during the notice → exit dropped at processing, `exitsWaiting` stays exact
+- S-EXIT-14b Gas sweep, AVAX circle (RT-USDT-01, ADR 0050): 6 matured exits (creator first, 24-byte names, cold storage via `isolate`), `processExits` at 150k..1.2M gas in 2k steps → each call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; paid count never drops as gas rises
 
 ### Governance (S-GOV)
 
@@ -232,7 +234,7 @@ Known gaps:
 
 - S-USDT-00 The asset is fixed at creation: `asset()` is the factory's USDT (or 0 for AVAX); an AVAX circle on the same factory never touches the token
 - S-USDT-01 Full USDT lifecycle: approve-then-pay installments, late fee, loan paid out in USDT, interest, `repay(amount)`, exit paid after notice, dissolve and every claim; vault ends empty
-- S-USDT-02 Fee-on-transfer token → payment rejected (`TokenAmountMismatch`)
+- S-USDT-02 Transfer fee above 1% (1.01%) → payment rejected (`TokenAmountMismatch`), nothing booked (ADR 0050)
 - S-USDT-03 Tether freezes one member → their exit payout goes to `withdrawable`, the member behind them is paid; `withdraw` fails while frozen and works once unfrozen
 - S-USDT-03b Frozen borrower → the loan vote still settles; the loan waits in `withdrawable`
 - S-USDT-04 AVAX sent with `contribute`, `payInterest` or `repay` in a USDT circle → `AvaxNotAccepted`
@@ -240,6 +242,9 @@ Known gaps:
 - S-USDT-06 USDT sent straight to the vault doesn't move NAV
 - S-USDT-07 Factory without a USDT address → USDT circle creation reverts `UsdtNotAvailable`
 - S-USDT-08 AVAX circle `repay(amount)` needs `msg.value == amount`
+- S-USDT-09 Gas sweep, USDT circle (RT-USDT-01 / M-1, ADR 0050): as S-EXIT-14b → every call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; monotonic in gas
+- S-USDT-10 Tether turns on a 0.01% fee (RT-USDT-02, ADR 0050) → `contribute`, `payInterest` and `repay` succeed and count as paid in full; `TokenFeeAbsorbed` emitted; `totalAssets` short by exactly the fee; for a repayment `loansOutstanding` drops by the full amount; I-12u holds. S-USDT-10b: exactly 1% is absorbed, 2% reverts `TokenAmountMismatch`
+- S-DEPLOY-01 `DeployFactory.s.sol` on chain 43114 (RT-USDT-06, ADR 0050) → reverts without `CONFIRM_MAINNET=yes`, with a USDT other than C-Chain USDt, or with the mock token
 
 ### Analytics and activity (S-ACT)
 

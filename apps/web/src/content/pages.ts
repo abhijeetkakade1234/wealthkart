@@ -435,7 +435,7 @@ export const SECURITY: PublicPage = {
       id: "status",
       heading: "Is WealthKart live with real money?",
       answer:
-        "Not yet. It runs on the Fuji testnet while the contracts are tested. The contract refuses to run on Avalanche mainnet until an external audit is done.",
+        "Not yet. It runs on the Fuji testnet while the contracts are tested. We will only move to Avalanche mainnet after an external audit.",
       blocks: [
         {
           kind: "list",

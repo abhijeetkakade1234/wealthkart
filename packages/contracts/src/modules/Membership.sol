@@ -109,6 +109,12 @@ library Membership {
         /// @dev Members admitted with `member` as their confirmed inviter.
         mapping(address member => uint256) admittedVia;
         uint32 seqCounter;
+        /// @dev Founder invites not yet accepted, declined or cleared. Each holds a seat until
+        ///      `invitesExpireAt`, so a join vote can't take a late founder's seat (RT-USDT-03).
+        ///      Packed into `seqCounter`'s slot, so no storage moves.
+        uint32 pendingInvites;
+        /// @dev When every founder invite expires (all are made at creation with one TTL).
+        uint64 invitesExpireAt;
         /// @dev Every address that was ever a member, once each, for paginated reads.
         address[] memberList;
         mapping(address account => bool) listed;
@@ -237,6 +243,8 @@ library Membership {
             s.founderInviteExpiry[f] = expiresAt;
             emit FounderInvited(f, expiresAt);
         }
+        s.pendingInvites = SafeCast.toUint32(invitees.length);
+        s.invitesExpireAt = expiresAt;
     }
 
     // ------------------------------------------------------------------ founder invites
@@ -245,8 +253,9 @@ library Membership {
         uint64 expiresAt = s.founderInviteExpiry[msg.sender];
         if (expiresAt == 0) revert NoFounderInvite();
         if (block.timestamp > expiresAt) revert FounderInviteExpired(expiresAt);
-        if (_isFull(s, p)) revert CircleFull(p.maxMembers);
-        delete s.founderInviteExpiry[msg.sender];
+        // Real seats only: this founder's own seat was held for them.
+        if (s.memberCount >= p.maxMembers) revert CircleFull(p.maxMembers);
+        _clearInvite(s, msg.sender);
         // Founders were chosen by the creator and vote from the start.
         _addMember(s, msg.sender, _firstPeriod(p.dueDay), true);
         ICircleRegistry(p.factory).registerMember(msg.sender);
@@ -254,7 +263,7 @@ library Membership {
 
     function declineInvite(Store storage s) external {
         if (s.founderInviteExpiry[msg.sender] == 0) revert NoFounderInvite();
-        delete s.founderInviteExpiry[msg.sender];
+        _clearInvite(s, msg.sender);
         emit FounderInviteDeclined(msg.sender);
     }
 
@@ -273,7 +282,7 @@ library Membership {
         if (founderExpiry != 0) {
             // A live founder invite: accept it instead. An expired one is cleared.
             if (block.timestamp <= founderExpiry) revert AlreadyMember(msg.sender);
-            delete s.founderInviteExpiry[msg.sender];
+            _clearInvite(s, msg.sender);
         }
         uint256 open = s.openJoinOf[msg.sender];
         if (open != 0) revert RequestAlreadyOpen(open);
@@ -595,8 +604,17 @@ library Membership {
         emit MemberAdded(who, firstPeriod);
     }
 
+    /// @dev Full for newcomers: members plus seats held for founder invites still live
+    ///      (RT-USDT-03). `acceptInvite` checks real seats only.
     function _isFull(Store storage s, Params calldata p) private view returns (bool) {
-        return s.memberCount >= p.maxMembers;
+        uint256 held = block.timestamp <= s.invitesExpireAt ? s.pendingInvites : 0;
+        return s.memberCount + held >= p.maxMembers;
+    }
+
+    /// @dev Removes a founder invite and the seat it held. Each invite is cleared once.
+    function _clearInvite(Store storage s, address account) private {
+        delete s.founderInviteExpiry[account];
+        s.pendingInvites -= 1;
     }
 
     function _isVoter(Member storage m) private view returns (bool) {

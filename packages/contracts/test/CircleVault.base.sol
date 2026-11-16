@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
 import {Rules} from "../src/modules/Rules.sol";
+import {Exits} from "../src/modules/Exits.sol";
 import {PeriodMath} from "../src/libraries/PeriodMath.sol";
 import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 
@@ -183,5 +184,47 @@ abstract contract CircleVaultBase is Test {
         id = _request(applicant, displayName);
         _votes(id, 0, members.length, true);
         require(vault.isMember(applicant), "not admitted");
+    }
+
+    // ------------------------------------------------------------------ exits
+
+    /// @dev Worst case for an exit's settle cost: a 24-byte display name, so removing the member
+    ///      writes a fresh `nameFreeAt` slot, then the exit request.
+    function _nameAndRequestExit(CircleVault v, address who, uint256 i) internal {
+        vm.prank(who);
+        v.setDisplayName(string.concat("exit_member_name_long_", vm.toString(i % 10), "x"));
+        vm.prank(who);
+        v.requestExit();
+    }
+
+    /// @dev RT-USDT-01 sweep: from the same state, call `processExits(10)` at every gas limit in
+    ///      `lo..hi` (step `step`). Each call either pays at least one exit or reverts with
+    ///      `ExitGasTooLow` (never `PayoutGasTooLow` or out of gas), and more gas never pays
+    ///      fewer. The top of the sweep pays all `queued` exits.
+    function _sweepProcessExits(CircleVault v, uint256 lo, uint256 hi, uint256 step, uint256 queued)
+        internal
+    {
+        uint256 prev = 0;
+        for (uint256 g = lo; g <= hi; g += step) {
+            uint256 snap = vm.snapshotState();
+            (bool ok, bytes memory ret) =
+                address(v).call{gas: g}(abi.encodeCall(CircleVault.processExits, (10)));
+            uint256 paid = 0;
+            if (ok) {
+                paid = abi.decode(ret, (uint256));
+                assertGe(paid, 1, "a run that succeeds pays someone");
+            } else {
+                assertEq(ret.length, 4, string.concat("bare revert at gas ", vm.toString(g)));
+                assertEq(
+                    bytes4(ret),
+                    Exits.ExitGasTooLow.selector,
+                    string.concat("wrong revert at gas ", vm.toString(g))
+                );
+            }
+            assertGe(paid, prev, string.concat("fewer paid at gas ", vm.toString(g)));
+            prev = paid;
+            vm.revertToState(snap);
+        }
+        assertEq(prev, queued, "the top of the sweep pays every exit");
     }
 }

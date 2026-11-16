@@ -80,9 +80,6 @@ contract CircleVault is ReentrancyGuardTransient {
     // ------------------------------------------------------------------ constants
 
     uint256 public constant MAX_FOUNDERS = Membership.MAX_FOUNDERS;
-    /// @notice Avalanche C-Chain mainnet. This version has no withdrawal path yet (exits arrive in
-    ///         Phase 2) and contracts are immutable, so deploying it on mainnet would lock funds.
-    uint256 public constant AVALANCHE_MAINNET_CHAIN_ID = 43_114;
     uint8 public constant MAX_HOLIDAYS_PER_YEAR = 12;
     uint256 public constant MAX_NAME_BYTES = CircleName.MAX_BYTES;
     uint32 public constant MIN_VOTING_WINDOW = 1 hours;
@@ -165,7 +162,6 @@ contract CircleVault is ReentrancyGuardTransient {
     error HolidayLimitReached(uint256 year);
     error PeriodAlreadyPaid(uint256 period);
     error DirectTransferNotAllowed();
-    error MainnetNotSupported();
     /// @notice This factory has no USDT on this chain, so only AVAX circles can be created.
     error UsdtNotAvailable();
 
@@ -175,8 +171,6 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @param creator_ The wallet creating the circle; the only member at the start.
     /// @param invitees Other founders; each must call `acceptInvite` within 14 days (RT-02).
     constructor(Config memory cfg, address creator_, address[] memory invitees) {
-        // Funds-stuck guard: no exits in this version (see AVALANCHE_MAINNET_CHAIN_ID).
-        if (block.chainid == AVALANCHE_MAINNET_CHAIN_ID) revert MainnetNotSupported();
         if (creator_ == address(0)) revert Membership.ZeroAddressMember();
         _validate(cfg, invitees.length);
         Rules.validate(cfg.rules, cfg.installment);
