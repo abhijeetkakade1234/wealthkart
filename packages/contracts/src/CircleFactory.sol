@@ -21,6 +21,10 @@ contract CircleFactory is ICircleRegistry {
     bytes32 public immutable vaultCodeHash;
     /// @notice The soulbound track record every circle of this factory writes to (Phase 3).
     Reputation public immutable reputation;
+    /// @notice The one USDT token circles of this factory may use (ADR 0046); address(0) on a
+    ///         chain without one, where only AVAX circles can be created. Avalanche C-Chain
+    ///         mainnet USDt: 0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7 (passed at deploy).
+    address public immutable usdt;
     /// @dev Data contracts holding the vault creation code, in order.
     address[] internal _vaultCode;
 
@@ -36,7 +40,10 @@ contract CircleFactory is ICircleRegistry {
     error EmptyVaultCode();
 
     /// @param vaultCreationCode `type(CircleVault).creationCode`, linked to its libraries.
-    constructor(bytes memory vaultCreationCode) {
+    /// @param usdt_ The chain's USDT (or a testnet mock), or address(0) for AVAX-only circles.
+    constructor(bytes memory vaultCreationCode, address usdt_) {
+        // slither-disable-next-line missing-zero-check (0 = no USDT here: AVAX circles only)
+        usdt = usdt_;
         if (vaultCreationCode.length == 0) revert EmptyVaultCode();
         vaultCodeHash = keccak256(vaultCreationCode);
         _vaultCode = CodeStore.write(vaultCreationCode);

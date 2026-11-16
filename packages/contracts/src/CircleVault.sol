@@ -16,8 +16,9 @@ import {Exits} from "./modules/Exits.sol";
 import {LoanBook} from "./modules/LoanBook.sol";
 
 /// @title CircleVault
-/// @notice One savings circle: members contribute a fixed AVAX installment each month and receive
-///         non-transferable shares at the current NAV. Late fees go into the vault. Founders
+/// @notice One savings circle: members contribute a fixed installment each month, in AVAX or the
+///         factory's USDT (chosen once at creation, ADR 0046), and receive non-transferable
+///         shares at the current NAV. Late fees go into the vault. Founders
 ///         named by the creator must accept; anyone else joins by a request and a member vote.
 ///         A member who stops paying can be voted dormant. Everyone picks a display name.
 /// @dev Immutable (ADR 0020): no proxy, no upgrade path, no owner that can move funds.
@@ -37,13 +38,22 @@ contract CircleVault is ReentrancyGuardTransient {
 
     // ------------------------------------------------------------------ types
 
+    /// @notice The money a circle holds (ADR 0046). Chosen once at creation, never changed.
+    enum Asset {
+        AVAX,
+        USDT
+    }
+
     struct Config {
         /// @dev Circle name shown in the app: 3..48 safe characters, no links (ADR 0033, RT-26).
         ///      Public on-chain; no personal data.
         string name;
-        /// @dev Fixed installment per period, in wei (ADR 0002).
+        /// @dev AVAX, or the factory's USDT (reverts if the factory has none). Every amount below
+        ///      is in the asset's smallest unit: wei, or 1e-6 USDT (ADR 0046).
+        Asset asset;
+        /// @dev Fixed installment per period, in the asset's smallest unit (ADR 0002).
         uint128 installment;
-        /// @dev Late fee 1 (after the due day) and late fee 2 (after `secondFeeDay`), in wei.
+        /// @dev Late fee 1 (after the due day) and late fee 2 (after `secondFeeDay`).
         ///      Each is at most half the installment (ADR 0030).
         uint128 fee1;
         uint128 fee2;
@@ -113,6 +123,8 @@ contract CircleVault is ReentrancyGuardTransient {
     /// @notice The soulbound record this circle writes payments and loan outcomes to (ADR 0042).
     address public immutable reputation;
     address public immutable creator;
+    /// @notice The circle's token: address(0) = AVAX, otherwise the factory's USDT (ADR 0046).
+    address public immutable asset;
 
     // ------------------------------------------------------------------ state
 
@@ -154,6 +166,8 @@ contract CircleVault is ReentrancyGuardTransient {
     error PeriodAlreadyPaid(uint256 period);
     error DirectTransferNotAllowed();
     error MainnetNotSupported();
+    /// @notice This factory has no USDT on this chain, so only AVAX circles can be created.
+    error UsdtNotAvailable();
 
     // ------------------------------------------------------------------ constructor
 
@@ -182,6 +196,13 @@ contract CircleVault is ReentrancyGuardTransient {
         name = cfg.name;
         factory = msg.sender;
         reputation = IReputationSource(msg.sender).reputation();
+        address token = address(0);
+        if (cfg.asset == Asset.USDT) {
+            token = IReputationSource(msg.sender).usdt();
+            if (token == address(0)) revert UsdtNotAvailable();
+        }
+        asset = token;
+        _ledger.token = token;
         creator = creator_;
         createdAtBlock = SafeCast.toUint64(block.number);
 
@@ -210,7 +231,8 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice Pay the oldest unpaid installment, plus any late fees owed on it.
     ///         A dormant member who pays is woken first and pays the current period (RT-11).
-    /// @dev `msg.value` must equal exactly `installment + lateFees` (see `amountDue`).
+    /// @dev AVAX: `msg.value` must equal exactly `installment + lateFees` (see `amountDue`).
+    ///      USDT: send no AVAX; approve the vault for that amount first and it is pulled.
     function contribute() external payable nonReentrant {
         if (_ledger.dissolved) revert Governance.CircleDissolved();
         _syncRules();
@@ -224,14 +246,18 @@ contract CircleVault is ReentrancyGuardTransient {
 
         uint256 fees = _lateFees(msg.sender, period, block.timestamp);
         uint256 expected = uint256(installment) + fees;
-        if (msg.value != expected) revert WrongAmount(expected, msg.value);
+        bool token = asset != address(0);
+        if (token ? msg.value != 0 : msg.value != expected) {
+            if (token) revert Ledger.AvaxNotAccepted();
+            revert WrongAmount(expected, msg.value);
+        }
 
         // Effects: shares are priced on the installment at the pre-payment NAV;
         // the fee then raises NAV for everyone (ADR 0009). A late joiner buys in here,
         // at today's NAV, so existing members are not diluted (ADR 0006).
         uint256 minted =
             SharesMath.sharesForDeposit(installment, _ledger.totalAssets, _ledger.totalShares);
-        _ledger.totalAssets += msg.value;
+        _ledger.totalAssets += expected;
         _ledger.totalShares += minted;
         m.shares += SafeCast.toUint128(minted);
         m.nextPeriod = SafeCast.toUint32(period + 1);
@@ -241,6 +267,7 @@ contract CircleVault is ReentrancyGuardTransient {
         // Last: the trusted record from our own factory (ADR 0042). On time = no late fee.
         // slither-disable-next-line incorrect-equality (fees is a computed amount, not a balance)
         IReputation(reputation).recordPayment(msg.sender, fees == 0);
+        if (token) _ledger.pull(expected);
     }
 
     /// @notice Declare a payment holiday for the current period (ADR 0017): no late fees until
@@ -328,7 +355,7 @@ contract CircleVault is ReentrancyGuardTransient {
 
     // ------------------------------------------------------------------ payouts
 
-    /// @notice Claim AVAX your wallet refused when the circle tried to pay you (RT-20).
+    /// @notice Claim a payout your wallet refused (or couldn't receive) earlier (RT-20).
     function withdraw() external nonReentrant {
         _ledger.withdraw(msg.sender);
     }
@@ -376,16 +403,27 @@ contract CircleVault is ReentrancyGuardTransient {
     }
 
     /// @notice Pay all interest and late fees owed on your loan (see `interestDue`), exactly.
-    ///         Rates, fees and the default limit are the loan's own, fixed at payout.
+    ///         Rates, fees and the default limit are the loan's own, fixed at payout. USDT
+    ///         circles: send no AVAX; approve the amount first.
     function payInterest() external payable nonReentrant {
         _loans.payInterest(_m, _ledger, _loanCtx(), msg.value);
     }
 
-    /// @notice Repay principal with the AVAX sent. Closing the loan needs interest paid first and
-    ///         may add one month's interest (rule 17): send `payoffDue` to close it.
+    /// @notice Repay principal with the AVAX sent (AVAX circles). Closing the loan needs interest
+    ///         paid first and may add one month's interest (rule 17): send `payoffDue` to close it.
     function repay() external payable nonReentrant {
+        _repay(msg.value);
+    }
+
+    /// @notice Repay `amount` of principal (see `repay()`). AVAX circles: send exactly `amount`.
+    ///         USDT circles: send no AVAX; approve `amount` first and it is pulled (ADR 0046).
+    function repay(uint256 amount) external payable nonReentrant {
+        _repay(amount);
+    }
+
+    function _repay(uint256 amount) internal {
         _syncRules();
-        _loans.repay(_m, _ledger, _rules, _loanCtx(), msg.value);
+        _loans.repay(_m, _ledger, _rules, _loanCtx(), amount, msg.value);
     }
 
     /// @notice Mark a loan in default once it qualifies; freezes borrower and guarantor.
@@ -861,7 +899,7 @@ contract CircleVault is ReentrancyGuardTransient {
 
     /// @notice What `member` must send to `contribute()` right now.
     /// @return period The period that would be paid.
-    /// @return amount Installment plus late fees, in wei.
+    /// @return amount Installment plus late fees, in the asset's smallest unit.
     /// @return fees Late fees included in `amount`.
     /// @return payable_ False if the next period is in the future (nothing due yet).
     function amountDue(address member)
@@ -1010,7 +1048,7 @@ contract CircleVault is ReentrancyGuardTransient {
         (id, voter, ok);
     }
 
-    /// @notice Current value of `member`'s stake in wei.
+    /// @notice Current value of `member`'s stake (asset's smallest unit).
     function stakeOf(address member) external view returns (uint256) {
         return SharesMath.assetsForShares(
             _m.members[member].shares, _ledger.totalAssets, _ledger.totalShares
@@ -1026,7 +1064,7 @@ contract CircleVault is ReentrancyGuardTransient {
         return PeriodMath.periodOf(block.timestamp);
     }
 
-    /// @notice Cash plus loans outstanding, in wei.
+    /// @notice Cash plus loans outstanding (asset's smallest unit).
     function totalAssets() external view returns (uint256) {
         return _ledger.totalAssets;
     }
@@ -1035,12 +1073,12 @@ contract CircleVault is ReentrancyGuardTransient {
         return _ledger.totalShares;
     }
 
-    /// @notice Principal lent out to members right now, in wei.
+    /// @notice Principal lent out to members right now.
     function loansOutstanding() external view returns (uint256) {
         return _ledger.loansOutstanding;
     }
 
-    /// @notice AVAX the circle holds and may use (total assets minus loans out).
+    /// @notice Money the circle holds and may use (total assets minus loans out).
     function cash() external view returns (uint256) {
         return _ledger.cash();
     }

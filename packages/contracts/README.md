@@ -30,6 +30,10 @@
 **Sizes (2026-11-15):** factory 20.1 KB, vault 13.6 KB, Membership ~15 KB, all under the 24 KB limit. New Phase 2 logic goes into its own module under `src/modules/` (ADR 0031). Deploys link libraries: `forge script` deploys missing libraries itself; anything that deploys from the raw artifact must deploy every linked library (`Membership`, `Rules`, `Exits`, ...) first and fill its address into the factory bytecode (see `apps/web/e2e/support/global-setup.ts`).
 **Sizes (2026-11-15, after LoanBook):** factory 3.2 KB (blueprint, ADR 0037), vault 18.2 KB, Membership 15.3 KB, LoanBook 17.7 KB, all under the 24 KB limit. New Phase 2 logic goes into its own module under `src/modules/` (ADR 0031). Deploys link libraries: `forge script` deploys missing libraries itself; anything that deploys from the raw artifact must deploy `Membership`, `Rules` and `LoanBook` first and fill its address into the factory bytecode (see `apps/web/e2e/support/global-setup.ts`).
 
+**Sizes (2026-11-16, after the view forwarder, 50-member cap and USDT circles):** vault 22.0 KB (2.5 KB headroom; was 23.7 KB before `_view`), factory 3.4 KB, Membership 17.2 KB, LoanBook 20.1 KB, Governance 15.3 KB, Exits 8.7 KB. Struct, array and string views go through `_view` (see `src/modules/README.md`).
+
+**Circle asset (ADR 0046):** `Config.asset` is AVAX or USDT, fixed at creation. The factory constructor is `(bytes vaultCode, address usdt)`; a USDT circle needs a non-zero factory `usdt`. Payments in USDT circles are approve-then-pay with no AVAX attached; `repay(uint256 amount)` works for both assets. Members: 3..50 (ADR 0045).
+
 **Rules (see `docs/engineering.md`):** immutable contracts, no proxies (ADR 0020); no loops over members (ADR 0015); internal accounting, never `address(this).balance`; custom errors; events for every state change; run the `solidity-hardening` and `redteam-attack` skills on every contract change. The math must match `packages/rules`.
 
 **Depends on / used by:** forge-std, OpenZeppelin / `packages/sdk` (ABIs), `apps/web`.

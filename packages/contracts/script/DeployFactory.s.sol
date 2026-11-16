@@ -7,20 +7,40 @@ pragma solidity 0.8.28;
 import {Script, console2} from "forge-std/Script.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
 import {CircleVault} from "../src/CircleVault.sol";
+import {MockUSDT} from "./MockUSDT.sol";
 
 /// @notice Deploys CircleFactory and records the address for the SDK.
-/// @dev Fuji only for now (CircleVault refuses mainnet until exits exist).
+/// @dev Fuji only for now (CircleVault refuses mainnet until the audited release).
 ///      Usage (from packages/contracts):
 ///        forge script script/DeployFactory.s.sol --rpc-url fuji --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 ///      Writes ../sdk/src/deployments/<chainId>.json, which the app reads.
+///
+///      USDT circles (ADR 0046): the factory takes one USDT address, fixed for its lifetime.
+///      - `USDT_ADDRESS` set: that token is used (mainnet: Avalanche C-Chain USDt
+///        0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7; the contracts never hardcode it).
+///      - `DEPLOY_MOCK_USDT=true` on a testnet (Fuji): deploys `script/MockUSDT.sol` first, a
+///        worthless 6-decimal token with a public faucet `mint` capped per call, and uses it.
+///      - Neither: address(0), so only AVAX circles can be created on this factory.
 contract DeployFactory is Script {
+    uint256 internal constant AVALANCHE_MAINNET_CHAIN_ID = 43_114;
+    /// @dev Avalanche C-Chain USDt, for the record (pass it with `USDT_ADDRESS`).
+    address internal constant MAINNET_USDT = 0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7;
+
+    error MockUsdtOnMainnet();
+
     function run() external returns (CircleFactory factory) {
+        address usdt = vm.envOr("USDT_ADDRESS", address(0));
+        bool mock = vm.envOr("DEPLOY_MOCK_USDT", false);
+        if (mock && block.chainid == AVALANCHE_MAINNET_CHAIN_ID) revert MockUsdtOnMainnet();
+
         vm.startBroadcast();
-        factory = new CircleFactory(type(CircleVault).creationCode);
+        if (usdt == address(0) && mock) usdt = address(new MockUSDT());
+        factory = new CircleFactory(type(CircleVault).creationCode, usdt);
         vm.stopBroadcast();
 
         string memory obj = "deployment";
         vm.serializeAddress(obj, "circleFactory", address(factory));
+        vm.serializeAddress(obj, "usdt", usdt);
         string memory json = vm.serializeUint(obj, "fromBlock", block.number);
         string memory path = string.concat(
             vm.projectRoot(), "/../sdk/src/deployments/", vm.toString(block.chainid), ".json"
@@ -28,6 +48,10 @@ contract DeployFactory is Script {
         vm.writeJson(json, path);
 
         console2.log("CircleFactory deployed at", address(factory));
+        console2.log("USDT (0 = AVAX only)", usdt);
+        if (block.chainid == AVALANCHE_MAINNET_CHAIN_ID && usdt != MAINNET_USDT) {
+            console2.log("WARNING: USDT is not the Avalanche C-Chain USDt address");
+        }
         console2.log("Chain id", block.chainid);
         console2.log("Wrote", path);
     }

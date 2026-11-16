@@ -14,10 +14,12 @@
 | `src/modules/Exits.sol`      | external library      | Exit notice, payout queue, Chainlink Automation, guardian pause           |
 | `src/modules/Governance.sol` | external library      | Rule changes with delay and rage-quit, fee waivers, dissolution           |
 | `src/modules/Rules.sol`      | external library      | Settings with on-chain bounds                                             |
-| `src/modules/Ledger.sol`     | internal library      | Assets, shares, loans out, refused payouts (push then pull)               |
+| `src/modules/Ledger.sol`     | internal library      | Assets, shares, loans out, refused payouts (push then pull), USDT in/out  |
 | `src/libraries/*.sol`        | internal libraries    | Period math (UTC), fees, shares with virtual offsets, names, code store   |
 
-Solidity 0.8.28, Cancun, OpenZeppelin 5.4.0 (ReentrancyGuard, SafeCast, Math). No proxies, no upgrades, no owner keys over funds.
+Solidity 0.8.28, Cancun, OpenZeppelin 5.4.0 (ReentrancyGuard, SafeCast, Math, SafeERC20).
+
+**Assets (ADR 0046):** each circle holds AVAX or the factory's one USDT token (Avalanche USDt `0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7` on mainnet), fixed at creation. In scope: the token pull (`Ledger.pull`: allowance/balance checks, `safeTransferFrom`, exact balance delta against fee-on-transfer), the capped-gas token payout with bounded return data (`Ledger._send`), refused or frozen payouts moving to `withdrawable`, and the 6-decimal share maths. Out of our control: Tether can freeze the vault itself. Members are capped at 3..50 (ADR 0045). No proxies, no upgrades, no owner keys over funds.
 
 ## Architecture in one paragraph
 
@@ -25,7 +27,8 @@ Each circle is one immutable `CircleVault`, created by `CircleFactory` from crea
 
 ## Invariants we test (and want challenged)
 
-- `address(vault).balance == totalAssets - loansOutstanding + totalWithdrawable`
+- `address(vault).balance == totalAssets - loansOutstanding + totalWithdrawable` (AVAX circles)
+- `usdt.balanceOf(vault) >= totalAssets - loansOutstanding + totalWithdrawable` (USDT circles; `==` plus direct transfers)
 - `Σ member shares == totalShares`; removed members hold 0 shares
 - `loansOutstanding == Σ open loan principal`
 - On every vote, `yes + no <= eligible` (snapshot honesty, including members who wake or gain rights mid-vote)

@@ -53,3 +53,4 @@
 | [0043](0043-voting-bars-and-rage-quit.md)               | Review fixes: member-bar votes, auto rule switch-over, rage-quit notice, linked exit queue, loans | Accepted                                                                 |
 | [0044](0044-loans-screens.md)                           | Loans screens: one hook file, loan list from events, tall segmented money bar, `--chart-6`        | Accepted                                                                 |
 | [0045](0045-member-cap-50.md)                           | Member cap 3..50 per circle (no unlimited); founders ≤ 50                                         | Accepted                                                                 |
+| [0046](0046-circle-asset-avax-or-usdt.md)               | Circle asset AVAX or the factory USDT, fixed at creation; approve-then-pay; frozen payouts wait   | Accepted                                                                 |

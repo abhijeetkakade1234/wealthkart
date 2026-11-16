@@ -42,6 +42,7 @@ Known gaps:
 - I-10 A display name in use maps back to exactly one member, ignoring case
 - I-11 Open join requests stay ≤ 20, each is Open and indexed by its applicant
 - I-12 Vault balance ≥ total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets); `≥` because AVAX can be forced in (EXIT-10)
+- I-12u (USDT circles, ADR 0046) `token.balanceOf(vault) >= totalAssets - loansOutstanding + totalWithdrawable`, and equal to it plus tokens sent straight to the vault; run with random installments, loans, interest, repayments, exits, withdrawals, donations and Tether-style freezes (`CircleVault.usdtInvariant.t.sol`)
 - I-13 The exit queue is a consistent linked list of live exits; exactly the queued members are flagged `exiting`, and `voterCount` leaves them out (ADR 0043)
 
 ## Scenario catalogue
@@ -148,6 +149,7 @@ Known gaps:
 ### Math and time (S-MATH)
 
 - S-MATH-01 First depositor deposits 1 wei then donates to inflate share price → later members not robbed (virtual shares)
+- S-MATH-01a Same attack at 6 decimals (USDT) → attacker never profits; the next member loses at most about donation / 1e6
 - S-MATH-02 10 years of monthly rounding → dust always favours the vault, never a member
 - S-MATH-03 Due day 28 in February (incl. a leap year)
 - S-MATH-04 Timestamp exactly at a period boundary
@@ -225,6 +227,19 @@ Known gaps:
 - S-REP-07 Each installment is recorded as on time (no late fee) or late
 - S-REP-08 A loan repaid in full is recorded
 - S-REP-09 A default is recorded and stays even after a cure
+
+### Circle asset: AVAX or USDT (S-USDT, ADR 0046)
+
+- S-USDT-00 The asset is fixed at creation: `asset()` is the factory's USDT (or 0 for AVAX); an AVAX circle on the same factory never touches the token
+- S-USDT-01 Full USDT lifecycle: approve-then-pay installments, late fee, loan paid out in USDT, interest, `repay(amount)`, exit paid after notice, dissolve and every claim; vault ends empty
+- S-USDT-02 Fee-on-transfer token → payment rejected (`TokenAmountMismatch`)
+- S-USDT-03 Tether freezes one member → their exit payout goes to `withdrawable`, the member behind them is paid; `withdraw` fails while frozen and works once unfrozen
+- S-USDT-03b Frozen borrower → the loan vote still settles; the loan waits in `withdrawable`
+- S-USDT-04 AVAX sent with `contribute`, `payInterest` or `repay` in a USDT circle → `AvaxNotAccepted`
+- S-USDT-05 Paying without approval → `TokenAllowanceTooLow`; approved but short of funds → `TokenBalanceTooLow`
+- S-USDT-06 USDT sent straight to the vault doesn't move NAV
+- S-USDT-07 Factory without a USDT address → USDT circle creation reverts `UsdtNotAvailable`
+- S-USDT-08 AVAX circle `repay(amount)` needs `msg.value == amount`
 
 ### Analytics and activity (S-ACT)
 

@@ -7,7 +7,9 @@ interface IReputation {
     function recordLoanOutcome(address wallet, bool repaid) external;
 }
 
-/// @notice The factory getter a vault reads once at construction to find the record.
+/// @notice The factory getters a vault reads once at construction: the reputation record, and
+///         (USDT circles only) the factory's one USDT token (ADR 0046).
 interface IReputationSource {
     function reputation() external view returns (address);
+    function usdt() external view returns (address);
 }

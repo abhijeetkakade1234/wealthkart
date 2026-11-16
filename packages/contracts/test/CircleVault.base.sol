@@ -33,10 +33,11 @@ abstract contract CircleVaultBase is Test {
     uint256 internal constant SLOT_LOANS_OUTSTANDING = SLOT_LEDGER + 2;
     uint256 internal constant SLOT_EXITS_WAITING = SLOT_LEDGER + 5;
     uint256 internal constant SLOT_SWITCHES = SLOT_LEDGER + 6; // pausedUntil|rageQuitUntil|...
-    uint256 internal constant SLOT_RULES = 30;
-    uint256 internal constant SLOT_GOV = 32;
-    uint256 internal constant SLOT_EXITS = 43;
-    uint256 internal constant SLOT_LOANS = 46;
+    uint256 internal constant SLOT_TOKEN = SLOT_LEDGER + 7; // _ledger.token (ADR 0046)
+    uint256 internal constant SLOT_RULES = 31;
+    uint256 internal constant SLOT_GOV = 33;
+    uint256 internal constant SLOT_EXITS = 44;
+    uint256 internal constant SLOT_LOANS = 47;
     string internal constant NAME_RULE =
         "name must be 3..48 letters, digits, spaces or _-'& (no links)";
 
@@ -54,6 +55,7 @@ abstract contract CircleVaultBase is Test {
     function _cfg() internal pure virtual returns (CircleVault.Config memory c) {
         c = CircleVault.Config({
             name: "College Gang",
+            asset: CircleVault.Asset.AVAX,
             installment: uint128(AVAX / 2),
             fee1: uint128(AVAX / 100),
             fee2: uint128(AVAX / 100),
@@ -71,7 +73,7 @@ abstract contract CircleVaultBase is Test {
 
     function setUp() public virtual {
         vm.warp(DEC_1_2026);
-        factory = new CircleFactory(type(CircleVault).creationCode);
+        factory = new CircleFactory(type(CircleVault).creationCode, address(0));
         members = _makeMembers(12);
         vault = _createCircle(_cfg(), members);
         honest = members[0];

@@ -90,6 +90,17 @@ export const messages = {
     "Your wallet didn't accept the AVAX. Try again from a wallet that can receive AVAX.",
   insufficientCash: () =>
     "The circle doesn't have enough cash for this right now. Some of its money is lent out.",
+  // USDT circles (ADR 0046).
+  avaxNotAccepted: () => "This circle is paid in USDT. Send the payment without any AVAX attached.",
+  tokenAllowanceTooLow: () =>
+    "Approve the USDT payment in your wallet first, then pay. If the amount changed, approve again.",
+  tokenBalanceTooLow: () => "Your wallet doesn't have enough USDT for this payment.",
+  tokenAmountMismatch: () =>
+    "The circle received a different amount of USDT than was sent, so the payment was refused.",
+  tokenTransferFailed: () =>
+    "The USDT transfer didn't go through. Check your USDT balance and approval, then try again.",
+  usdtNotAvailable: () =>
+    "USDT circles aren't available on this network yet. Choose AVAX for this circle.",
   notAllowedToPropose: () => "Only members who can vote right now can start a proposal.",
   tooManyOpenProposals: () =>
     "There are already 10 open proposals. Wait for some to be decided first.",
@@ -327,6 +338,12 @@ export type FriendlyErrorCode =
   | "nothing-to-withdraw"
   | "withdraw-failed"
   | "insufficient-cash"
+  | "avax-not-accepted"
+  | "token-allowance-too-low"
+  | "token-balance-too-low"
+  | "token-amount-mismatch"
+  | "usdt-not-available"
+  | "token-transfer-failed"
   | "unknown";
 
 /** The only error shape that ever reaches the UI. `details` is for the "Details" toggle. */
@@ -572,6 +589,13 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NothingToWithdraw", "nothing-to-withdraw", messages.nothingToWithdraw],
     ["WithdrawFailed", "withdraw-failed", messages.withdrawFailed],
     ["InsufficientCash", "insufficient-cash", messages.insufficientCash],
+    // USDT circles (ADR 0046).
+    ["AvaxNotAccepted", "avax-not-accepted", messages.avaxNotAccepted],
+    ["TokenAllowanceTooLow", "token-allowance-too-low", messages.tokenAllowanceTooLow],
+    ["TokenBalanceTooLow", "token-balance-too-low", messages.tokenBalanceTooLow],
+    ["TokenAmountMismatch", "token-amount-mismatch", messages.tokenAmountMismatch],
+    ["UsdtNotAvailable", "usdt-not-available", messages.usdtNotAvailable],
+    ["SafeERC20FailedOperation", "token-transfer-failed", messages.tokenTransferFailed],
   ];
   for (const [name, code, message] of membership) {
     if (hasName(name)) return friendlyError(code, message(), details);
