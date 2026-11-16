@@ -80,8 +80,8 @@ test.describe.serial("Hindi and Marathi (ADR 0057)", () => {
   test("S-I18N-20 switching to Hindi on the app home translates the nav and the empty state", async ({
     page,
   }) => {
-    // Frank has no circle, so his home shows the empty state.
-    await installFakeCore(page, ACCOUNTS.frank);
+    // Hari is never in a circle, so his home shows the empty state.
+    await installFakeCore(page, ACCOUNTS.hari);
     await page.goto("/app/");
     await page.getByRole("button", { name: "Connect Core" }).first().click();
     await expect(page.getByRole("heading", { name: "Your circles" })).toBeVisible();
@@ -100,7 +100,7 @@ test.describe.serial("Hindi and Marathi (ADR 0057)", () => {
   test("S-I18N-21 the language survives a reload and can be changed back in Settings", async ({
     page,
   }) => {
-    await installFakeCore(page, ACCOUNTS.frank);
+    await installFakeCore(page, ACCOUNTS.hari);
     await page.goto("/app/");
     await page.getByRole("button", { name: "Connect Core" }).first().click();
     await page.getByTestId("language-menu").selectOption("hi");

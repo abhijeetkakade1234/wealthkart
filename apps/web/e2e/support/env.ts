@@ -64,6 +64,8 @@ export const ACCOUNTS = {
   fay: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
   /** Only the backup wallet tests use her: anvil account 8, an outsider named as a member's nominee. */
   gina: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+  /** Only the language tests use him: anvil account 9, never in a circle, so his home is empty. */
+  hari: "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
 } as const;
 
 /**
