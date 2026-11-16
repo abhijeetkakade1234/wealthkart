@@ -1,31 +1,34 @@
+"use strict";
+/* eslint-disable @typescript-eslint/no-require-imports -- CommonJS on purpose: Playwright 1.56
+   rewrites .mjs helpers to CommonJS and Node 22.23 then refuses them, so the shared helpers are
+   .cjs, which load the same way from playwright.config.ts, the tests and scripts/dev-local.mjs. */
 // Local chain setup shared by the E2E global setup and `pnpm dev:local` (ADR 0053).
 // Plain ESM so a node script can import it without a TypeScript step; Playwright loads it too.
-import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+const { existsSync, readFileSync } = require("node:fs");
+const { homedir } = require("node:os");
+const { join } = require("node:path");
 
-import { encodeAbiParameters, encodeFunctionData, getContractAddress } from "viem";
+const { encodeAbiParameters, encodeFunctionData, getContractAddress } = require("viem");
 
-import { MULTICALL3_ADDRESS, MULTICALL3_RUNTIME } from "./multicall3.mjs";
+const { MULTICALL3_ADDRESS, MULTICALL3_RUNTIME } = require("./multicall3.cjs");
 
-const here = dirname(fileURLToPath(import.meta.url));
+const here = __dirname;
 
 /** Repo root (apps/web/e2e/support -> ../../../..). */
-export const REPO_ROOT = join(here, "..", "..", "..", "..");
-export const CONTRACTS_OUT = join(REPO_ROOT, "packages", "contracts", "out");
+const REPO_ROOT = join(here, "..", "..", "..", "..");
+const CONTRACTS_OUT = join(REPO_ROOT, "packages", "contracts", "out");
 
 /** Fuji's chain id, so the app treats the local chain as its target network. */
-export const CHAIN_ID = 43113;
+const CHAIN_ID = 43113;
 
 /** Anvil dev account 0 (public test mnemonic). Deploys everything, so addresses are fixed. */
-export const DEPLOYER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+const DEPLOYER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 
 /**
  * The deployer's first contract (nonce 0): CircleFactory. Linked libraries are deployed after it
  * at predicted addresses, so this address never moves.
  */
-export const FACTORY_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const FACTORY_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 /** Converts a Git Bash path (/d/tools/foundry) to a Windows one (d:/tools/foundry). */
 function nativePath(dir) {
@@ -35,7 +38,7 @@ function nativePath(dir) {
 }
 
 /** A Foundry tool (anvil, forge) from FOUNDRY_DIR or ~/.foundry, else the bare name (PATH). */
-export function foundryBin(tool) {
+function foundryBin(tool) {
   const exe = process.platform === "win32" ? `${tool}.exe` : tool;
   for (const dir of [process.env.FOUNDRY_DIR, join(homedir(), ".foundry")]) {
     if (!dir) continue;
@@ -46,7 +49,7 @@ export function foundryBin(tool) {
 }
 
 /** JSON-RPC client for one node URL. */
-export function makeRpc(url) {
+function makeRpc(url) {
   let id = 0;
   return async function rpc(method, params = []) {
     const res = await fetch(url, {
@@ -61,7 +64,7 @@ export function makeRpc(url) {
 }
 
 /** Waits until the node answers, or throws after `ms`. */
-export async function waitForRpc(url, ms = 30_000) {
+async function waitForRpc(url, ms = 30_000) {
   const rpc = makeRpc(url);
   const end = Date.now() + ms;
   for (;;) {
@@ -137,7 +140,7 @@ function predictedUsdt(libraryCount) {
  * @param {string} rpcUrl the anvil node
  * @returns {Promise<{ factory: string, usdt: string, deployed: boolean }>}
  */
-export async function deployLocalChain(rpcUrl) {
+async function deployLocalChain(rpcUrl) {
   const rpc = makeRpc(rpcUrl);
   await rpc("anvil_setCode", [MULTICALL3_ADDRESS, MULTICALL3_RUNTIME]);
 
@@ -191,7 +194,7 @@ const mintAbi = [
  * @param {string[]} wallets addresses to fund
  * @param {{ avax?: bigint, usdt?: bigint }} [amounts] wei and USDT units (6 decimals)
  */
-export async function fundLocalWallets(rpcUrl, usdt, wallets, amounts = {}) {
+async function fundLocalWallets(rpcUrl, usdt, wallets, amounts = {}) {
   const rpc = makeRpc(rpcUrl);
   const avax = amounts.avax ?? 1000n * 10n ** 18n;
   const units = amounts.usdt ?? 1000n * 10n ** 6n;
@@ -204,3 +207,16 @@ export async function fundLocalWallets(rpcUrl, usdt, wallets, amounts = {}) {
     if (!receipt || receipt.status !== "0x1") throw new Error(`Test USDT mint to ${to} failed`);
   }
 }
+
+module.exports = {
+  REPO_ROOT,
+  CONTRACTS_OUT,
+  CHAIN_ID,
+  DEPLOYER,
+  FACTORY_ADDRESS,
+  foundryBin,
+  makeRpc,
+  waitForRpc,
+  deployLocalChain,
+  fundLocalWallets,
+};

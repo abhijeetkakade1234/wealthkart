@@ -1,7 +1,7 @@
 // `pnpm dev:local`: the whole app on your PC against a local chain (ADR 0053).
 //
 // Starts anvil (chain id 43113, so the app treats it as Fuji), deploys the factory, its
-// libraries and the faucet test USDT exactly like the E2E setup (e2e/support/local-chain.mjs),
+// libraries and the faucet test USDT exactly like the E2E setup (e2e/support/local-chain.cjs),
 // gives the anvil test wallets test USDT, writes apps/web/.env.local and runs `next dev`.
 // Ctrl+C stops everything and removes the generated .env.local (restoring yours if you had one).
 //
@@ -28,7 +28,7 @@ import {
   foundryBin,
   fundLocalWallets,
   waitForRpc,
-} from "../e2e/support/local-chain.mjs";
+} from "../e2e/support/local-chain.cjs";
 import { portOr } from "../e2e/support/ports.mjs";
 
 const WEB = join(dirname(fileURLToPath(import.meta.url)), "..");

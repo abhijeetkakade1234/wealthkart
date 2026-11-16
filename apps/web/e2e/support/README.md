@@ -6,11 +6,11 @@
 **Key files**
 
 - `env.ts`: ports (`E2E_*_PORT` or `E2E_PORTS=auto`, ADR 0053), chain id, anvil dev accounts, factory address
-- `local-chain.mjs`: plain-JS deploy shared with `pnpm dev:local`: Foundry binaries, Multicall3, factory + libraries + MockUSDT, test funding
+- `local-chain.cjs`: plain-JS deploy shared with `pnpm dev:local`: Foundry binaries, Multicall3, factory + libraries + MockUSDT, test funding
 - `ports.mjs`: free-port finder
 - `fake-core.ts`: test wallet that announces itself as Core and forwards to anvil
 - `chain.ts`: JSON-RPC, time travel, snapshots
-- `global-setup.ts`: runs `local-chain.mjs` on the E2E anvil: Multicall3, the factory, the libraries it links (ADR 0031) and the faucet MockUSDT it takes as its USDT (ADR 0046)
+- `global-setup.ts`: runs `local-chain.cjs` on the E2E anvil: Multicall3, the factory, the libraries it links (ADR 0031) and the faucet MockUSDT it takes as its USDT (ADR 0046)
 - `vault.ts`: wallet-in-a-browser, circle creation and setup writes
 - `usdt.ts`: factory USDT address, faucet `mintUsdt`, token balance and allowance, `vaultView` (`asset`, `maxMembers`)
-- `multicall3.mjs`: Multicall3 runtime bytecode
+- `multicall3.cjs`: Multicall3 runtime bytecode

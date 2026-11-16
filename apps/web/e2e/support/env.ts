@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { CHAIN_ID as LOCAL_CHAIN_ID, FACTORY_ADDRESS as LOCAL_FACTORY } from "./local-chain.mjs";
+import { CHAIN_ID as LOCAL_CHAIN_ID, FACTORY_ADDRESS as LOCAL_FACTORY } from "./local-chain.cjs";
 
 /**
  * Ports (ADR 0053). Each comes from its env var, else the fixed default. With `E2E_PORTS=auto`
@@ -64,6 +64,6 @@ export const ACCOUNTS = {
 
 /**
  * The deployer's first contract (nonce 0): CircleFactory. Linked libraries are deployed after it
- * at predicted addresses (local-chain.mjs), so this address never moves.
+ * at predicted addresses (local-chain.cjs), so this address never moves.
  */
 export const FACTORY_ADDRESS = LOCAL_FACTORY;

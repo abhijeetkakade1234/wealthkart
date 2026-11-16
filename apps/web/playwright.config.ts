@@ -9,7 +9,7 @@ import {
   INDEXER_URL,
   WEB_PORT,
 } from "./e2e/support/env";
-import { foundryBin } from "./e2e/support/local-chain.mjs";
+import { foundryBin } from "./e2e/support/local-chain.cjs";
 
 /**
  * E2E (CLAUDE.md: every user-facing feature ships with one). Runs the real static export
