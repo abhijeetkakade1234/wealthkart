@@ -6,6 +6,7 @@ pragma solidity 0.8.28;
 
 import {Script, console2} from "forge-std/Script.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
+import {CircleVault} from "../src/CircleVault.sol";
 
 /// @notice Deploys CircleFactory and records the address for the SDK.
 /// @dev Fuji only for now (CircleVault refuses mainnet until exits exist).
@@ -15,7 +16,7 @@ import {CircleFactory} from "../src/CircleFactory.sol";
 contract DeployFactory is Script {
     function run() external returns (CircleFactory factory) {
         vm.startBroadcast();
-        factory = new CircleFactory();
+        factory = new CircleFactory(type(CircleVault).creationCode);
         vm.stopBroadcast();
 
         string memory obj = "deployment";

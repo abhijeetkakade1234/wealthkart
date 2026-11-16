@@ -8,6 +8,7 @@
 - `(public)/`: indexed pages (landing, how-it-works, rules, security, faq), own README
 - `app/`: the wallet app under `/app/*` (noindex), own README
 - `login/`: `/login` sign-in screen (noindex, blocked in robots.txt); own layout with wallet providers, no app shell
+- `record/`: `/record/?address=` public repayment record (ADR 0042); noindex, works without a wallet
 - `kit/`: `/kit` showcase of the interaction kit and art (noindex)
 - `layout.tsx`, `globals.css`: root layout, fonts, Gallery tokens
 - `robots.ts`, `sitemap.ts`, `manifest.ts`: build-time SEO and PWA files

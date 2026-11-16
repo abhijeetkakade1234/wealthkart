@@ -85,6 +85,96 @@ export const messages = {
   notOverdueEnough: () =>
     "They haven't missed enough months yet. The circle can only pause someone's payments after the number of missed months it agreed on.",
   noOtherVoters: () => "There's nobody else in the circle who could vote on this yet.",
+  nothingToWithdraw: () => "There's nothing waiting for you to withdraw.",
+  withdrawFailed: () =>
+    "Your wallet didn't accept the AVAX. Try again from a wallet that can receive AVAX.",
+  insufficientCash: () =>
+    "The circle doesn't have enough cash for this right now. Some of its money is lent out.",
+  notAllowedToPropose: () => "Only members who can vote right now can start a proposal.",
+  tooManyOpenProposals: () =>
+    "There are already 10 open proposals. Wait for some to be decided first.",
+  tooManyOpenProposalsBy: () => "You already have 2 open proposals. Wait until one is decided.",
+  noEligibleVoters: () => "There's nobody who could vote on this yet.",
+  ruleChangeInProgress: () =>
+    "A rule change is already being voted on or waiting to apply. One at a time.",
+  invalidRule: () =>
+    "One of these settings is outside what a circle allows. Check the numbers and try again.",
+  noPendingRuleChange: () => "There's no rule change waiting to apply.",
+  ruleChangeNotDue: () => "The new rules can't apply yet. They start once the waiting period ends.",
+  invalidWaiver: () =>
+    "That month can't be waived: it must be a started, unpaid month that isn't waived already.",
+  guardianAlreadyOff: () => "The guardian is already switched off for this circle.",
+  proposalNotOpen: () => "This proposal is already decided or was withdrawn.",
+  proposalVotingClosed: () => "Voting on this proposal has closed.",
+  cannotVoteOnProposal: () =>
+    "You can't vote on this one: only members who could vote when it started, and are up to date, can.",
+  alreadyVotedOnProposal: () => "You've already voted on this proposal.",
+  proposalNotDecided: () =>
+    "The vote isn't decided yet. It can be settled once the voting time ends.",
+  notProposer: () => "Only the member who started this proposal can withdraw it.",
+  circleDissolved: () =>
+    "This circle has voted to close. Payments have stopped; members can claim their share.",
+  notDissolved: () => "The circle hasn't voted to close, so there's nothing to claim yet.",
+  claimBlockedByLoan: () =>
+    "Your loan, or the loan you guarantee, must be repaid or settled before you can claim.",
+  nothingToClaimYet: () =>
+    "There's no cash to share out right now. Claim again once loans are repaid.",
+  proposalTooSoon: () => "You started a proposal recently. You can start the next one tomorrow.",
+  memberExiting: () =>
+    "A member who has asked to leave can't take a loan or back one. Cancel the exit first.",
+  payoutGasTooLow: () => "This needs a little more gas to send the payment. Please try again.",
+  exitAlreadyPending: () => "You've already asked to leave this circle.",
+  noExitPending: () => "You haven't asked to leave this circle.",
+  exitNotReady: () => "Your notice period isn't over yet. You can collect your share when it ends.",
+  memberFrozen: () =>
+    "Your share is frozen because of an unpaid loan. Pay what's owed to unfreeze it.",
+  hasLoanTies: () => "You can't leave while you have a loan, a loan request or a guarantee open.",
+  notGuardian: () => "Only the circle's guardian can do this.",
+  guardianOff: () =>
+    "The guardian role has ended (voted off, or the creator left), so pausing isn't possible.",
+  pauseTooSoon: () => "The guardian can pause at most once every 90 days.",
+  notPaused: () => "The circle isn't paused.",
+  circlePaused: () =>
+    "The circle is paused for a short time, so new members and loans wait. Leaving and paying still work.",
+  loansClosed: () => "This circle has voted to close, so it doesn't lend any more.",
+  loansPaused: () =>
+    "Loans are paused for a short time by the circle's guardian. Paying and leaving still work.",
+  notAVoter: () => "Only members who can vote right now can ask for a loan.",
+  loanRequestOpen: () => "You already have a loan request waiting for votes.",
+  loanActive: () => "You already have a loan. Repay it before asking for another.",
+  tooFewMembers: () => "The circle needs more members before it can lend.",
+  zeroAmount: () => "Enter an amount above 0.",
+  amountTooLarge: () => "That's more than this circle can lend you. Try a smaller amount.",
+  medicalLoansOff: () => "This circle doesn't offer medical loans.",
+  medicalLoanThisYear: () => "You've already had a medical loan this year.",
+  guarantorRequired: () =>
+    "This circle needs a guarantor for every loan. Pick a member to back you.",
+  invalidGuarantor: () => "That member can't be your guarantor. Pick another member of the circle.",
+  alreadyGuaranteeing: () => "That member is already backing another loan.",
+  notYourGuarantee: () => "You weren't named as the guarantor for this loan.",
+  noOtherLoanVoters: () => "There's nobody else in the circle who could vote on this loan yet.",
+  loanRequestNotOpen: () => "This loan request is already decided or was withdrawn.",
+  loanVotingClosed: () => "Voting on this loan has closed.",
+  cannotVoteOnLoan: () =>
+    "You can't vote on this loan: the borrower can't, and only members who could vote when it started, and are up to date, can.",
+  alreadyVotedOnLoan: () => "You've already voted on this loan.",
+  loanNotDecidedYet: () =>
+    "The vote isn't decided yet. It can be settled once the voting time ends.",
+  guaranteeNotAccepted: () =>
+    "The guarantor hasn't accepted yet. The loan can be paid out once they do.",
+  disbursalBlocked: () =>
+    "The loan can't be paid out right now: members are waiting to be paid for leaving, or the circle is paused.",
+  noLoanRequest: () => "You don't have a loan request waiting.",
+  noLoan: () => "There's no loan to pay.",
+  nothingOwed: () => "Nothing is owed on this loan right now.",
+  wrongLoanAmount: () => "The amount doesn't match what's owed. Refresh and try again.",
+  interestOverdue: () => "Pay the overdue interest first, then repay the loan.",
+  interestOwed: () => "Pay the interest that's due first.",
+  notInDefault: () => "This loan isn't in default.",
+  alreadyDefaulted: () => "This loan is already marked as in default.",
+  settleOpen: () => "A vote to settle this loan is already open.",
+  exitGasTooLow: () =>
+    "There wasn't enough gas to reach your place in the queue. Try again; your wallet will ask for a bit more.",
   tooManyOpenRequestsBy: () =>
     "That member already has 3 open invites or proposals. Ask them to wait until one is decided, or ask another member to invite you.",
 
@@ -169,6 +259,74 @@ export type FriendlyErrorCode =
   | "not-overdue-enough"
   | "no-other-voters"
   | "too-many-requests-by"
+  | "exit-gas-too-low"
+  | "loan-loans-closed"
+  | "loan-loans-paused"
+  | "loan-not-a-voter"
+  | "loan-loan-request-open"
+  | "loan-loan-active"
+  | "loan-too-few-members"
+  | "loan-zero-amount"
+  | "loan-amount-too-large"
+  | "loan-medical-loans-off"
+  | "loan-medical-loan-this-year"
+  | "loan-guarantor-required"
+  | "loan-invalid-guarantor"
+  | "loan-already-guaranteeing"
+  | "loan-not-your-guarantee"
+  | "loan-no-other-loan-voters"
+  | "loan-loan-request-not-open"
+  | "loan-loan-voting-closed"
+  | "loan-cannot-vote-on-loan"
+  | "loan-already-voted-on-loan"
+  | "loan-loan-not-decided-yet"
+  | "loan-guarantee-not-accepted"
+  | "loan-disbursal-blocked"
+  | "loan-no-loan-request"
+  | "loan-no-loan"
+  | "loan-nothing-owed"
+  | "loan-wrong-loan-amount"
+  | "loan-interest-overdue"
+  | "loan-interest-owed"
+  | "loan-not-in-default"
+  | "loan-already-defaulted"
+  | "loan-settle-open"
+  | "not-allowed-to-propose"
+  | "too-many-proposals"
+  | "too-many-proposals-by"
+  | "no-eligible-voters"
+  | "rule-change-in-progress"
+  | "invalid-rule"
+  | "no-pending-rule-change"
+  | "rule-change-not-due"
+  | "invalid-waiver"
+  | "guardian-already-off"
+  | "proposal-not-open"
+  | "proposal-voting-closed"
+  | "cannot-vote-on-proposal"
+  | "already-voted-on-proposal"
+  | "proposal-not-decided"
+  | "not-proposer"
+  | "circle-dissolved"
+  | "not-dissolved"
+  | "claim-blocked-by-loan"
+  | "nothing-to-claim-yet"
+  | "proposal-too-soon"
+  | "member-exiting"
+  | "payout-gas-too-low"
+  | "exit-already-pending"
+  | "no-exit-pending"
+  | "exit-not-ready"
+  | "member-frozen"
+  | "has-loan-ties"
+  | "not-guardian"
+  | "guardian-off"
+  | "pause-too-soon"
+  | "not-paused"
+  | "circle-paused"
+  | "nothing-to-withdraw"
+  | "withdraw-failed"
+  | "insufficient-cash"
   | "unknown";
 
 /** The only error shape that ever reaches the UI. `details` is for the "Details" toggle. */
@@ -343,6 +501,77 @@ export function toFriendlyError(err: unknown, ctx: FriendlyErrorContext = {}): F
     ["NotOverdueEnough", "not-overdue-enough", messages.notOverdueEnough],
     ["NoOtherVoters", "no-other-voters", messages.noOtherVoters],
     ["TooManyOpenRequestsBy", "too-many-requests-by", messages.tooManyOpenRequestsBy],
+    ["ExitGasTooLow", "exit-gas-too-low", messages.exitGasTooLow],
+    // Loans (ADR 0038).
+    ["LoansClosed", "loan-loans-closed", messages.loansClosed],
+    ["LoansPaused", "loan-loans-paused", messages.loansPaused],
+    ["NotAVoter", "loan-not-a-voter", messages.notAVoter],
+    ["LoanRequestOpen", "loan-loan-request-open", messages.loanRequestOpen],
+    ["LoanActive", "loan-loan-active", messages.loanActive],
+    ["TooFewMembers", "loan-too-few-members", messages.tooFewMembers],
+    ["ZeroAmount", "loan-zero-amount", messages.zeroAmount],
+    ["AmountTooLarge", "loan-amount-too-large", messages.amountTooLarge],
+    ["MedicalLoansOff", "loan-medical-loans-off", messages.medicalLoansOff],
+    ["MedicalLoanThisYear", "loan-medical-loan-this-year", messages.medicalLoanThisYear],
+    ["GuarantorRequired", "loan-guarantor-required", messages.guarantorRequired],
+    ["InvalidGuarantor", "loan-invalid-guarantor", messages.invalidGuarantor],
+    ["AlreadyGuaranteeing", "loan-already-guaranteeing", messages.alreadyGuaranteeing],
+    ["NotYourGuarantee", "loan-not-your-guarantee", messages.notYourGuarantee],
+    ["NoOtherLoanVoters", "loan-no-other-loan-voters", messages.noOtherLoanVoters],
+    ["LoanRequestNotOpen", "loan-loan-request-not-open", messages.loanRequestNotOpen],
+    ["LoanVotingClosed", "loan-loan-voting-closed", messages.loanVotingClosed],
+    ["CannotVoteOnLoan", "loan-cannot-vote-on-loan", messages.cannotVoteOnLoan],
+    ["AlreadyVotedOnLoan", "loan-already-voted-on-loan", messages.alreadyVotedOnLoan],
+    ["LoanNotDecidedYet", "loan-loan-not-decided-yet", messages.loanNotDecidedYet],
+    ["GuaranteeNotAccepted", "loan-guarantee-not-accepted", messages.guaranteeNotAccepted],
+    ["DisbursalBlocked", "loan-disbursal-blocked", messages.disbursalBlocked],
+    ["NoLoanRequest", "loan-no-loan-request", messages.noLoanRequest],
+    ["NoLoan", "loan-no-loan", messages.noLoan],
+    ["NothingOwed", "loan-nothing-owed", messages.nothingOwed],
+    ["WrongLoanAmount", "loan-wrong-loan-amount", messages.wrongLoanAmount],
+    ["InterestOverdue", "loan-interest-overdue", messages.interestOverdue],
+    ["InterestOwed", "loan-interest-owed", messages.interestOwed],
+    ["NotInDefault", "loan-not-in-default", messages.notInDefault],
+    ["AlreadyDefaulted", "loan-already-defaulted", messages.alreadyDefaulted],
+    ["SettleOpen", "loan-settle-open", messages.settleOpen],
+    // Governance (ADR 0040) and exits (ADR 0039).
+    ["NotAllowedToPropose", "not-allowed-to-propose", messages.notAllowedToPropose],
+    ["TooManyOpenProposals", "too-many-proposals", messages.tooManyOpenProposals],
+    ["TooManyOpenProposalsBy", "too-many-proposals-by", messages.tooManyOpenProposalsBy],
+    ["NoEligibleVoters", "no-eligible-voters", messages.noEligibleVoters],
+    ["RuleChangeInProgress", "rule-change-in-progress", messages.ruleChangeInProgress],
+    ["InvalidRule", "invalid-rule", messages.invalidRule],
+    ["NoPendingRuleChange", "no-pending-rule-change", messages.noPendingRuleChange],
+    ["RuleChangeNotDue", "rule-change-not-due", messages.ruleChangeNotDue],
+    ["InvalidWaiver", "invalid-waiver", messages.invalidWaiver],
+    ["GuardianAlreadyOff", "guardian-already-off", messages.guardianAlreadyOff],
+    ["ProposalNotOpen", "proposal-not-open", messages.proposalNotOpen],
+    ["ProposalVotingClosed", "proposal-voting-closed", messages.proposalVotingClosed],
+    ["CannotVoteOnProposal", "cannot-vote-on-proposal", messages.cannotVoteOnProposal],
+    ["AlreadyVotedOnProposal", "already-voted-on-proposal", messages.alreadyVotedOnProposal],
+    ["ProposalNotDecided", "proposal-not-decided", messages.proposalNotDecided],
+    ["NotProposer", "not-proposer", messages.notProposer],
+    ["CircleDissolved", "circle-dissolved", messages.circleDissolved],
+    ["NotDissolved", "not-dissolved", messages.notDissolved],
+    ["ClaimBlockedByLoan", "claim-blocked-by-loan", messages.claimBlockedByLoan],
+    ["NothingToClaimYet", "nothing-to-claim-yet", messages.nothingToClaimYet],
+    ["ProposalTooSoon", "proposal-too-soon", messages.proposalTooSoon],
+    ["MemberExiting", "member-exiting", messages.memberExiting],
+    ["PayoutGasTooLow", "payout-gas-too-low", messages.payoutGasTooLow],
+    ["ExitAlreadyPending", "exit-already-pending", messages.exitAlreadyPending],
+    ["NoExitPending", "no-exit-pending", messages.noExitPending],
+    ["ExitNotReady", "exit-not-ready", messages.exitNotReady],
+    ["MemberFrozen", "member-frozen", messages.memberFrozen],
+    ["HasLoanTies", "has-loan-ties", messages.hasLoanTies],
+    ["NotGuardian", "not-guardian", messages.notGuardian],
+    ["GuardianOff", "guardian-off", messages.guardianOff],
+    ["PauseTooSoon", "pause-too-soon", messages.pauseTooSoon],
+    ["NotPaused", "not-paused", messages.notPaused],
+    ["CirclePaused", "circle-paused", messages.circlePaused],
+    // Payouts and cash (ADR 0037).
+    ["NothingToWithdraw", "nothing-to-withdraw", messages.nothingToWithdraw],
+    ["WithdrawFailed", "withdraw-failed", messages.withdrawFailed],
+    ["InsufficientCash", "insufficient-cash", messages.insufficientCash],
   ];
   for (const [name, code, message] of membership) {
     if (hasName(name)) return friendlyError(code, message(), details);

@@ -4,6 +4,7 @@ import { formatTimeLeft } from "@/components/app/countdown-utc";
 import { pageWindow } from "@/components/app/pagination";
 import { parseCircleId } from "@/lib/circle";
 import { circleNameProblem, DEFAULTS, validate } from "@/lib/circle-form";
+import { parseAddress, recordSummary } from "@/lib/record";
 
 const SELF = "0x1111111111111111111111111111111111111111" as const;
 const FRIEND = "0x2222222222222222222222222222222222222222";
@@ -135,5 +136,35 @@ describe("circle names and voting rights (ADR 0033)", () => {
       validate({ ...DEFAULTS, name: "Gang", minPaidToVote: "7" }, undefined).errors.minPaidToVote,
     ).toBe("Pick 0 to 6.");
     expect(validate({ ...DEFAULTS, name: "Gang" }, undefined).cfg?.minPaidToVote).toBe(2);
+  });
+});
+
+describe("repayment record (ADR 0042)", () => {
+  const base = {
+    onTime: 9,
+    late: 1,
+    loansRepaid: 2,
+    defaults: 0,
+    circles: 2,
+    firstSeen: 1,
+    lastSeen: 2,
+    onTimeBps: 9000,
+  };
+  it("S-REP-10 summarises a record in plain words", () => {
+    expect(recordSummary(base)).toBe(
+      "90% of 10 months paid on time, 2 loans repaid, no defaults, across 2 circles.",
+    );
+    expect(
+      recordSummary({ ...base, onTimeBps: 6666, defaults: 1, loansRepaid: 1, circles: 1 }),
+    ).toBe("66.7% of 10 months paid on time, 1 loan repaid, 1 default, across 1 circle.");
+    expect(
+      recordSummary({ ...base, onTime: 0, late: 0, loansRepaid: 0, defaults: 0, onTimeBps: 0 }),
+    ).toBe("No record yet.");
+  });
+  it("S-REP-10 only accepts real addresses", () => {
+    expect(parseAddress("0xnope")).toBeNull();
+    expect(parseAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")).toBe(
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    );
   });
 });

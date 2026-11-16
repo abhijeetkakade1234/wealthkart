@@ -9,7 +9,9 @@ import { memberHistories, monthlySeries, totals } from "@/lib/analytics";
 import { useCircleEvents } from "@/lib/events";
 
 import { InflowChart, NavChart, ValueChart } from "./circle-charts";
+import { CircleLoanCharts } from "./loan-charts";
 import { PaymentsHeatmap } from "./payments-heatmap";
+import { ReturnsCard } from "./returns-card";
 
 /** Months shown in the charts: the last year, never before the circle started. */
 const CHART_MONTHS = 12;
@@ -25,12 +27,24 @@ export function CircleAnalytics({
   currentPeriod,
   chainNow,
   dueDay,
+  mine,
+  money,
 }: {
   id: Address;
   memberListLength: number;
   currentPeriod: number;
   chainNow: number;
   dueDay: number;
+  /** The viewer's numbers for "Your returns"; omitted for non-members. */
+  mine?: {
+    me: string;
+    stake: bigint;
+    totalAssets: bigint;
+    installment: bigint;
+    circleName: string;
+  };
+  /** Live totals for "Where the money is"; the loan charts show once they are known. */
+  money?: { totalAssets: bigint; loansOutstanding: bigint; reserveBps: number };
 }) {
   const q = useCircleEvents(id);
 
@@ -86,6 +100,21 @@ export function CircleAnalytics({
             <NavChart points={points} />
           </ErrorBoundary>
         </div>
+      )}
+      {t.payments > 0 && money && <CircleLoanCharts id={id} logs={q.data.logs} money={money} />}
+      {t.payments > 0 && mine && (
+        <ErrorBoundary preset="widget" name="Your returns">
+          <ReturnsCard
+            events={events}
+            me={mine.me}
+            stake={mine.stake}
+            totalAssets={mine.totalAssets}
+            installment={mine.installment}
+            dueDay={dueDay}
+            chainNow={chainNow}
+            circleName={mine.circleName}
+          />
+        </ErrorBoundary>
       )}
       <ErrorBoundary preset="widget" name="Payments">
         <PaymentsHeatmap

@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
+import { encodeAbiParameters, getContractAddress } from "viem";
 import { join } from "node:path";
 
 import { rpc } from "./chain";
-import { ACCOUNTS, FACTORY_ADDRESS, MEMBERSHIP_ADDRESS } from "./env";
+import { ACCOUNTS, FACTORY_ADDRESS } from "./env";
 import { MULTICALL3_ADDRESS, MULTICALL3_RUNTIME } from "./multicall3";
 
 type Artifact = {
@@ -56,9 +57,11 @@ async function deploy(data: string, expected: string, label: string) {
 }
 
 /**
- * Deploys the Membership library, then CircleFactory linked to it, from the compiled Foundry
- * artifacts (ADR 0031). Account 0's first two deployments always land at MEMBERSHIP_ADDRESS
- * and FACTORY_ADDRESS, which the E2E web build bakes in. Skips if they are already there.
+ * Deploys CircleFactory and every library the vault links to, from the Foundry artifacts.
+ * The factory goes first (nonce 0), so it always lands at FACTORY_ADDRESS however many
+ * libraries are added later; the libraries follow at addresses predicted from the deployer's
+ * nonce, and the vault code the factory stores is linked to those addresses (ADR 0031, 0037).
+ * Skips if the factory is already there.
  */
 export default async function globalSetup() {
   // Multicall3 first: the app batches reads through it and anvil starts without it.
@@ -67,8 +70,22 @@ export default async function globalSetup() {
   const code = await rpc<string>("eth_getCode", [FACTORY_ADDRESS, "latest"]);
   if (code && code !== "0x") return;
 
-  const membership = readArtifact("Membership.sol", "Membership");
-  await deploy(membership.bytecode.object, MEMBERSHIP_ADDRESS, "Membership library");
+  const vaultArtifact = readArtifact("CircleVault.sol", "CircleVault");
+  const libraries = Object.entries(vaultArtifact.bytecode.linkReferences)
+    .flatMap(([file, libs]) => Object.keys(libs).map((name) => ({ file, name })))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const addresses: Record<string, string> = {};
+  libraries.forEach((lib, i) => {
+    addresses[lib.name] = getContractAddress({ from: ACCOUNTS.deployer, nonce: BigInt(i + 1) });
+  });
+
+  const vault = link(vaultArtifact, addresses);
   const factory = readArtifact("CircleFactory.sol", "CircleFactory");
-  await deploy(link(factory, { Membership: MEMBERSHIP_ADDRESS }), FACTORY_ADDRESS, "Factory");
+  const args = encodeAbiParameters([{ type: "bytes" }], [vault as `0x${string}`]);
+  await deploy(`${link(factory, addresses)}${args.slice(2)}`, FACTORY_ADDRESS, "Factory");
+
+  for (const lib of libraries) {
+    const artifact = readArtifact(lib.file.split("/").pop()!, lib.name);
+    await deploy(link(artifact, addresses), addresses[lib.name]!, `${lib.name} library`);
+  }
 }

@@ -21,10 +21,13 @@ export function Deadline({
   deadline,
   chainNow,
   prefix = "Voting ends",
+  pastText = "voting time is over",
 }: {
   deadline: number;
   chainNow: number;
   prefix?: string;
+  /** Shown instead of the countdown once the moment has passed. */
+  pastText?: string;
 }) {
   const [drift, setDrift] = useState(0);
   useEffect(() => {
@@ -51,7 +54,7 @@ export function Deadline({
         {utcFmt.format(new Date(deadline * 1000))} UTC
       </strong>
       <br />
-      Your time: {local} · {left >= 0 ? formatTimeLeft(left) : "voting time is over"}
+      Your time: {local} · {left >= 0 ? formatTimeLeft(left) : pastText}
     </span>
   );
 }

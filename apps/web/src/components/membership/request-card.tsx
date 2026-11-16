@@ -3,7 +3,6 @@
 import { circleVaultAbi, shortAddress } from "@wealthkart/sdk";
 import { BadgeCheck, Gavel, PauseCircle, ThumbsDown, ThumbsUp, TriangleAlert } from "lucide-react";
 import type { Address } from "viem";
-import { useWriteContract } from "wagmi";
 
 import { Deadline } from "@/components/app/deadline";
 import { Avatar } from "@/components/art";
@@ -18,6 +17,7 @@ import {
 } from "@/lib/membership";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -41,7 +41,7 @@ export function RequestCard({
   chainNow: number;
   onChanged: () => void;
 }) {
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const voteTx = useTx();
   const finalizeTx = useTx();
   const dormant = r.kind === "dormant";

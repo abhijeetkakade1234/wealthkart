@@ -395,7 +395,6 @@ Durations assume 2–3 developers. Each phase ends in a demo that doubles as a g
 
 ### Phase 6 — Ecosystem
 
-- Group-to-group lending (surplus groups lend to deficit groups via vault-to-vault loans).
 - Reputation-based credit lines with DeFi protocols on Avalanche.
 - Optional yield on idle reserve, by group vote only.
 

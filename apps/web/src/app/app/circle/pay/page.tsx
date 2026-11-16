@@ -4,11 +4,12 @@ import { circleVaultAbi, formatAvax, periodLabel } from "@wealthkart/sdk";
 import { CalendarClock, Send } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { useBalance, useWriteContract } from "wagmi";
+import { useBalance } from "wagmi";
 
 import { CountdownUTC } from "@/components/app/countdown-utc";
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
+import { CirclePauseBanner } from "@/components/exits/pause";
 import { Button, InlineAlert, StateView, TxTracker } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
@@ -17,6 +18,7 @@ import { parseCircleId, useCircle } from "@/lib/circle";
 import { messages } from "@/lib/messages";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 /** Rough upper bound for the network fee shown in the "not enough AVAX" check. */
 const FEE_BUFFER_WEI = 10n ** 16n; // 0.01 AVAX
@@ -37,7 +39,7 @@ function Pay() {
   const { address } = useCoreWallet();
   const c = useCircle(id);
   const balance = useBalance({ address });
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const payTx = useTx();
   const holidayTx = useTx();
 
@@ -96,6 +98,7 @@ function Pay() {
   return (
     <div className="max-w-[640px]">
       <PageHeader title="Pay" subtitle={d.name} />
+      <CirclePauseBanner circle={id} />
 
       {!due?.payable ? (
         <StateView

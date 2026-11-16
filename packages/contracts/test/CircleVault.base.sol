@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {CircleVault} from "../src/CircleVault.sol";
 import {CircleFactory} from "../src/CircleFactory.sol";
+import {Rules} from "../src/modules/Rules.sol";
 import {PeriodMath} from "../src/libraries/PeriodMath.sol";
 import {RejectingWallet, ReentrantAttacker} from "./helpers/Actors.sol";
 
@@ -24,6 +25,18 @@ abstract contract CircleVaultBase is Test {
     uint256 internal constant DEC_20_2026_END = 1_797_811_199; // 2026-12-20T23:59:59Z
     uint256 internal constant DEC_2026 = 24_323;
     uint256 internal constant FUNDS = 1000 * AVAX;
+    /// @dev CircleVault storage slots (`forge inspect CircleVault storageLayout`), used by tests
+    ///      that set module switches with `vm.store`. The reentrancy lock is transient, so
+    ///      `name` is slot 0. `test_S_RT_LAYOUT` fails loudly if any of these move.
+    uint256 internal constant SLOT_MEMBERS = 1; // _m.members (first field of Membership.Store)
+    uint256 internal constant SLOT_LEDGER = 23; // _ledger.totalAssets
+    uint256 internal constant SLOT_LOANS_OUTSTANDING = SLOT_LEDGER + 2;
+    uint256 internal constant SLOT_EXITS_WAITING = SLOT_LEDGER + 5;
+    uint256 internal constant SLOT_SWITCHES = SLOT_LEDGER + 6; // pausedUntil|rageQuitUntil|...
+    uint256 internal constant SLOT_RULES = 30;
+    uint256 internal constant SLOT_GOV = 32;
+    uint256 internal constant SLOT_EXITS = 43;
+    uint256 internal constant SLOT_LOANS = 46;
     string internal constant NAME_RULE =
         "name must be 3..48 letters, digits, spaces or _-'& (no links)";
 
@@ -51,13 +64,14 @@ abstract contract CircleVaultBase is Test {
             quorumPct: 50,
             maxMembers: 0,
             dormantAfter: 3,
-            minPaidToVote: 2
+            minPaidToVote: 2,
+            rules: Rules.defaults(uint128(AVAX / 2))
         });
     }
 
     function setUp() public virtual {
         vm.warp(DEC_1_2026);
-        factory = new CircleFactory();
+        factory = new CircleFactory(type(CircleVault).creationCode);
         members = _makeMembers(12);
         vault = _createCircle(_cfg(), members);
         honest = members[0];

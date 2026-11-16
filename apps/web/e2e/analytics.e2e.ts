@@ -29,7 +29,14 @@ test("S-E2E-15 the circle page charts the money and shows who paid on time, late
   await warpToDayThisMonth(15);
   await payAllDue(circle, ACCOUNTS.bob);
 
+  // History comes through the indexer Worker, like production (ADR 0036).
+  const indexed = alice.waitForResponse(
+    (r) => r.url().includes(`/v1/circles/${circle}/logs`) && r.ok(),
+  );
   await alice.goto(`/app/circle/?id=${circle}`);
+  const body = (await (await indexed).json()) as { known: boolean; logs: unknown[] };
+  expect(body.known).toBe(true);
+  expect(body.logs.length).toBeGreaterThan(0);
   await expect(alice.getByRole("heading", { name: "How the circle is doing" })).toBeVisible();
   await expect(alice.getByTestId("analytics-summary")).toContainText(
     "2 payments so far · 1 paid late",
@@ -83,4 +90,32 @@ test("S-E2E-16 the activity page lists every payment and change, with filters, s
   await alice.getByRole("searchbox").fill("nobody-here");
   await expect(alice.getByText("Nothing matches.", { exact: false })).toBeVisible();
   await expect(alice).toHaveURL(/q=nobody-here/);
+});
+
+test("S-E2E-17 your returns: annual return, a labelled projection and your history as CSV", async ({
+  browser,
+}) => {
+  const alice = await asWallet(browser, ACCOUNTS.alice);
+  await alice.goto(`/app/circle/?id=${circle}`);
+  const card = alice.getByRole("region", { name: "Your returns" });
+  await expect(card).toBeVisible();
+  // One month of history: too short for a fair annual rate.
+  await expect(card.getByTestId("my-return")).toHaveText("Not enough history yet");
+  await expect(card.getByText("An illustration, not a promise.", { exact: false })).toBeVisible();
+  await card.getByRole("button", { name: "30 years" }).click();
+  await expect(card.getByRole("button", { name: "30 years" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  const download = alice.waitForEvent("download");
+  await card.getByRole("button", { name: "Download my history (CSV)" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/-my-history\.csv$/);
+  const path = await file.path();
+  const text = (await import("node:fs")).readFileSync(path!, "utf8");
+  expect(text.split("\r\n")[0]).toBe(
+    "Type,Month,Installment (AVAX),Late fees (AVAX),Total (AVAX),Block,Transaction",
+  );
+  expect(text).toContain("Payment,");
 });

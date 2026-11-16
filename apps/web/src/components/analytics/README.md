@@ -7,8 +7,9 @@
 | ----------------------- | -------------------------------------------------------------------------------------------- |
 | `circle-analytics.tsx`  | Overview section: summary line, charts, heatmap; loading, error and "recent months only"     |
 | `circle-charts.tsx`     | Circle value (area), money in each month (stacked bars), value of one share (index line)     |
+| `loan-charts.tsx`       | Loans outstanding per member (ranked bars) and where the money is (tall segmented bar)       |
 | `chart-frame.tsx`       | Card around a chart with a Chart/Table toggle, so every chart can be read as numbers         |
 | `payments-heatmap.tsx`  | Members × months for one year (`?year=`, paged with `?hpage=`); icon + label in every square |
 | `portfolio-summary.tsx` | Home page: value, installments paid, gain, and where your money is, across all circles       |
 
-Data comes from `src/lib/events.ts` (reads logs) and `src/lib/analytics.ts` (pure shaping, unit tested). Colours: series use `--chart-1` / `--chart-2` (validated, see ADR 0034); status colours only for heatmap states. Charts use the shadcn chart wrapper in `src/components/ui/chart.tsx` (Recharts).
+Data comes from `src/lib/events.ts` (reads logs) and `src/lib/analytics.ts` (pure shaping, unit tested). Colours: series use `--chart-1` / `--chart-2`, plus `--chart-6` as a third part (validated, see ADR 0034 and 0044); status colours only for heatmap states. Charts use the shadcn chart wrapper in `src/components/ui/chart.tsx` (Recharts).

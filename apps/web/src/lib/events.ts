@@ -110,7 +110,72 @@ export function chunkRanges(
   return { ranges: ranges.reverse(), partial };
 }
 
-/** Every event of one circle, read from the chain, refreshed every 30 s. */
+/** Indexer base URL (ADR 0036); empty means read everything from the RPC. */
+export const INDEXER_URL = (process.env.NEXT_PUBLIC_INDEXER_URL || "").replace(/\/$/, "");
+
+/** Turns the indexer's bigint encoding ({"$n":"123"}) back into bigints. */
+export function reviveBigints<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(reviveBigints) as T;
+  if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    const keys = Object.keys(o);
+    if (keys.length === 1 && keys[0] === "$n" && typeof o.$n === "string") {
+      return BigInt(o.$n) as T;
+    }
+    return Object.fromEntries(keys.map((k) => [k, reviveBigints(o[k])])) as T;
+  }
+  return value;
+}
+
+type IndexerPage = {
+  chainId: number;
+  indexedTo: string | null;
+  logs: Array<{
+    eventName: string;
+    args: unknown;
+    blockNumber: string;
+    logIndex: number;
+    transactionHash: `0x${string}`;
+  }>;
+  next: { fromBlock: number; fromLogIndex: number } | null;
+};
+
+/** Pages through the indexer's logs for one circle. Null if it serves another chain. */
+export async function fetchIndexed(
+  base: string,
+  circle: string,
+  chainId: number,
+  fetcher: typeof fetch = fetch,
+): Promise<{ logs: DecodedLog[]; indexedTo: bigint } | null> {
+  const logs: DecodedLog[] = [];
+  let cursor = { fromBlock: 0, fromLogIndex: 0 };
+  let indexedTo: bigint | null = null;
+  for (let page = 0; page < 100; page++) {
+    const url = `${base}/v1/circles/${circle}/logs?fromBlock=${cursor.fromBlock}&fromLogIndex=${cursor.fromLogIndex}`;
+    const res = await fetcher(url);
+    if (!res.ok) throw new Error(`Indexer answered ${res.status}`);
+    const body = (await res.json()) as IndexerPage;
+    if (body.chainId !== chainId || body.indexedTo === null) return null;
+    // The first page's cursor is the safe one: later pages may include newer blocks.
+    if (indexedTo === null) indexedTo = BigInt(body.indexedTo);
+    for (const l of body.logs) {
+      const block = BigInt(l.blockNumber);
+      if (block > indexedTo) continue;
+      logs.push({
+        eventName: l.eventName,
+        args: reviveBigints(l.args) as Record<string, unknown>,
+        blockNumber: block,
+        logIndex: l.logIndex,
+        transactionHash: l.transactionHash,
+      });
+    }
+    if (!body.next) break;
+    cursor = body.next;
+  }
+  return { logs, indexedTo: indexedTo ?? 0n };
+}
+
+/** Every event of one circle, from the indexer and the chain, refreshed every 30 s. */
 export function useCircleEvents(id: Address | null) {
   const client = usePublicClient();
   const created = useReadContract({
@@ -127,9 +192,29 @@ export function useCircleEvents(id: Address | null) {
     refetchInterval: 30_000,
     staleTime: 15_000,
     queryFn: async (): Promise<CircleEvents> => {
-      const latest = await client!.getBlockNumber();
-      const { ranges, partial } = chunkRanges(createdAt!, latest, LOG_CHUNK, MAX_CHUNKS);
+      // No cache: a refetch right after a transaction must see the block it landed in.
+      const latest = await client!.getBlockNumber({ cacheTime: 0 });
+      // History from the indexer when one is configured (ADR 0036); only the newest blocks
+      // come from the RPC. Any indexer trouble falls back to reading the RPC directly.
+      let start = createdAt!;
       const logs: DecodedLog[] = [];
+      let fromIndexer = false;
+      if (INDEXER_URL) {
+        try {
+          const indexed = await fetchIndexed(INDEXER_URL, id!, client!.chain.id);
+          if (indexed) {
+            logs.push(...indexed.logs);
+            if (indexed.indexedTo + 1n > start) start = indexed.indexedTo + 1n;
+            fromIndexer = true;
+          }
+        } catch {
+          logs.length = 0;
+        }
+      }
+      const { ranges, partial } =
+        start > latest
+          ? { ranges: [] as Array<[bigint, bigint]>, partial: false }
+          : chunkRanges(start, latest, LOG_CHUNK, MAX_CHUNKS);
       for (let i = 0; i < ranges.length; i += PARALLEL) {
         const batch = await Promise.all(
           ranges.slice(i, i + PARALLEL).map(([fromBlock, toBlock]) =>
@@ -146,8 +231,8 @@ export function useCircleEvents(id: Address | null) {
       return {
         events: normalise(logs),
         logs,
-        partial,
-        fromBlock: ranges[0]?.[0] ?? createdAt!,
+        partial: !fromIndexer && partial,
+        fromBlock: fromIndexer ? createdAt! : (ranges[0]?.[0] ?? createdAt!),
       };
     },
   });

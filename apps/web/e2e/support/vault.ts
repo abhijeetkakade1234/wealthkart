@@ -3,7 +3,8 @@ import { decodeFunctionResult, encodeFunctionData, type Address } from "viem";
 
 // The SDK package is ESM-only and Playwright loads tests as CommonJS, so read the ABI source.
 import { circleVaultAbi } from "../../../../packages/sdk/src/abi/CircleVault";
-import { call, send } from "./chain";
+import { call, send, warpToNextMonth } from "./chain";
+import { ACCOUNTS } from "./env";
 import { installFakeCore } from "./fake-core";
 
 /**
@@ -26,7 +27,7 @@ export async function asWallet(browser: Browser, account: string): Promise<Page>
 export async function vaultWrite(
   circle: Address,
   from: string,
-  functionName: "acceptInvite" | "contribute",
+  functionName: "acceptInvite" | "contribute" | "requestExit" | "pause",
   value?: bigint,
 ) {
   await send({
@@ -35,6 +36,33 @@ export async function vaultWrite(
     data: encodeFunctionData({ abi: circleVaultAbi, functionName }),
     value,
   });
+}
+
+/** Reads a no-argument uint view of the vault, e.g. `totalAssets`. */
+export async function vaultUint(
+  circle: Address,
+  functionName: "totalAssets" | "totalShares" | "memberCount" | "pausedUntil",
+): Promise<bigint> {
+  const data = encodeFunctionData({ abi: circleVaultAbi, functionName });
+  const out = decodeFunctionResult({
+    abi: circleVaultAbi,
+    functionName,
+    data: (await call(circle, data)) as `0x${string}`,
+  });
+  return BigInt(out as bigint | number);
+}
+
+/** A circle of three founders (Alice creates; Bob and Carol accept) with month one paid. */
+export async function paidCircleOfThree(page: Page, name: string): Promise<Address> {
+  const circle = await createCircle(page, {
+    name: `${name} ${Date.now() % 100000}`,
+    founders: [ACCOUNTS.bob, ACCOUNTS.carol],
+  });
+  await vaultWrite(circle, ACCOUNTS.bob, "acceptInvite");
+  await vaultWrite(circle, ACCOUNTS.carol, "acceptInvite");
+  await warpToNextMonth(2);
+  for (const who of [ACCOUNTS.alice, ACCOUNTS.bob, ACCOUNTS.carol]) await payAllDue(circle, who);
+  return circle;
 }
 
 /** What `who` owes right now: [period, amount, fees, payable]. */
@@ -70,4 +98,57 @@ export async function createCircle(
   await page.getByRole("button", { name: "Create circle" }).click();
   await page.waitForURL(/\/app\/circle\/\?id=0x[0-9a-fA-F]{40}/);
   return new URL(page.url()).searchParams.get("id")! as Address;
+}
+
+/** Any vault write with arguments, from an anvil dev account (setup steps only). */
+export async function vaultSend(
+  circle: Address,
+  from: string,
+  functionName: "requestLoan" | "voteLoan" | "acceptGuarantee",
+  args: readonly unknown[],
+  value?: bigint,
+) {
+  await send({
+    from,
+    to: circle,
+    data: encodeFunctionData({
+      abi: circleVaultAbi,
+      functionName,
+      args,
+    } as unknown as Parameters<typeof encodeFunctionData>[0]),
+    value,
+  });
+}
+
+/** The open loan request id of `who` (0 = none). */
+export async function pendingLoanOf(circle: Address, who: Address): Promise<bigint> {
+  const data = encodeFunctionData({
+    abi: circleVaultAbi,
+    functionName: "pendingLoanOf",
+    args: [who],
+  });
+  return decodeFunctionResult({
+    abi: circleVaultAbi,
+    functionName: "pendingLoanOf",
+    data: (await call(circle, data)) as `0x${string}`,
+  });
+}
+
+/**
+ * Setup for loan tests: `borrower` asks for `amount` (no guarantor) and the two other founders
+ * vote yes, so the AVAX goes out in the second vote.
+ */
+export async function loanFor(
+  circle: Address,
+  borrower: Address,
+  voters: Address[],
+  amount: bigint,
+) {
+  await vaultSend(circle, borrower, "requestLoan", [
+    amount,
+    false,
+    "0x0000000000000000000000000000000000000000",
+  ]);
+  const id = await pendingLoanOf(circle, borrower);
+  for (const v of voters) await vaultSend(circle, v, "voteLoan", [id, true]);
 }

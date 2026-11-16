@@ -134,6 +134,9 @@ describe("toFriendlyError", () => {
     // Errors only the create form can hit (it validates first) or that no button can trigger.
     const creationOnly = new Set([
       "InvalidConfig",
+      "InvalidRule",
+      "EmptyVaultCode",
+      "WriteFailed",
       "InvalidDueDay",
       "TooManyFounders",
       "DuplicateMember",

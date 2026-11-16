@@ -1,15 +1,15 @@
 "use client";
 
-import { useQueries } from "@tanstack/react-query";
 import { circleVaultAbi, explorerTxUrl, shortAddress } from "@wealthkart/sdk";
-import { ExternalLink, HandCoins, Search, UserRound, Vote } from "lucide-react";
+import { ExternalLink, HandCoins, Landmark, Search, UserRound, Vote } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import type { Address } from "viem";
-import { usePublicClient, useReadContracts } from "wagmi";
+import { useReadContracts } from "wagmi";
 
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
+import { CirclePauseBanner } from "@/components/exits/pause";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { EmptyArt } from "@/components/art";
 import { ErrorBoundary, InlineAlert, StateView } from "@/components/kit";
@@ -18,13 +18,14 @@ import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { parseCircleId, useCircle } from "@/lib/circle";
 import { useCircleEvents } from "@/lib/events";
-import { FEED_FILTERS, type FeedItem, type FeedKind, filterFeed, toFeed } from "@/lib/feed";
+import { FEED_FILTERS, type FeedKind, filterFeed, toFeed } from "@/lib/feed";
+import { formatWhen, useBlockTimes } from "@/lib/use-block-times";
 import { useDebounced } from "@/lib/use-debounced";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 
-const KIND_ICON = { payment: HandCoins, member: UserRound, vote: Vote } as const;
+const KIND_ICON = { payment: HandCoins, member: UserRound, vote: Vote, loan: Landmark } as const;
 
 export default function ActivityPage() {
   return (
@@ -57,8 +58,9 @@ function Activity() {
     <div className="max-w-[760px]">
       <PageHeader
         title="Activity"
-        subtitle={`${c.data.name} · every payment, member change and vote, straight from the blockchain.`}
+        subtitle={`${c.data.name} · every payment, loan, member change and vote, straight from the blockchain.`}
       />
+      <CirclePauseBanner circle={id} />
       <ErrorBoundary preset="widget" name="Activity">
         <Feed id={id} />
       </ErrorBoundary>
@@ -251,41 +253,4 @@ function Feed({ id }: { id: Address }) {
       )}
     </div>
   );
-}
-
-/** Timestamps for the blocks on the current page only (at most PAGE_SIZE reads, cached). */
-function useBlockTimes(items: readonly FeedItem[]): Map<string, number> {
-  const client = usePublicClient();
-  const blocks = [...new Set(items.map((i) => i.block))];
-  const results = useQueries({
-    queries: blocks.map((b) => ({
-      queryKey: ["block-time", client?.chain.id, String(b)],
-      enabled: Boolean(client),
-      staleTime: Infinity,
-      queryFn: async () => Number((await client!.getBlock({ blockNumber: b })).timestamp),
-    })),
-  });
-  const out = new Map<string, number>();
-  blocks.forEach((b, i) => {
-    const t = results[i]?.data;
-    if (t !== undefined) out.set(String(b), t);
-  });
-  return out;
-}
-
-/** "3 Dec 2026, 14:05 UTC": deadlines and records are UTC on-chain (ADR 0014). */
-function formatWhen(sec: number): string {
-  const d = new Date(sec * 1000);
-  const date = d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-  const time = d.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
-  return `${date}, ${time} UTC`;
 }

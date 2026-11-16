@@ -11,7 +11,7 @@ export const CIRCLES_PAGE_SIZE = 12;
 export const MEMBERS_PAGE_SIZE = 10;
 
 /** Build-time override for E2E runs against a local chain. Unset in real builds. */
-const FACTORY_OVERRIDE = process.env.NEXT_PUBLIC_FACTORY_OVERRIDE;
+export const FACTORY_OVERRIDE = process.env.NEXT_PUBLIC_FACTORY_OVERRIDE;
 
 /** The factory for the wallet's current chain, or null if not deployed there yet. */
 export function useFactory(): Address | null {

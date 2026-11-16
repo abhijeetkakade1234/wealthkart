@@ -68,6 +68,108 @@ export const circleVaultAbi = [
             type: "uint8",
             internalType: "uint8",
           },
+          {
+            name: "rules",
+            type: "tuple",
+            internalType: "struct Rules.Params",
+            components: [
+              {
+                name: "interestBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "tenorMonths",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "tenor2Bps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "tenor3Bps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "reserveBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "maxLoanBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "kMultiplier",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "minInterestMonth",
+                type: "bool",
+                internalType: "bool",
+              },
+              {
+                name: "medicalCap",
+                type: "uint128",
+                internalType: "uint128",
+              },
+              {
+                name: "medicalFreeMonths",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "guarantorRequired",
+                type: "bool",
+                internalType: "bool",
+              },
+              {
+                name: "interestFee",
+                type: "uint128",
+                internalType: "uint128",
+              },
+              {
+                name: "defaultAfter",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "minMembersForLoans",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "passPct",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "dissolvePassPct",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "ruleChangeDelayDays",
+                type: "uint8",
+                internalType: "uint8",
+              },
+              {
+                name: "exitNoticeDays",
+                type: "uint16",
+                internalType: "uint16",
+              },
+              {
+                name: "exitFeeBps",
+                type: "uint16",
+                internalType: "uint16",
+              },
+            ],
+          },
         ],
       },
       {
@@ -327,6 +429,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "acceptGuarantee",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "acceptInvite",
     inputs: [],
     outputs: [],
@@ -387,6 +502,13 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "applyRuleChange",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "canVote",
     inputs: [
       {
@@ -411,9 +533,141 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "canVoteLoan",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "canVoteProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "ok",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "cancelExit",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "cancelJoinRequest",
     inputs: [],
     outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cancelLoanRequest",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cancelProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "cash",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "checkUpkeep",
+    inputs: [
+      {
+        name: "",
+        type: "bytes",
+        internalType: "bytes",
+      },
+    ],
+    outputs: [
+      {
+        name: "upkeepNeeded",
+        type: "bool",
+        internalType: "bool",
+      },
+      {
+        name: "performData",
+        type: "bytes",
+        internalType: "bytes",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "claimDissolution",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "claimExit",
+    inputs: [],
+    outputs: [
+      {
+        name: "paid",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
     stateMutability: "nonpayable",
   },
   {
@@ -478,6 +732,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "dissolved",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "dormantAfter",
     inputs: [],
     outputs: [
@@ -511,6 +778,126 @@ export const circleVaultAbi = [
         name: "",
         type: "uint8",
         internalType: "uint8",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitOf",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct Exits.Entry",
+        components: [
+          {
+            name: "prev",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "requestedAt",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "feeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "waiting",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "next",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "maturesAt",
+            type: "uint64",
+            internalType: "uint64",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitQueueLength",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitQueuePage",
+    inputs: [
+      {
+        name: "offset",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "address[]",
+        internalType: "address[]",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitValue",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "exitsWaiting",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
       },
     ],
     stateMutability: "view",
@@ -557,6 +944,32 @@ export const circleVaultAbi = [
   {
     type: "function",
     name: "finalize",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "finalizeLoan",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "finalizeProposal",
     inputs: [
       {
         name: "id",
@@ -664,6 +1077,19 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "guardianDisabled",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "hasVoted",
     inputs: [
       {
@@ -680,6 +1106,30 @@ export const circleVaultAbi = [
     outputs: [
       {
         name: "",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "hasVotedProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "ok",
         type: "bool",
         internalType: "bool",
       },
@@ -762,6 +1212,35 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "interestDue",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "interest",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "fees",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "overdueMonths",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "isMember",
     inputs: [
       {
@@ -802,6 +1281,263 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "lastPauseAt",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "lendableCash",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "loanOf",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct LoanBook.Loan",
+        components: [
+          {
+            name: "guarantor",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "disbursedPeriod",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "paidThrough",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "bookedThrough",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "principal",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "amount",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "carried",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "rate1",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "rate2",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "rate3",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "freeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "medical",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "defaulted",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "charged",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "defaultPeriod",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "loanRequest",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct LoanBook.Request",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum LoanBook.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum LoanBook.Status",
+          },
+          {
+            name: "medical",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "guarantorAccepted",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "borrower",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "guarantor",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "amount",
+            type: "uint128",
+            internalType: "uint128",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "loanRequestCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "loansOutstanding",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "markDefault",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -893,6 +1629,16 @@ export const circleVaultAbi = [
             internalType: "bool",
           },
           {
+            name: "frozen",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "loanTies",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
             name: "nextPeriod",
             type: "uint32",
             internalType: "uint32",
@@ -911,6 +1657,11 @@ export const circleVaultAbi = [
             name: "paid",
             type: "uint16",
             internalType: "uint16",
+          },
+          {
+            name: "exiting",
+            type: "bool",
+            internalType: "bool",
           },
           {
             name: "shares",
@@ -1019,6 +1770,193 @@ export const circleVaultAbi = [
         name: "",
         type: "uint256",
         internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "openLoanRequestsPage",
+    inputs: [
+      {
+        name: "offset",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "ids",
+        type: "uint256[]",
+        internalType: "uint256[]",
+      },
+      {
+        name: "page",
+        type: "tuple[]",
+        internalType: "struct LoanBook.Request[]",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum LoanBook.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum LoanBook.Status",
+          },
+          {
+            name: "medical",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "guarantorAccepted",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "borrower",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "guarantor",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "amount",
+            type: "uint128",
+            internalType: "uint128",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "openProposalsPage",
+    inputs: [
+      {
+        name: "offset",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "ids",
+        type: "uint256[]",
+        internalType: "uint256[]",
+      },
+      {
+        name: "page",
+        type: "tuple[]",
+        internalType: "struct Governance.Proposal[]",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum Governance.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum Governance.Status",
+          },
+          {
+            name: "reason",
+            type: "uint8",
+            internalType: "enum Governance.Reason",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "memberBar",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "proposer",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "subject",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "period",
+            type: "uint32",
+            internalType: "uint32",
+          },
+        ],
       },
     ],
     stateMutability: "view",
@@ -1162,6 +2100,199 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "pause",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "pausedUntil",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "payInterest",
+    inputs: [],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "payoffDue",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "pendingLoanOf",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "pendingRuleChange",
+    inputs: [],
+    outputs: [
+      {
+        name: "rules_",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+      {
+        name: "effectiveAt",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "performUpkeep",
+    inputs: [
+      {
+        name: "",
+        type: "bytes",
+        internalType: "bytes",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "periodsOverdue",
     inputs: [
       {
@@ -1181,10 +2312,434 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "processExits",
+    inputs: [
+      {
+        name: "maxCount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "paid",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "proposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "p",
+        type: "tuple",
+        internalType: "struct Governance.Proposal",
+        components: [
+          {
+            name: "kind",
+            type: "uint8",
+            internalType: "enum Governance.Kind",
+          },
+          {
+            name: "status",
+            type: "uint8",
+            internalType: "enum Governance.Status",
+          },
+          {
+            name: "reason",
+            type: "uint8",
+            internalType: "enum Governance.Reason",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "memberBar",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "seqSnapshot",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "eligible",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "yes",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "no",
+            type: "uint32",
+            internalType: "uint32",
+          },
+          {
+            name: "proposer",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "deadline",
+            type: "uint64",
+            internalType: "uint64",
+          },
+          {
+            name: "subject",
+            type: "address",
+            internalType: "address",
+          },
+          {
+            name: "period",
+            type: "uint32",
+            internalType: "uint32",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposalCount",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposalRules",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        name: "r",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "proposeDissolve",
+    inputs: [],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "proposeDormant",
     inputs: [
       {
         name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "proposeFeeWaiver",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        internalType: "enum Governance.Reason",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "proposeGuardianOff",
+    inputs: [],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "proposeRuleChange",
+    inputs: [
+      {
+        name: "newRules",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "proposeSettle",
+    inputs: [
+      {
+        name: "borrower",
         type: "address",
         internalType: "address",
       },
@@ -1213,6 +2768,39 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "rageQuitUntil",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "uint64",
+        internalType: "uint64",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "repay",
+    inputs: [],
+    outputs: [],
+    stateMutability: "payable",
+  },
+  {
+    type: "function",
+    name: "reputation",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "requestCount",
     inputs: [],
     outputs: [
@@ -1223,6 +2811,42 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "requestExit",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "requestLoan",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "medical",
+        type: "bool",
+        internalType: "bool",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
@@ -1247,6 +2871,116 @@ export const circleVaultAbi = [
       },
     ],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "rules",
+    inputs: [],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        internalType: "struct Rules.Params",
+        components: [
+          {
+            name: "interestBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenorMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "tenor2Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "tenor3Bps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "reserveBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "maxLoanBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "kMultiplier",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minInterestMonth",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "medicalCap",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "medicalFreeMonths",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "guarantorRequired",
+            type: "bool",
+            internalType: "bool",
+          },
+          {
+            name: "interestFee",
+            type: "uint128",
+            internalType: "uint128",
+          },
+          {
+            name: "defaultAfter",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "minMembersForLoans",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "passPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "dissolvePassPct",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "ruleChangeDelayDays",
+            type: "uint8",
+            internalType: "uint8",
+          },
+          {
+            name: "exitNoticeDays",
+            type: "uint16",
+            internalType: "uint16",
+          },
+          {
+            name: "exitFeeBps",
+            type: "uint16",
+            internalType: "uint16",
+          },
+        ],
+      },
+    ],
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -1334,7 +3068,50 @@ export const circleVaultAbi = [
   },
   {
     type: "function",
+    name: "unpause",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "vote",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "support",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "voteLoan",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "support",
+        type: "bool",
+        internalType: "bool",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "voteProposal",
     inputs: [
       {
         name: "id",
@@ -1382,6 +3159,32 @@ export const circleVaultAbi = [
     inputs: [],
     outputs: [],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "withdraw",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "withdrawable",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+    stateMutability: "view",
   },
   {
     type: "event",
@@ -1453,6 +3256,25 @@ export const circleVaultAbi = [
     anonymous: false,
   },
   {
+    type: "event",
+    name: "Withdrawn",
+    inputs: [
+      {
+        name: "to",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
     type: "error",
     name: "AdvancePaymentNotAllowed",
     inputs: [
@@ -1463,6 +3285,22 @@ export const circleVaultAbi = [
       },
       {
         name: "currentPeriod",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "CircleDissolved",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "CirclePaused",
+    inputs: [
+      {
+        name: "until",
         type: "uint256",
         internalType: "uint256",
       },
@@ -1557,6 +3395,11 @@ export const circleVaultAbi = [
   },
   {
     type: "error",
+    name: "NothingToWithdraw",
+    inputs: [],
+  },
+  {
+    type: "error",
     name: "PeriodAlreadyPaid",
     inputs: [
       {
@@ -1586,6 +3429,11 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "WithdrawFailed",
+    inputs: [],
   },
   {
     type: "error",
@@ -1798,6 +3646,19 @@ export const circleVaultAbi = [
         type: "uint256",
         indexed: true,
         internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "MemberRemoved",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
       },
     ],
     anonymous: false,
@@ -2086,5 +3947,1337 @@ export const circleVaultAbi = [
         internalType: "uint256",
       },
     ],
+  },
+  {
+    type: "error",
+    name: "InvalidRule",
+    inputs: [
+      {
+        name: "reason",
+        type: "string",
+        internalType: "string",
+      },
+    ],
+  },
+  {
+    type: "event",
+    name: "CircleDissolving",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "FeeWaived",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Reason",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "GuardianDisabled",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ProposalClosed",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "kind",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Kind",
+      },
+      {
+        name: "status",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Status",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ProposalCreated",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "kind",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Kind",
+      },
+      {
+        name: "proposer",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "subject",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Governance.Reason",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ProposalVoted",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "support",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RuleChangeApplied",
+    inputs: [
+      {
+        name: "effectiveAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RuleChangeScheduled",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "effectiveAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "AlreadyVotedOnProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "CannotVoteOnProposal",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuardianAlreadyOff",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "InvalidWaiver",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NoEligibleVoters",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoPendingRuleChange",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotAllowedToPropose",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotProposer",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalNotDecided",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalNotOpen",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalTooSoon",
+    inputs: [
+      {
+        name: "allowedAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ProposalVotingClosed",
+    inputs: [
+      {
+        name: "id",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "RuleChangeInProgress",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "RuleChangeNotDue",
+    inputs: [
+      {
+        name: "effectiveAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TooManyOpenProposals",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "TooManyOpenProposalsBy",
+    inputs: [
+      {
+        name: "proposer",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "event",
+    name: "DissolutionClaimed",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "shares",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitCancelled",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitDropped",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "reason",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum Exits.DropReason",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitPaid",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "shares",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "value",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "fee",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "payout",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitRequested",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "maturesAt",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "feeBps",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "ExitWaiting",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "payout",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "cash",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "GuardianPaused",
+    inputs: [
+      {
+        name: "guardian",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "until",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "GuardianRetired",
+    inputs: [
+      {
+        name: "guardian",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "GuardianUnpaused",
+    inputs: [
+      {
+        name: "by",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "PayoutQueued",
+    inputs: [
+      {
+        name: "to",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "ClaimBlockedByLoan",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ExitAlreadyPending",
+    inputs: [
+      {
+        name: "maturesAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ExitGasTooLow",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "ExitNotReady",
+    inputs: [
+      {
+        name: "maturesAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuardianOff",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "HasLoanTies",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "ties",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "MemberFrozen",
+    inputs: [
+      {
+        name: "member",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NoExitPending",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotDissolved",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotGuardian",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotPaused",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NothingToClaimYet",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "PauseTooSoon",
+    inputs: [
+      {
+        name: "allowedAt",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "PayoutGasTooLow",
+    inputs: [],
+  },
+  {
+    type: "event",
+    name: "GuaranteeAccepted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "InterestPaid",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "interest",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "fees",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "throughPeriod",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanCured",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanDefaulted",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "overdueMonths",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanDisbursed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "period",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanRepaid",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "principal",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "minInterest",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "remaining",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanRequestClosed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "kind",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum LoanBook.Kind",
+      },
+      {
+        name: "status",
+        type: "uint8",
+        indexed: false,
+        internalType: "enum LoanBook.Status",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanRequested",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "medical",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanSettled",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "guarantor",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "fromBorrower",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "fromGuarantor",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "writtenOff",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "LoanVoted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "support",
+        type: "bool",
+        indexed: false,
+        internalType: "bool",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "SettleProposed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "proposer",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "deadline",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "eligible",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "error",
+    name: "AlreadyDefaulted",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "AlreadyGuaranteeing",
+    inputs: [
+      {
+        name: "guarantor",
+        type: "address",
+        internalType: "address",
+      },
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "AlreadyVotedOnLoan",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "AmountTooLarge",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "limit",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "CannotVoteOnLoan",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "voter",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "DisbursalBlocked",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuaranteeNotAccepted",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "GuarantorRequired",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "InterestOverdue",
+    inputs: [
+      {
+        name: "months",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "InterestOwed",
+    inputs: [
+      {
+        name: "amount",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "InvalidGuarantor",
+    inputs: [
+      {
+        name: "guarantor",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanActive",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanNotDecidedYet",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanRequestNotOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanRequestOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoanVotingClosed",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "LoansClosed",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "LoansPaused",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "MedicalLoanThisYear",
+    inputs: [
+      {
+        name: "year",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "MedicalLoansOff",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "MemberExiting",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NoLoan",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NoLoanRequest",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NoOtherLoanVoters",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "NotAVoter",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotInDefault",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NotYourGuarantee",
+    inputs: [
+      {
+        name: "borrower",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "NothingOwed",
+    inputs: [],
+  },
+  {
+    type: "error",
+    name: "SettleOpen",
+    inputs: [
+      {
+        name: "requestId",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "TooFewMembers",
+    inputs: [
+      {
+        name: "members",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "required",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "WrongLoanAmount",
+    inputs: [
+      {
+        name: "expected",
+        type: "uint256",
+        internalType: "uint256",
+      },
+      {
+        name: "sent",
+        type: "uint256",
+        internalType: "uint256",
+      },
+    ],
+  },
+  {
+    type: "error",
+    name: "ZeroAmount",
+    inputs: [],
   },
 ] as const;

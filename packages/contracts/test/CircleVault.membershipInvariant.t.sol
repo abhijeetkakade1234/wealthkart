@@ -195,7 +195,7 @@ contract CircleVaultMembershipInvariantTest is CircleVaultBase {
         uint256 voters;
         for (uint256 i = 0; i < all.length; ++i) {
             Membership.Member memory m = vault.memberOf(all[i]);
-            if (m.active && m.voter && !m.dormant) voters++;
+            if (m.active && m.voter && !m.dormant && !m.exiting) voters++;
         }
         assertEq(vault.voterCount(), voters); // I-12b: the quorum base matches the members
         assertLe(vault.dormantCount(), vault.memberCount());
