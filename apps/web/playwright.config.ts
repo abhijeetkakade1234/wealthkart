@@ -4,7 +4,15 @@ import { join } from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
-import { ANVIL_PORT, ANVIL_URL, CHAIN_ID, FACTORY_ADDRESS, WEB_PORT } from "./e2e/support/env";
+import {
+  ANVIL_PORT,
+  ANVIL_URL,
+  CHAIN_ID,
+  FACTORY_ADDRESS,
+  INDEXER_PORT,
+  INDEXER_URL,
+  WEB_PORT,
+} from "./e2e/support/env";
 
 /** anvil from FOUNDRY_DIR (e.g. D:/tools/foundry) or ~/.foundry, else PATH. */
 function anvilBin() {
@@ -48,6 +56,14 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
+      // Charts and the activity feed read history through the indexer, like production.
+      command: "node e2e/indexer.mjs",
+      url: `${INDEXER_URL}/v1/health`,
+      timeout: 120_000,
+      reuseExistingServer: !process.env.CI,
+      env: { INDEXER_PORT: String(INDEXER_PORT) },
+    },
+    {
       command: "pnpm build && node e2e/serve.mjs",
       port: WEB_PORT,
       timeout: 300_000,
@@ -56,6 +72,7 @@ export default defineConfig({
         PORT: String(WEB_PORT),
         NEXT_PUBLIC_RPC_URL: ANVIL_URL,
         NEXT_PUBLIC_FACTORY_OVERRIDE: FACTORY_ADDRESS,
+        NEXT_PUBLIC_INDEXER_URL: INDEXER_URL,
       },
     },
   ],

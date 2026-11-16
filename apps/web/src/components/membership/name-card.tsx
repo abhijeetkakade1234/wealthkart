@@ -4,7 +4,6 @@ import { circleVaultAbi } from "@wealthkart/sdk";
 import { PencilLine } from "lucide-react";
 import { useState } from "react";
 import type { Address } from "viem";
-import { useWriteContract } from "wagmi";
 
 import { Button, TxTracker } from "@/components/kit";
 import {
@@ -17,6 +16,7 @@ import {
 import { nameChangeAllowedAt } from "@/lib/membership";
 import { notify } from "@/lib/toast";
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 import { DisplayNameField, useNameCheck } from "./display-name-field";
 
@@ -45,7 +45,7 @@ export function NameCard({
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(name);
   const check = useNameCheck(circle, me, draft, name);
-  const { writeContractAsync } = useWriteContract();
+  const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
   const lockedUntil = nameChangeAllowedAt(nameChangedAt, chainNow);
   const busy = tx.status === "confirm" || tx.status === "sending";

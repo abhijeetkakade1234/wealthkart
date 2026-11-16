@@ -4,19 +4,25 @@ import { circleVaultAbi, formatAvax, periodLabel } from "@wealthkart/sdk";
 import { CalendarClock, Send } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { useBalance, useWriteContract } from "wagmi";
+import { useBalance, usePublicClient } from "wagmi";
+
+import { AssetBadge, PayButton, PayProgress } from "@/components/app/asset-pay";
 
 import { CountdownUTC } from "@/components/app/countdown-utc";
 import { CircleNotFound } from "@/components/app/circle-not-found";
 import { PageHeader } from "@/components/app/page-header";
+import { CirclePauseBanner } from "@/components/exits/pause";
 import { Button, InlineAlert, StateView, TxTracker } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireWallet } from "@/components/wallet/require-wallet";
 import { useCoreWallet } from "@/components/wallet/use-core-wallet";
+import { fmt, isToken, useTokenBalance } from "@/lib/asset";
 import { parseCircleId, useCircle } from "@/lib/circle";
 import { messages } from "@/lib/messages";
 import { notify } from "@/lib/toast";
+import { useAssetPayment } from "@/lib/use-asset-payment";
 import { useTx } from "@/lib/use-tx";
+import { useBufferedWriteContract } from "@/lib/use-buffered-write";
 
 /** Rough upper bound for the network fee shown in the "not enough AVAX" check. */
 const FEE_BUFFER_WEI = 10n ** 16n; // 0.01 AVAX
@@ -37,12 +43,15 @@ function Pay() {
   const { address } = useCoreWallet();
   const c = useCircle(id);
   const balance = useBalance({ address });
-  const { writeContractAsync } = useWriteContract();
-  const payTx = useTx();
+  const writeContractAsync = useBufferedWriteContract();
+  const client = usePublicClient();
+  const payment = useAssetPayment(id);
+  const asset = payment.asset;
+  const token = useTokenBalance(asset, address);
   const holidayTx = useTx();
 
   if (!id || c.notFound) return <CircleNotFound notACircle={c.notACircle} />;
-  if (c.isPending || !c.data) {
+  if (c.isPending || !c.data || payment.assetPending) {
     return (
       <StateView
         state="loading"
@@ -59,20 +68,46 @@ function Pay() {
   const due = d.due;
   const month = due ? periodLabel(due.period) : "";
 
+  /** Re-read right before paying (and again before a second approve): a late fee may have started. */
+  async function amountNow(): Promise<bigint> {
+    if (!id || !address || !client) return due?.amount ?? 0n;
+    const [, amount] = await client.readContract({
+      abi: circleVaultAbi,
+      address: id,
+      functionName: "amountDue",
+      args: [address],
+    });
+    return amount;
+  }
+
+  /**
+   * USDT: approve the installment plus both late fees (each capped at half the installment on
+   * chain), so a due day passing between approve and pay doesn't fail the payment.
+   */
+  async function installmentCeiling(amount: bigint): Promise<bigint> {
+    if (!id || !client) return amount;
+    const vault = { abi: circleVaultAbi, address: id } as const;
+    const [installment, fee1, fee2] = await Promise.all([
+      client.readContract({ ...vault, functionName: "installment" }),
+      client.readContract({ ...vault, functionName: "fee1" }),
+      client.readContract({ ...vault, functionName: "fee2" }),
+    ]);
+    const ceiling = BigInt(installment) + BigInt(fee1) + BigInt(fee2);
+    return ceiling > amount ? ceiling : amount;
+  }
+
   async function pay() {
     if (!id || !due) return;
-    const receipt = await payTx.run(() =>
-      writeContractAsync({
-        abi: circleVaultAbi,
-        address: id,
-        functionName: "contribute",
-        value: due.amount,
-      }),
-    );
-    if (receipt) {
-      notify.paid(month, formatAvax(due.amount));
+    const r = await payment.pay({
+      fn: "contribute",
+      amount: amountNow,
+      approveCeiling: installmentCeiling,
+    });
+    if (r) {
+      notify.paid(month, fmt(r.amount, asset), asset.symbol);
       void c.refetch();
       void balance.refetch();
+      void token.refetch();
     }
   }
 
@@ -89,13 +124,26 @@ function Pay() {
     }
   }
 
-  const needed = due ? due.amount + FEE_BUFFER_WEI : 0n;
-  const tooPoor = balance.data !== undefined && due?.payable && balance.data.value < needed;
-  const paying = payTx.status === "confirm" || payTx.status === "sending";
+  // AVAX circles: the installment and the fee both come out of AVAX. USDT circles: the
+  // installment comes out of USDT and only the network fee out of AVAX (ADR 0046).
+  const needed = due ? (isToken(asset) ? 0n : due.amount) + FEE_BUFFER_WEI : 0n;
+  const tooPoorAvax = balance.data !== undefined && due?.payable && balance.data.value < needed;
+  const tooPoorToken =
+    isToken(asset) && token.balance !== undefined && due?.payable && token.balance < due.amount;
+  const tooPoor = tooPoorAvax || tooPoorToken;
 
   return (
     <div className="max-w-[640px]">
-      <PageHeader title="Pay" subtitle={d.name} />
+      <PageHeader
+        title="Pay"
+        subtitle={
+          <span className="inline-flex flex-wrap items-center gap-2.5">
+            {d.name}
+            <AssetBadge asset={asset} />
+          </span>
+        }
+      />
+      <CirclePauseBanner circle={id} />
 
       {!due?.payable ? (
         <StateView
@@ -113,41 +161,70 @@ function Pay() {
           )}
           <div className="grid gap-5 rounded-[14px] border border-[#f1e2c4] bg-warn-soft p-8">
             <span className="text-[13px] text-muted-foreground">Installment for {month}</span>
-            <span className="font-display text-[56px] leading-none tracking-tight tabular">
-              {formatAvax(due.amount)}
-              <small className="ml-2 font-sans text-[15px] text-muted-foreground">AVAX</small>
+            <span
+              className="font-display text-[56px] leading-none tracking-tight tabular"
+              data-testid="pay-amount"
+            >
+              {fmt(due.amount, asset)}
+              <small className="ml-2 font-sans text-[15px] text-muted-foreground">
+                {asset.symbol}
+              </small>
             </span>
             <CountdownUTC period={Number(due.period)} dueDay={d.dueDay} />
             {due.fees > 0n && (
               <p className="text-[13.5px] text-warn">
-                Includes {formatAvax(due.fees)} AVAX in late fees. Fees go into the circle, so every
-                member shares them.
+                Includes {fmt(due.fees, asset)} {asset.symbol} in late fees. Fees go into the
+                circle, so every member shares them.
               </p>
             )}
           </div>
 
-          {tooPoor && (
+          {tooPoorToken && token.balance !== undefined && (
             <InlineAlert tone="bad">
-              {messages.insufficientAvax({
-                needed: formatAvax(needed),
-                amount: formatAvax(due.amount),
-                fee: formatAvax(FEE_BUFFER_WEI),
+              {messages.notEnoughToken({
+                needed: fmt(due.amount, asset),
+                have: fmt(token.balance, asset),
+                symbol: asset.symbol,
               })}
             </InlineAlert>
           )}
+          {tooPoorAvax &&
+            (isToken(asset) ? (
+              <InlineAlert tone="bad">
+                {messages.needGasAvax(formatAvax(FEE_BUFFER_WEI))}
+              </InlineAlert>
+            ) : (
+              <InlineAlert tone="bad">
+                {messages.insufficientAvax({
+                  needed: formatAvax(needed),
+                  amount: formatAvax(due.amount),
+                  fee: formatAvax(FEE_BUFFER_WEI),
+                })}
+              </InlineAlert>
+            ))}
+          {isToken(asset) && !tooPoor && (
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              Paying in USDT takes two steps in your wallet: approve, then pay. You approve up to
+              the installment plus both late fees, so a fee starting mid-way can&apos;t stop the
+              payment; the circle only takes what&apos;s due.
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-3">
-            <Button
+            <PayButton
               size="lg"
               icon={Send}
-              workingLabel="Paying…"
-              state={paying ? "working" : undefined}
+              payment={payment}
+              amount={due.amount}
+              label="Pay"
               onClick={pay}
               disabled={Boolean(tooPoor)}
-              disabledReason="Add AVAX to your wallet first"
-            >
-              Pay {formatAvax(due.amount)} AVAX
-            </Button>
+              disabledReason={
+                tooPoorToken
+                  ? `Add ${asset.symbol} to your wallet first`
+                  : "Add AVAX to your wallet first"
+              }
+            />
             {due.fees === 0n && d.holidaysPerYear > 0 && (
               <Button
                 size="lg"
@@ -166,13 +243,8 @@ function Pay() {
             )}
           </div>
 
-          {payTx.status !== "idle" && (
-            <TxTracker
-              status={payTx.status}
-              failedAt={payTx.failedAt}
-              failedMessage={payTx.failedMessage}
-              explorerUrl={payTx.explorerUrl}
-            />
+          {(isToken(asset) || payment.payTx.status !== "idle") && (
+            <PayProgress payment={payment} amount={due.amount} />
           )}
           {holidayTx.status !== "idle" && (
             <TxTracker

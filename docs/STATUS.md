@@ -1,7 +1,7 @@
 # Status: where we are and what's left
 
-**Current phase: Phase 1, MVP on Fuji** (Phase 0 done except owner actions marked below; work lands on `abhijeet`)
-Last updated: 2026-11-14
+**Current phase: Phase 4, growth** (Phases 0–2 done; Phase 3 code done, its audit, bug bounty and mainnet deploy are owner/external; the Phase 1 milestone is deferred by the owner). Work lands on `abhijeet`.
+Last updated: 2026-11-16
 
 How to use this file:
 
@@ -107,35 +107,44 @@ How to use this file:
 - [x] Red-team leftovers for membership (ADR 0033): voting rights after N payments with a running voter count as the quorum base (RT-03), 3 open requests per member and inviter stats on join cards (RT-03, RT-05), circle names without links (RT-26); RT-07's quorum part is handled by the dormant vote. Forge S-RT-05/06/34, invariant I-12b; E2E S-E2E-14
 - [x] Portfolio across circles; circle overview charts; contribution heatmap (ADR 0034): circle value, money in each month, value of one share, payments heatmap with year filter, portfolio totals and split; every chart has a table view; unit S-ACT-02..04; E2E S-E2E-15
 - [x] Activity feed + Snowtrace links: `/app/circle/activity`, every event as a plain sentence with UTC time, filters (payments, members, votes), 300 ms search over names, addresses and tx, 20 per page, URL state; unit S-ACT-05; E2E S-E2E-16
-- [ ] Indexer (AvaCloud Data API / The Graph / Worker cache)
-- [ ] **Milestone:** G1 + 2–3 test circles on Fuji; demo video; Team1 application
+- [x] Indexer (ADR 0036): `workers/indexer` Cloudflare Worker + D1, cron every minute plus catch-up per request, paged API; the app reads history from it and falls back to the RPC; unit S-IDX-01..06; every E2E run goes through it. Deploy is an owner action (`deploy-indexer.yml`)
+- [ ] **Milestone (deferred by the owner, 2026-11-15):** G1 + 2–3 test circles on Fuji; demo video; Team1 application
 
 ## Phase 2: Loans and governance
 
-- [ ] Each Phase 2 feature lands as its own module under `src/modules/` (ADR 0031); watch `forge build --sizes` (factory has 6.2 KB left)
+- [x] Phase 2 foundation (ADR 0037): blueprint factory (3.2 KB; vault code in data contracts), shared `Ledger` with push-then-pull payouts (RT-20), `Rules` in storage with on-chain bounds, Membership hooks, one marked vault section per module
+- [ ] Each Phase 2 feature lands as its own module under `src/modules/` (ADR 0031, 0037); vault has ~9 KB runtime left
 - [ ] Re-enable Slither `locked-ether` once exits exist
 - [ ] Red-team Phase 2 items: NAV includes interest owed and marks down overdue loans (RT-08, RT-18), k rises with tenure (RT-15), guarantee locks shares (RT-16), no new loans while exits wait (RT-17), pull-payment fallback for wallets that reject AVAX (RT-20), migration targets from a timelocked registry (RT-13)
+- [x] Module security reviews (governance, exits, loans) and their fixes: member-bar votes, automatic rule switch-over, rage-quit notice, linked-list exit queue, cash-based dissolution claims, one capped payout path, transient reentrancy lock (ADR 0043, `S-RV-*`)
 - [ ] Loan request → vote → auto-disbursal
 - [ ] Interest, partial payments, repayment allocation, auto-close
 - [ ] Tenors (rule 15), minimum interest (rule 17), medical loans (rule 18), cap (rule 13), reserve (rule 12)
 - [ ] Interest late fees; default after 2 missed months; share freeze (borrower + guarantor)
-- [ ] Generic proposals: rule change, fee waiver, admit member, dormant
+- [x] Governance contracts (ADR 0040): rule change (delay, then next period; rage-quit window), fee waiver with a fixed reason, dissolve + pro-rata claims, guardian off; admit member and dormant votes live in Membership. Risky-parameter supermajority (RT-12) still open
 - [ ] Exit: notice → NAV snapshot → Chainlink Automation payout + permissionless fallback
-- [ ] Charts: loans, inflows, NAV per share, vote tallies
+- [x] Exits and governance screens: leave with notice, collect, waiting-for-cash and rage-quit notes, guardian pause banner and button, withdraw refused payouts; proposals on Votes (rule change with before/after and apply, fee waiver, dissolve + claim, guardian off) with a "New proposal" dialog checked against `Rules.validate` bounds; E2E S-E2E-18..22
+- [x] Loans screens (ADR 0044): Loans page (your loan with interest due, tenor timeline, pay interest, repay part or full, default notice and how to lift it; ask dialog with live limit checks and a cost preview; guarantor notice with "Back this loan"; all loans with URL filters, sort and search, "Mark as defaulted", "Ask the circle to settle"), loan and settle cards on Votes (`?lpage=`), loan sentences in Activity; unit S-WEB-50..61, E2E S-E2E-23..26
+- [ ] Charts: vote tallies (done: loans outstanding per member, where the money is, inflows, NAV per share)
 - [ ] **Milestone:** full rulebook on-chain; test report published
 
 ## Phase 3: Audit and mainnet beta
 
-- [ ] Full analytics, XIRR, projections, CSV export
-- [ ] Reputation SBT
+- [x] Full analytics, XIRR, projections, CSV export
+- [x] Reputation SBT
+- [x] Member cap 3 to 50 (ADR 0045)
+- [x] Circles in AVAX or USDT, fixed at creation; USDT reviews fixed (ADR 0046, 0048, 0050)
+- [x] Network chosen by the environment: `main` Production, `dev` Preview on Fuji, local anvil (ADR 0051)
+- [x] Indexer D1 free-tier guard (ADR 0047)
 - [ ] Testnet bug bounty
 - [ ] External audit + fixes
 - [ ] Mainnet deploy with deposit caps; contract verification on Snowtrace
-- [ ] Monitoring and alerts on contracts
+- [x] Monitoring and alerts on contracts (USDT-aware)
 - [ ] **Milestone:** G1 live on mainnet
 
 ## Phase 4: Growth
 
+- [x] Landing page: plain-language sections, cut-paper hero, GSAP scroll scene (ADR 0049)
 - [ ] Reminders (Web Push, wallet-keyed)
 - [ ] Circle templates (friends / family / office)
 - [ ] Hindi + Marathi
@@ -143,4 +152,4 @@ How to use this file:
 
 ## Phase 5: USDC vaults + WealthKart L1
 
-## Phase 6: Ecosystem (circle-to-circle lending, credit lines)
+## Phase 6: Ecosystem (credit lines, reserve yield by vote; no circle-to-circle lending, ADR 0035)

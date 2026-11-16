@@ -262,18 +262,66 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         factory.createCircle(c, one);
 
         c = _cfg();
-        c.maxMembers = 2; // below 3
-        vm.expectRevert();
-        factory.createCircle(c, one);
-
-        c = _cfg();
         c.maxMembers = 11; // fewer than the 12 founders
         vm.expectRevert(
             abi.encodeWithSelector(
-                CircleVault.InvalidConfig.selector, "maxMembers must be 0 or >= 3 and >= founders"
+                CircleVault.InvalidConfig.selector,
+                "maxMembers must be at least the creator plus invited founders"
             )
         );
         factory.createCircle(c, members);
+    }
+
+    /// Member cap (ADR 0045): 3..50; 0 (unlimited) is gone; founders must fit under it.
+    function test_S_LIFE_10a_memberCapMustBe3To50() public {
+        address[] memory one = new address[](0);
+        uint16[4] memory bad = [uint16(0), 2, 51, 500];
+        for (uint256 i = 0; i < bad.length; ++i) {
+            CircleVault.Config memory c = _cfg();
+            c.maxMembers = bad[i];
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    CircleVault.InvalidConfig.selector, "maxMembers must be 3..50"
+                )
+            );
+            vm.prank(honest);
+            factory.createCircle(c, one);
+        }
+
+        CircleVault.Config memory ok = _cfg();
+        ok.maxMembers = 3;
+        vm.prank(honest);
+        assertEq(CircleVault(payable(factory.createCircle(ok, one))).maxMembers(), 3);
+        ok.maxMembers = 50;
+        vm.prank(honest);
+        assertEq(CircleVault(payable(factory.createCircle(ok, one))).maxMembers(), 50);
+        assertEq(vault.MAX_FOUNDERS(), 50);
+        assertEq(vault.MAX_MAX_MEMBERS(), 50);
+    }
+
+    /// 50 founders fit a cap of 50; a 51st (creator + 50 invitees) is refused.
+    function test_S_MEM_09a_fiftyFoundersFitButFiftyOneDoNot() public {
+        address[] memory big = _makeMembers(51);
+        address[] memory fifty = new address[](50);
+        for (uint256 i = 0; i < 50; ++i) {
+            fifty[i] = big[i];
+        }
+        CircleVault v = _createCircle(_cfg(), fifty);
+        assertEq(v.memberCount(), 50);
+
+        // The circle is full: nobody else can even ask to join.
+        address extra = _actor("extra");
+        vm.prank(extra);
+        vm.expectRevert(abi.encodeWithSelector(Membership.CircleFull.selector, 50));
+        v.requestToJoin("Extra", address(0));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CircleVault.InvalidConfig.selector,
+                "maxMembers must be at least the creator plus invited founders"
+            )
+        );
+        _createCircleNoAccept(_cfg(), big);
     }
 
     // ---------------------------------------------------------------- first due period
@@ -348,19 +396,20 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         factory.createCircle(c, one);
     }
 
-    // ---------------------------------------------------------------- funds-stuck guard
+    // ---------------------------------------------------------------- network (ADR 0050)
 
-    /// This version has no exits; deploying on Avalanche mainnet would lock funds forever.
-    function test_cannotDeployOnAvalancheMainnet() public {
+    /// Exits exist now, so the vault no longer refuses mainnet; the network is chosen at deploy
+    /// time (`CONFIRM_MAINNET=yes` in DeployFactory.s.sol), not in the contract.
+    function test_circleCanBeCreatedOnAvalancheMainnet() public {
         vm.chainId(43_114);
-        vm.expectRevert(CircleVault.MainnetNotSupported.selector);
-        factory.createCircle(_cfg(), members);
+        CircleVault v = _createCircle(_cfg(), members);
+        assertTrue(v.isMember(members[0]));
     }
 
     // ---------------------------------------------------------------- scale (ADR 0015)
 
-    function test_S_MEM_09_contributionGasIsFlatWith200Members() public {
-        address[] memory big = _makeMembers(200);
+    function test_S_MEM_09_contributionGasIsFlatWith50Members() public {
+        address[] memory big = _makeMembers(50);
         CircleVault v = _createCircle(_cfg(), big);
 
         vm.prank(big[0]);
@@ -368,19 +417,21 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         v.contribute{value: AVAX / 2}();
         uint256 first = g0 - gasleft();
 
-        for (uint256 i = 1; i < 199; ++i) {
+        for (uint256 i = 1; i < 49; ++i) {
             vm.prank(big[i]);
             v.contribute{value: AVAX / 2}();
         }
 
-        vm.prank(big[199]);
+        vm.prank(big[49]);
         uint256 g1 = gasleft();
         v.contribute{value: AVAX / 2}();
         uint256 last = g1 - gasleft();
 
-        // The 200th payment costs no more than the first (it's cheaper: warm storage slots).
+        // The 50th payment costs no more than the first (it's cheaper: warm storage slots).
         assertLe(last, first);
-        assertLt(last, 100_000);
+        // Flat in the member count. The bound includes the reputation write (ADR 0042), which costs
+        // more on a wallet's first record (new storage), never more with more members.
+        assertLt(last, 200_000);
     }
 
     function test_S_ACT_01_createdAtBlockMarksWhereEventsStart() public {
@@ -388,5 +439,10 @@ contract CircleVaultContributionsTest is CircleVaultBase {
         vm.prank(honest);
         CircleVault v = CircleVault(payable(factory.createCircle(_cfg(), new address[](0))));
         assertEq(v.createdAtBlock(), 12_345);
+    }
+
+    function test_S_ACT_01b_factoryDeploysTheExactVaultCodeItWasGiven() public view {
+        assertEq(factory.vaultCodeHash(), keccak256(type(CircleVault).creationCode));
+        assertGt(address(vault).code.length, 0);
     }
 }

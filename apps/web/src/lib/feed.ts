@@ -1,4 +1,6 @@
-import { formatAvax, periodLabel, shortAddress } from "@wealthkart/sdk";
+import { periodLabel, shortAddress } from "@wealthkart/sdk";
+
+import { AVAX, type CircleAsset, fmt, money } from "@/lib/asset";
 
 import type { DecodedLog } from "@/lib/events";
 
@@ -8,7 +10,7 @@ import type { DecodedLog } from "@/lib/events";
  * times and paging.
  */
 
-export type FeedKind = "payment" | "member" | "vote";
+export type FeedKind = "payment" | "member" | "vote" | "loan";
 
 export interface FeedItem {
   id: string;
@@ -23,6 +25,19 @@ export interface FeedItem {
   text: (name: (address: string) => string) => string;
 }
 
+const ZERO = "0x0000000000000000000000000000000000000000";
+
+/** LoanBook.Status order. */
+const LOAN_STATUS = [
+  "none",
+  "open",
+  "approved",
+  "rejected",
+  "expired",
+  "cancelled",
+  "failed",
+] as const;
+
 /** Membership.Status order. */
 const STATUS = ["none", "open", "approved", "rejected", "expired", "cancelled", "full"] as const;
 
@@ -30,9 +45,13 @@ const str = (v: unknown) => String(v ?? "");
 const num = (v: unknown) => Number(v as bigint);
 
 /** Turns decoded vault logs into feed items, newest first. Unknown events are skipped. */
-export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
+export function toFeed(logs: readonly DecodedLog[], asset: CircleAsset = AVAX): FeedItem[] {
+  // Small loan amounts (interest) keep four decimals so they don't read as 0.00.
+  const amt = (units: bigint) => money(units, asset);
   // Request id -> who it is about, so "closed" lines can say who got in or was paused.
   const requests = new Map<number, { kind: "join" | "dormant"; account: string; name: string }>();
+  // Loan request id -> borrower and kind, so loan votes and results can say whose loan it is.
+  const loanRequests = new Map<number, { settle: boolean; borrower: string; amount: bigint }>();
   const items: FeedItem[] = [];
 
   const ordered = [...logs].sort((a, b) => {
@@ -59,8 +78,8 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
         const m = str(a.member);
         push("payment", [m], (n) =>
           fees > 0n
-            ? `${n(m)} paid ${periodLabel(num(a.period))}: ${formatAvax(a.installment as bigint)} AVAX plus ${formatAvax(fees)} AVAX in late fees.`
-            : `${n(m)} paid ${periodLabel(num(a.period))}: ${formatAvax(a.installment as bigint)} AVAX, on time.`,
+            ? `${n(m)} paid ${periodLabel(num(a.period))}: ${fmt(a.installment as bigint, asset)} ${asset.symbol} plus ${fmt(fees, asset)} ${asset.symbol} in late fees.`
+            : `${n(m)} paid ${periodLabel(num(a.period))}: ${fmt(a.installment as bigint, asset)} ${asset.symbol}, on time.`,
         );
         break;
       }
@@ -147,6 +166,137 @@ export function toFeed(logs: readonly DecodedLog[]): FeedItem[] {
         });
         break;
       }
+      case "LoanRequested": {
+        const b = str(a.borrower);
+        const g = str(a.guarantor);
+        const amount = a.amount as bigint;
+        loanRequests.set(num(a.requestId), { settle: false, borrower: b, amount });
+        const backed = g !== "" && g !== ZERO;
+        const what = a.medical ? "a medical loan" : "a loan";
+        push("loan", backed ? [b, g] : [b], (n) =>
+          backed
+            ? `${n(b)} asked for ${what} of ${amt(amount)}, with ${n(g)} as guarantor.`
+            : `${n(b)} asked for ${what} of ${amt(amount)}.`,
+        );
+        break;
+      }
+      case "GuaranteeAccepted": {
+        const b = str(a.borrower);
+        const g = str(a.guarantor);
+        push("loan", [g, b], (n) => `${n(g)} agreed to back ${n(b)}'s loan.`);
+        break;
+      }
+      case "SettleProposed": {
+        const b = str(a.borrower);
+        const by = str(a.proposer);
+        loanRequests.set(num(a.requestId), { settle: true, borrower: b, amount: 0n });
+        push(
+          "loan",
+          [by, b],
+          (n) => `${n(by)} asked the circle to settle ${n(b)}'s defaulted loan from their savings.`,
+        );
+        break;
+      }
+      case "LoanVoted": {
+        const v = str(a.voter);
+        const r = loanRequests.get(num(a.requestId));
+        push("loan", r ? [v, r.borrower] : [v], (n) => {
+          const subject = !r
+            ? `loan request ${num(a.requestId)}`
+            : r.settle
+              ? `settling ${n(r.borrower)}'s loan`
+              : `${n(r.borrower)}'s loan`;
+          return `${n(v)} voted ${a.support ? "yes" : "no"} on ${subject}.`;
+        });
+        break;
+      }
+      case "LoanRequestClosed": {
+        const r = loanRequests.get(num(a.requestId));
+        const status = LOAN_STATUS[num(a.status)] ?? "none";
+        // An approved loan is told by LoanDisbursed, an approved settle by LoanSettled.
+        if (status === "approved") break;
+        push("loan", r ? [r.borrower] : [], (n) => {
+          const who = r ? `${n(r.borrower)}'s` : "A";
+          const thing = r?.settle ? "settle vote" : "loan request";
+          switch (status) {
+            case "rejected":
+              return `${who} ${thing} didn't pass.`;
+            case "expired":
+              return `${who} ${thing} ran out of time before enough members voted.`;
+            case "cancelled":
+              return r?.settle
+                ? `${who} loan was paid up first, so the settle vote was called off.`
+                : `${who} loan request was withdrawn.`;
+            case "failed":
+              return `${who} loan request passed but couldn't be paid out (cash, limits or the guarantor).`;
+            default:
+              return `${who} ${thing} closed.`;
+          }
+        });
+        break;
+      }
+      case "LoanDisbursed": {
+        const b = str(a.borrower);
+        const amount = a.amount as bigint;
+        push("loan", [b], (n) => `${n(b)} received a loan of ${amt(amount)}.`);
+        break;
+      }
+      case "InterestPaid": {
+        const b = str(a.borrower);
+        const fees = a.fees as bigint;
+        const interest = a.interest as bigint;
+        push("loan", [b], (n) =>
+          fees > 0n
+            ? `${n(b)} paid ${amt(interest)} of loan interest plus ${amt(fees)} in late fees.`
+            : `${n(b)} paid ${amt(interest)} of loan interest.`,
+        );
+        break;
+      }
+      case "LoanRepaid": {
+        const b = str(a.borrower);
+        const part = a.principal as bigint;
+        const remaining = a.remaining as bigint;
+        const min = a.minInterest as bigint;
+        push("loan", [b], (n) =>
+          remaining === 0n
+            ? min > 0n
+              ? `${n(b)} repaid their loan in full: ${amt(part)} plus ${amt(min)} for the minimum month of interest.`
+              : `${n(b)} repaid their loan in full: ${amt(part)}.`
+            : `${n(b)} repaid ${amt(part)} of their loan. ${amt(remaining)} left.`,
+        );
+        break;
+      }
+      case "LoanDefaulted": {
+        const b = str(a.borrower);
+        const g = str(a.guarantor);
+        const backed = g !== "" && g !== ZERO;
+        push("loan", backed ? [b, g] : [b], (n) =>
+          backed
+            ? `${n(b)}'s loan was marked as defaulted. ${n(b)} and guarantor ${n(g)} are frozen until it's paid.`
+            : `${n(b)}'s loan was marked as defaulted. ${n(b)} is frozen until it's paid.`,
+        );
+        break;
+      }
+      case "LoanCured": {
+        const b = str(a.borrower);
+        push("loan", [b], (n) => `${n(b)} caught up on their loan, so the default is lifted.`);
+        break;
+      }
+      case "LoanSettled": {
+        const b = str(a.borrower);
+        const g = str(a.guarantor);
+        const fromG = a.fromGuarantor as bigint;
+        const lost = a.writtenOff as bigint;
+        const people = g !== "" && g !== ZERO ? [b, g] : [b];
+        push("loan", people, (n) => {
+          let s = `${n(b)}'s defaulted loan was settled: ${amt(a.fromBorrower as bigint)} from their savings`;
+          if (fromG > 0n) s += ` and ${amt(fromG)} from ${n(g)}'s`;
+          s += ".";
+          if (lost > 0n) s += ` ${amt(lost)} couldn't be covered and is shared by everyone.`;
+          return s;
+        });
+        break;
+      }
       case "RequestClosed": {
         const r = requests.get(num(a.requestId));
         const status = STATUS[num(a.status)] ?? "none";
@@ -187,6 +337,7 @@ export const FEED_FILTERS: Array<{ value: FeedKind | "all"; label: string }> = [
   { value: "payment", label: "Payments" },
   { value: "member", label: "Members" },
   { value: "vote", label: "Votes" },
+  { value: "loan", label: "Loans" },
 ];
 
 /** Type filter plus search over names, addresses and transaction hashes (case-insensitive). */

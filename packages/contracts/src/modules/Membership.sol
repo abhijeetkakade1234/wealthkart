@@ -23,6 +23,12 @@ library Membership {
         /// @dev Has voting rights: founders from the start; members admitted by vote once they
         ///      have paid `minPaidToVote` installments (ADR 0033, RT-03). Kept while dormant.
         bool voter;
+        /// @dev Frozen by a loan default (own loan or as guarantor, ADR 0009): can't exit, and the
+        ///      shares may repay the loan after a vote. Set and cleared by LoanBook only.
+        bool frozen;
+        /// @dev Open loan, pending loan request or active guarantee (ADR 0037). Written by LoanBook
+        ///      only; Exits refuses to exit a member while it is above 0.
+        uint8 loanTies;
         /// @dev Next period this member must pay; payments are always oldest first.
         uint32 nextPeriod;
         /// @dev Voting stamp: set on joining, renewed when voting rights arrive and on wake.
@@ -32,6 +38,9 @@ library Membership {
         uint64 nameChangedAt;
         /// @dev Installments paid so far.
         uint16 paid;
+        /// @dev Asked to exit and waiting for the payout (ADR 0039, 0043): can't vote, propose,
+        ///      borrow or guarantee, and isn't counted in `voterCount`. Set and cleared by Exits.
+        bool exiting;
         uint128 shares;
     }
 
@@ -89,7 +98,7 @@ library Membership {
 
     struct Store {
         mapping(address member => Member) members;
-        /// @dev Members right now, dormant included (the `maxMembers` cap counts them).
+        /// @dev Members right now, dormant included (the `maxMembers` cap, 3..50, counts them).
         uint256 memberCount;
         uint256 dormantCount;
         /// @dev Members who can vote right now: voter, active, not dormant. Every quorum
@@ -100,11 +109,20 @@ library Membership {
         /// @dev Members admitted with `member` as their confirmed inviter.
         mapping(address member => uint256) admittedVia;
         uint32 seqCounter;
+        /// @dev Founder invites not yet accepted, declined or cleared. Each holds a seat until
+        ///      `invitesExpireAt`, so a join vote can't take a late founder's seat (RT-USDT-03).
+        ///      Packed into `seqCounter`'s slot, so no storage moves.
+        uint32 pendingInvites;
+        /// @dev When every founder invite expires (all are made at creation with one TTL).
+        uint64 invitesExpireAt;
         /// @dev Every address that was ever a member, once each, for paginated reads.
         address[] memberList;
         mapping(address account => bool) listed;
         mapping(address member => mapping(uint256 period => bool)) holidayFor;
         mapping(address member => mapping(uint256 year => uint256)) holidaysUsed;
+        /// @dev Late fees on this member's installment for this period waived by a vote
+        ///      (Governance, D4b). The vault charges no late fee for a waived period.
+        mapping(address member => mapping(uint256 period => bool)) feeWaived;
         mapping(address account => uint64 expiresAt) founderInviteExpiry;
         /// @dev Request id `n` lives at index `n - 1`; id 0 means "none".
         Request[] requests;
@@ -123,7 +141,8 @@ library Membership {
 
     // ------------------------------------------------------------------ constants
 
-    uint256 internal constant MAX_FOUNDERS = 200;
+    /// @dev Creator plus invited founders; also the highest `maxMembers` (ADR 0045).
+    uint256 internal constant MAX_FOUNDERS = 50;
     /// @dev Share of votes cast that must be yes to admit someone (RT-03).
     uint256 internal constant ADMISSION_PASS_PCT = 66;
     /// @dev Dormant passes with more than half the votes cast (PLAN.md §3 pass mark default).
@@ -166,6 +185,7 @@ library Membership {
     event RequestClosed(uint256 indexed requestId, Kind kind, Status status);
     event MemberDormant(address indexed member, uint256 indexed period);
     event MemberWoke(address indexed member, uint256 indexed nextPeriod);
+    event MemberRemoved(address indexed member);
     /// @notice A member admitted by vote paid enough installments to vote (ADR 0033).
     event VotingRightsGranted(address indexed member);
     event DisplayNameSet(address indexed member, string displayName);
@@ -223,6 +243,8 @@ library Membership {
             s.founderInviteExpiry[f] = expiresAt;
             emit FounderInvited(f, expiresAt);
         }
+        s.pendingInvites = SafeCast.toUint32(invitees.length);
+        s.invitesExpireAt = expiresAt;
     }
 
     // ------------------------------------------------------------------ founder invites
@@ -231,8 +253,9 @@ library Membership {
         uint64 expiresAt = s.founderInviteExpiry[msg.sender];
         if (expiresAt == 0) revert NoFounderInvite();
         if (block.timestamp > expiresAt) revert FounderInviteExpired(expiresAt);
-        if (_isFull(s, p)) revert CircleFull(p.maxMembers);
-        delete s.founderInviteExpiry[msg.sender];
+        // Real seats only: this founder's own seat was held for them.
+        if (s.memberCount >= p.maxMembers) revert CircleFull(p.maxMembers);
+        _clearInvite(s, msg.sender);
         // Founders were chosen by the creator and vote from the start.
         _addMember(s, msg.sender, _firstPeriod(p.dueDay), true);
         ICircleRegistry(p.factory).registerMember(msg.sender);
@@ -240,7 +263,7 @@ library Membership {
 
     function declineInvite(Store storage s) external {
         if (s.founderInviteExpiry[msg.sender] == 0) revert NoFounderInvite();
-        delete s.founderInviteExpiry[msg.sender];
+        _clearInvite(s, msg.sender);
         emit FounderInviteDeclined(msg.sender);
     }
 
@@ -259,7 +282,7 @@ library Membership {
         if (founderExpiry != 0) {
             // A live founder invite: accept it instead. An expired one is cleared.
             if (block.timestamp <= founderExpiry) revert AlreadyMember(msg.sender);
-            delete s.founderInviteExpiry[msg.sender];
+            _clearInvite(s, msg.sender);
         }
         uint256 open = s.openJoinOf[msg.sender];
         if (open != 0) revert RequestAlreadyOpen(open);
@@ -296,7 +319,7 @@ library Membership {
 
         // Everyone who could vote now, minus the member it is about (they can't vote on it).
         // The proposer is a voter and isn't the member, so this is at least 1.
-        uint256 voters = s.voterCount - (m.voter ? 1 : 0);
+        uint256 voters = s.voterCount - (m.voter && !m.exiting ? 1 : 0);
         id = _open(s, p, Kind.Dormant, member, msg.sender, SafeCast.toUint32(voters), "");
         s.openDormantOf[member] = id;
         Request storage r = s.requests[id - 1];
@@ -359,6 +382,36 @@ library Membership {
 
     // ------------------------------------------------------------------ views
 
+    // The vault forwards these views here unchanged (`CircleVault._view`, ADR 0038), so it never
+    // decodes and re-encodes the structs and strings itself.
+
+    function getRequest(Store storage s, uint256 id) external view returns (Request memory) {
+        return s.requests[id - 1];
+    }
+
+    function memberOf(Store storage s, address account) external view returns (Member memory) {
+        return s.members[account];
+    }
+
+    function nameOf(Store storage s, address member) external view returns (string memory) {
+        return s.names[member];
+    }
+
+    function membersPage(Store storage s, uint256 offset, uint256 limit)
+        external
+        view
+        returns (address[] memory page)
+    {
+        address[] storage list = s.memberList;
+        uint256 len = list.length;
+        if (offset >= len) return new address[](0);
+        uint256 end = offset + limit > len ? len : offset + limit;
+        page = new address[](end - offset);
+        for (uint256 i = offset; i < end; ++i) {
+            page[i - offset] = list[i];
+        }
+    }
+
     function canVote(Store storage s, uint256 id, address voter) external view returns (bool) {
         if (id == 0 || id > s.requests.length) return false;
         Request storage r = s.requests[id - 1];
@@ -412,9 +465,72 @@ library Membership {
         if (!m.voter && m.paid >= minPaidToVote) {
             m.voter = true;
             m.seq = ++s.seqCounter;
-            s.voterCount += 1;
+            // A member who is leaving gets the right now but is counted when the exit is cancelled.
+            if (!m.exiting) s.voterCount += 1;
             emit VotingRightsGranted(who);
         }
+    }
+
+    // ------------------------------------------------------------------ hooks for other modules
+
+    /// @notice True if `who` can vote right now: active, not dormant, has voting rights, at most
+    ///         one period behind (ADR 0028, 0033). LoanBook and Governance use the same test.
+    function isCurrentVoter(Store storage s, address who) internal view returns (bool) {
+        return _isCurrentVoter(s.members[who]);
+    }
+
+    /// @notice True if `who` was a voter before stamp `seqSnapshot` and can vote now.
+    function canVoteAt(Store storage s, address who, uint32 seqSnapshot)
+        internal
+        view
+        returns (bool)
+    {
+        Member storage m = s.members[who];
+        return m.seq <= seqSnapshot && _isCurrentVoter(m);
+    }
+
+    /// @notice Marks `who` as leaving (`on`) or staying after all. A leaving member is taken out
+    ///         of `voterCount`; one who stays is counted again with a fresh stamp, so they vote
+    ///         only on proposals opened from now on and `yes + no <= eligible` still holds.
+    /// @dev Exits only, for an active member. Dormant members aren't counted either way.
+    function setExiting(Store storage s, address who, bool on) internal {
+        Member storage m = s.members[who];
+        m.exiting = on;
+        if (!m.voter || m.dormant) return;
+        if (on) {
+            s.voterCount -= 1;
+        } else {
+            s.voterCount += 1;
+            m.seq = ++s.seqCounter;
+        }
+    }
+
+    /// @notice True if `who` counts in `voterCount`: active, a voter, not dormant, not leaving.
+    function inVoterCount(Store storage s, address who) internal view returns (bool) {
+        Member storage m = s.members[who];
+        return m.active && m.voter && !m.dormant && !m.exiting;
+    }
+
+    /// @notice Removes `who` (an exit or dissolution, Phase 2). Counts stay exact; the member
+    ///         list keeps the address for history, and the name is released after the cooldown.
+    function removeMember(Store storage s, address who) internal {
+        Member storage m = s.members[who];
+        if (!m.active) revert NotAMember(who);
+        if (m.dormant) s.dormantCount -= 1;
+        else if (m.voter && !m.exiting) s.voterCount -= 1;
+        s.memberCount -= 1;
+        string memory current = s.names[who];
+        if (bytes(current).length != 0) {
+            s.nameFreeAt[DisplayName.key(current)] =
+                SafeCast.toUint64(block.timestamp) + NAME_COOLDOWN;
+        }
+        m.active = false;
+        m.dormant = false;
+        m.voter = false;
+        m.frozen = false;
+        m.exiting = false;
+        m.shares = 0;
+        emit MemberRemoved(who);
     }
 
     /// @notice Installments whose fee-free deadline has passed and that are still unpaid.
@@ -459,7 +575,7 @@ library Membership {
         m.nextPeriod = next;
         m.seq = ++s.seqCounter;
         s.dormantCount -= 1;
-        if (m.voter) s.voterCount += 1;
+        if (m.voter && !m.exiting) s.voterCount += 1;
         emit MemberWoke(who, next);
     }
 
@@ -470,10 +586,13 @@ library Membership {
             active: true,
             dormant: false,
             voter: voter,
+            frozen: false,
+            loanTies: 0,
             nextPeriod: firstPeriod,
             seq: seq,
             nameChangedAt: 0,
             paid: 0,
+            exiting: false,
             shares: 0
         });
         s.memberCount += 1;
@@ -485,18 +604,28 @@ library Membership {
         emit MemberAdded(who, firstPeriod);
     }
 
+    /// @dev Full for newcomers: members plus seats held for founder invites still live
+    ///      (RT-USDT-03). `acceptInvite` checks real seats only.
     function _isFull(Store storage s, Params calldata p) private view returns (bool) {
-        return p.maxMembers != 0 && s.memberCount >= p.maxMembers;
+        uint256 held = block.timestamp <= s.invitesExpireAt ? s.pendingInvites : 0;
+        return s.memberCount + held >= p.maxMembers;
+    }
+
+    /// @dev Removes a founder invite and the seat it held. Each invite is cleared once.
+    function _clearInvite(Store storage s, address account) private {
+        delete s.founderInviteExpiry[account];
+        s.pendingInvites -= 1;
     }
 
     function _isVoter(Member storage m) private view returns (bool) {
         return m.active && !m.dormant;
     }
 
-    /// @dev Active, not dormant, and at most one period behind (RT-03, RT-07). A member still
-    ///      inside their first unpaid month is not behind.
+    /// @dev Active, not dormant, not leaving, not frozen by a loan default, and at most one
+    ///      period behind (RT-03, RT-07, EXIT-06, LOAN-08). A member still inside their first
+    ///      unpaid month is not behind.
     function _isCurrentVoter(Member storage m) private view returns (bool) {
-        return _isVoter(m) && m.voter
+        return _isVoter(m) && m.voter && !m.exiting && !m.frozen
             && uint256(m.nextPeriod) + MAX_PERIODS_BEHIND_TO_VOTE
                 >= PeriodMath.periodOf(block.timestamp);
     }
@@ -642,7 +771,7 @@ library Membership {
             Member storage target = s.members[account];
             target.dormant = true;
             s.dormantCount += 1;
-            if (target.voter) s.voterCount -= 1;
+            if (target.voter && !target.exiting) s.voterCount -= 1;
             emit MemberDormant(account, PeriodMath.periodOf(block.timestamp));
             return;
         }

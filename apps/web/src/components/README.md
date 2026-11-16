@@ -6,9 +6,13 @@
 **Key files**
 
 - `analytics/`: circle charts, payments heatmap, portfolio totals (own README)
-- `app/`: app shell, page header, pagination, countdown, stat card, circle switcher
+- `app/`: app shell, page header, pagination, countdown, deadline, stat card, circle switcher, `TxFor`
+- `exits/`: leaving a circle, guardian pause banner and button, refused-payout withdraw (own README)
+- `loans/`: Loans page panels, ask dialog, guarantor notice, loan vote cards, all-loans list (own README)
+- `governance/`: circle proposals, new-proposal dialog, rule-change and dissolve notices, rules card (own README)
 - `art/`: cut-paper art, avatars, circle covers, empty-state scenes
 - `kit/`: interaction kit (ADR 0026)
+- `landing/`: landing page sections, hero art, line diagrams and GSAP motion (own README)
 - `login/`: sign-in screen and return-path guard
 - `public/`: public-site header, footer, content blocks
 - `pwa/`: service-worker registration

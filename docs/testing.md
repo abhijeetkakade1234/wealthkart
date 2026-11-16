@@ -33,7 +33,7 @@ Known gaps:
 - I-1 `trackedCash + loansOutstanding + pendingExitsOwed == totalAssets` (internal accounting, never `address(this).balance`)
 - I-2 `sum(member shares) == totalShares`
 - I-3 No member can withdraw more than `shares × NAV − owed`
-- I-4 NAV never decreases except through a voted loan write-off
+- I-4 NAV never decreases except through a voted loan write-off, or a USDT transfer fee of at most 1% that the circle absorbs (ADR 0050)
 - I-5 Free cash for loans never dips below the reserve %
 - I-6 A frozen member can't exit, borrow, or transfer anything
 - I-7 Each member pays at most one installment per period
@@ -41,6 +41,9 @@ Known gaps:
 - I-9 `memberCount` = creator + accepted founders + admitted members; the member list never holds duplicates
 - I-10 A display name in use maps back to exactly one member, ignoring case
 - I-11 Open join requests stay ≤ 20, each is Open and indexed by its applicant
+- I-12 Vault balance ≥ total assets − loans outstanding + payouts waiting to be withdrawn (governance claims, refusing wallets); `≥` because AVAX can be forced in (EXIT-10)
+- I-12u (USDT circles, ADR 0046) `token.balanceOf(vault) >= totalAssets - loansOutstanding + totalWithdrawable`, and equal to it plus tokens sent straight to the vault; run with random installments, loans, interest, repayments, exits, withdrawals, donations and Tether-style freezes (`CircleVault.usdtInvariant.t.sol`)
+- I-13 The exit queue is a consistent linked list of live exits; exactly the queued members are flagged `exiting`, and `voterCount` leaves them out (ADR 0043)
 
 ## Scenario catalogue
 
@@ -68,7 +71,9 @@ Known gaps:
 - S-MEM-06 Name with emoji / RTL / zero-width chars / 200 chars → normalised or rejected
 - S-MEM-07 Wallet lost; 3 months missed → dormant vote → dues stop, shares untouched; dormant member can't vote, take a holiday or rename
 - S-MEM-08 Dormant member comes back with `wake()` → dues restart this month (or next if the due moment passed); votes only on requests opened after waking; bad `dormantAfter` setting refused
-- S-MEM-09 Circle with 500 members → every action still under the gas limit (ADR 0015)
+- S-MEM-09 Circle at the 50-member cap (ADR 0045) → every action still under the gas limit and flat in the member count (ADR 0015)
+- S-MEM-09a 50 founders (creator + 49) fit a cap of 50; a full circle refuses join requests; 51 founders are refused at creation (ADR 0045)
+- S-MEM-09b Founder invites hold their seats (RT-USDT-03, ADR 0050): cap 3, creator + f1 + f2, f1 accepts → a join request is refused `CircleFull` while f2's invite is live; f2 can still accept; after f2 declines or the 14 days pass, a join succeeds. Cap 4: an approval that would take a held seat closes as Full and the late founder still gets in
 - S-MEM-10 Joins (or circle created) after this month's due moment → first installment is next month; nobody starts already late (ADR 0028)
 - S-MEM-11 Smart-contract wallet that refuses plain AVAX is a member → can pay and vote
 - S-MEM-12 Only members who joined before the request can vote; outsiders, the applicant and later joiners can't; one vote each
@@ -91,14 +96,25 @@ Known gaps:
 - S-LOAN-07 Interest starts next month; repaying mid-month doesn't cut this month's interest
 - S-LOAN-08 Loan taken and repaid in the same month → minimum one month's interest (rule 17)
 - S-LOAN-09 Medical loan → 3 interest-free months, then the normal rate
-- S-LOAN-10 Partial interest payments over a month → totals correct, "left to pay" correct
+- S-LOAN-10 Partial interest payments over a month → totals correct, "left to pay" correct (Phase 2, ADR 0038: interest is paid in full only, so a part payment is rejected and "left to pay" is unchanged)
 - S-LOAN-11 Overpaying repayment → rejected or capped, never lost
-- S-LOAN-12 Two open loans; repayment → chosen loan first, then oldest
+- S-LOAN-12 Two open loans; repayment → chosen loan first, then oldest (Phase 2, ADR 0037: one active loan and one pending request per member, so a second request is rejected)
 - S-LOAN-13 Interest missed → fee; 2 months missed → default, borrower + guarantor shares frozen
 - S-LOAN-14 Tenor 1 → 2 → 3 rate steps; after tenor 3 the loan is due; vote → frozen shares repay
 - S-LOAN-15 Guarantor tries to exit while guaranteeing → blocked
 - S-LOAN-16 AVAX price crashes 60% mid-loan → nothing in the contract depends on price (sanity)
 - S-LOAN-17 G1 replay: a month with no loan movements → each member's Debit cell equals 1% of their start-of-month balance
+- S-LOAN-18 Loan with a guarantor → can't pass until the guarantor accepts; accepting after a passing vote pays out at once; never accepted by the window end → closed as failed
+- S-LOAN-19 Circle requires a guarantor (rule 11) → request without one, naming yourself, or naming a non-member → rejected
+- S-LOAN-20 Borrower cancels the request → borrower and guarantor ties released; the guarantor can back someone else
+- S-LOAN-21 Settle vote on a default → borrower's shares, then the guarantor's, repay at NAV; the rest is written off; loans out back to 0; neither is frozen any more
+- S-LOAN-22 Borrower cures, or repays in full, while a settle vote runs → the settle vote closes as cancelled
+- S-LOAN-23 Guardian pause → no new requests, a passed loan waits; dissolved circle → no new loans, a passed loan fails
+- S-LOAN-24 Borrower's wallet refuses AVAX → the loan is recorded, the AVAX waits in `withdrawable`, the vote doesn't revert
+- S-LOAN-25 Borrower contract re-enters the vault while receiving the loan → re-entry blocked
+- S-LOAN-26 Request checks: non-member, zero amount, fewer members than `minMembersForLoans`, bad ids; open requests page
+- S-LOAN-27 Fuzz: interest for any number of months equals the month-by-month tenor schedule (1% / 1.5% / 2%, rounded up)
+- S-LOAN-28 Invariants: AVAX held = cash + refused payouts; loans out = sum of principal; `loanTies` and `frozen` exactly match open requests, loans and accepted guarantees
 
 ### Exits (S-EXIT)
 
@@ -108,20 +124,34 @@ Known gaps:
 - S-EXIT-04 Chainlink Automation is down for a week → member/anyone triggers `processExits()`, same result
 - S-EXIT-05 Exiting member is a contract wallet that reverts on receive → queue not blocked, funds claimable via pull
 - S-EXIT-06 Exiting member is a contract that re-enters on receive → no double payout
-- S-EXIT-07 NAV changes during the notice period (interest arrives) → payout uses the snapshot at the end of notice
+- S-EXIT-07 NAV changes during the notice period or before the exit is processed (interest, fees arrive) → payout uses NAV at the moment it is paid (ADR 0039)
 - S-EXIT-08 Member cancels exit during notice → restored to normal
 - S-EXIT-09 Last member exits → vault empties cleanly, no dust stuck
+- S-EXIT-10 Exit fee → stays in the vault; everyone else's NAV goes up
+- S-EXIT-11 Dormant member exits → paid for their shares; dormant count drops
+- S-EXIT-12 Rage-quit window open (ADR 0019, 0043) → exit matures at `min(now + notice, rageQuitUntil)` under the old rules, never instantly, and is paid at the switch even if an earlier exit is still in its notice
+- S-EXIT-13 Member takes a loan tie or is frozen during the notice → exit dropped at processing, `exitsWaiting` stays exact
+- S-EXIT-14b Gas sweep, AVAX circle (RT-USDT-01, ADR 0050): 6 matured exits (creator first, 24-byte names, cold storage via `isolate`), `processExits` at 150k..1.2M gas in 2k steps → each call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; paid count never drops as gas rises
 
 ### Governance (S-GOV)
 
 - S-GOV-01 Rule change passes → applies from the next period, not retroactively
 - S-GOV-02 Timelock: a passed change can't execute early
-- S-GOV-03 Proposal spam by one member → rate limited
-- S-GOV-04 Fee waiver vote passes → fee removed, NAV adjusted correctly
+- S-GOV-03 Proposal spam by one member → rate limited (2 open per member, 10 in all, one new proposal per member per day)
+- S-GOV-04 Fee waiver vote passes → fee removed, NAV adjusted correctly; the member it is about can't vote on it; unpaid started periods only
+- S-GOV-05 Rule change outside the bounds → refused when proposed
+- S-GOV-06 One rule change at a time: a second is refused while one is open or waiting; a due one is applied first
+- S-GOV-07 Only current voters propose (non-members and members two periods behind can't)
+- S-GOV-08 Quorum and pass mark: no quorum → expired; quorum but no majority → rejected; majority at the end → passes (ordinary rule changes); guardian-off and dissolve need the pass mark of all eligible members (ADR 0043)
+- S-GOV-09 Vote guards: twice, outsider, after the window, unknown id → revert
+- S-GOV-10 Proposer cancels an open proposal; nobody else can
+- S-GOV-11 Guardian voted off → pause cleared and can't be voted off twice
+- S-GOV-12 Snapshot: a member who gains a vote after the proposal opened can't vote on it
 
 ### Math and time (S-MATH)
 
 - S-MATH-01 First depositor deposits 1 wei then donates to inflate share price → later members not robbed (virtual shares)
+- S-MATH-01a Same attack at 6 decimals (USDT) → attacker never profits; the next member loses at most about donation / 1e6
 - S-MATH-02 10 years of monthly rounding → dust always favours the vault, never a member
 - S-MATH-03 Due day 28 in February (incl. a leap year)
 - S-MATH-04 Timestamp exactly at a period boundary
@@ -167,6 +197,7 @@ Known gaps:
 - S-LIFE-08 Migration vote to a new contract version passes (ADR 0020) → funds, shares, loans and nominees identical in the new circle; dissenters exit under old rules during the delay
 - S-LIFE-09 Guardian pause → new loans and deposits blocked; exits still work; auto-unpauses after 14 days
 - S-LIFE-10 Parameter set outside bounds (e.g. 50% interest, due day 31) → rejected on-chain (ADR 0022)
+- S-LIFE-10a Member cap outside 3..50 (0 = unlimited, 2, 51) → rejected with a plain message; 3 and 50 accepted (ADR 0045)
 - S-LIFE-11 Loan above k × (own + guarantor stake) → rejected (ADR 0018)
 - S-LIFE-05 Member leaves, later rejoins → treated as a new member at the current NAV
 - S-LIFE-06 AVAX 10× in price makes the installment unaffordable → vote to change the installment; applies from the next period
@@ -187,6 +218,34 @@ Known gaps:
 - S-UX-11 Offline → banner, writes disabled, reads from cache marked stale
 - S-UX-12 Reduced motion → no animations, all state changes still visible
 
+### Reputation (S-REP)
+
+- S-REP-01 Only circles from the same factory can write the record
+- S-REP-02 Counts on-time and late months, loans repaid, defaults and circles across circles; mints the token once
+- S-REP-03 Soulbound: transfers and approvals revert; ERC-5192 locked; ERC-721 interface reported
+- S-REP-04 No record means no token
+- S-REP-05 Fuzz: counters only ever go up
+- S-REP-06 A vault writes to its own factory's record
+- S-REP-07 Each installment is recorded as on time (no late fee) or late
+- S-REP-08 A loan repaid in full is recorded
+- S-REP-09 A default is recorded and stays even after a cure
+
+### Circle asset: AVAX or USDT (S-USDT, ADR 0046)
+
+- S-USDT-00 The asset is fixed at creation: `asset()` is the factory's USDT (or 0 for AVAX); an AVAX circle on the same factory never touches the token
+- S-USDT-01 Full USDT lifecycle: approve-then-pay installments, late fee, loan paid out in USDT, interest, `repay(amount)`, exit paid after notice, dissolve and every claim; vault ends empty
+- S-USDT-02 Transfer fee above 1% (1.01%) → payment rejected (`TokenAmountMismatch`), nothing booked (ADR 0050)
+- S-USDT-03 Tether freezes one member → their exit payout goes to `withdrawable`, the member behind them is paid; `withdraw` fails while frozen and works once unfrozen
+- S-USDT-03b Frozen borrower → the loan vote still settles; the loan waits in `withdrawable`
+- S-USDT-04 AVAX sent with `contribute`, `payInterest` or `repay` in a USDT circle → `AvaxNotAccepted`
+- S-USDT-05 Paying without approval → `TokenAllowanceTooLow`; approved but short of funds → `TokenBalanceTooLow`
+- S-USDT-06 USDT sent straight to the vault doesn't move NAV
+- S-USDT-07 Factory without a USDT address → USDT circle creation reverts `UsdtNotAvailable`
+- S-USDT-08 AVAX circle `repay(amount)` needs `msg.value == amount`
+- S-USDT-09 Gas sweep, USDT circle (RT-USDT-01 / M-1, ADR 0050): as S-EXIT-14b → every call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; monotonic in gas
+- S-USDT-10 Tether turns on a 0.01% fee (RT-USDT-02, ADR 0050) → `contribute`, `payInterest` and `repay` succeed and count as paid in full; `TokenFeeAbsorbed` emitted; `totalAssets` short by exactly the fee; for a repayment `loansOutstanding` drops by the full amount; I-12u holds. S-USDT-10b: exactly 1% is absorbed, 2% reverts `TokenAmountMismatch`
+- S-DEPLOY-01 `DeployFactory.s.sol` on chain 43114 (RT-USDT-06, ADR 0050) → reverts without `CONFIRM_MAINNET=yes`, with a USDT other than C-Chain USDt, or with the mock token
+
 ### Analytics and activity (S-ACT)
 
 - S-ACT-01 A circle records the block it was created in, so the app reads its events from there
@@ -194,6 +253,17 @@ Known gaps:
 - S-ACT-03 Heatmap squares: before joining, on time, late, paid after a holiday, missed (holiday months only after the next due moment), due, upcoming, dormant (between dormant and wake)
 - S-ACT-05 Activity feed: every known event becomes one plain sentence, newest first; join and dormant votes name who they're about; filter by type; search names, addresses and tx hashes
 - S-ACT-04 Event reading: lifetime split into RPC-sized block ranges; very old circles keep the newest chunks and say so; only known events are used
+
+### Indexer (S-IDX)
+
+- S-IDX-01 Bigints survive storage; strings that look like numbers stay strings
+- S-IDX-02 Catches up in chunks; a circle created and used in the same range is complete; API serves its logs with open CORS
+- S-IDX-03 Re-running changes nothing; stops at the chunk limit and resumes next time
+- S-IDX-04 Pages results; rejects bad addresses and paging values; 404 and 405 for other routes and methods
+- S-IDX-05 RPC down: answers from what is already indexed
+- S-IDX-06 App client: revives bigints, pages through, ignores logs past the first page's cursor, ignores an indexer on another chain
+- S-IDX-07 D1 soft size limit: the indexer stops storing new events and its cursor, `/v1/health` reports `full` and the size; no limit keeps indexing
+- S-NET-01 the network comes from the environment: empty or `fuji` is Fuji, `mainnet` is Avalanche, any other value fails the build (ADR 0051)
 
 ### Frontend / E2E (S-WEB)
 
@@ -226,6 +296,41 @@ Known gaps:
 - S-WEB-34 Every empty-state variant shows a fixed, decorative spot illustration
 - S-WEB-35 Invite link carries only the circle address and the inviter; any look-alike contract that isn't in the factory registry shows a "don't pay this" warning on every circle page (RT-01)
 - S-WEB-40 Sign-in return path guard: only `/app/` paths are accepted as `next`; absolute URLs, `//host`, backslashes and encoded tricks fall back to `/app/`
+- S-WEB-41 Proposal kinds and fee-waiver reasons map from the contract enums to plain titles and labels; reasons are a fixed list, never free text
+- S-WEB-42 Proposal outcome mirrors `Governance._outcome` and `Rules.passes` (50% means more than half; early decision; expired without quorum); tally and settled lines in plain words
+- S-WEB-43 Exit phase (none, notice, ready, waiting for cash) mirrors `Exits.claimExit`; notice reads "no notice" during a rage-quit window
+- S-WEB-44 A fee waiver can only name started, unpaid months of that member, newest first
+- S-WEB-45 Basis points show as percentages without trailing zeros and typed percentages convert back exactly (two decimals at most)
+- S-WEB-46 Every rule setting reads in plain words; a rule diff lists only what changed, before and after
+- S-WEB-47 `rulesProblem` refuses every out-of-bounds setting `Rules.validate` refuses, on the right field, and accepts the edges
+- S-WEB-48 The rule-change form round-trips the current rules and reads viem's struct output
+- S-WEB-49 Rage-quit shortens the exit notice to the moment new rules apply (ADR 0043)
+- S-WEB-50 Loan limits mirror `LoanBook._limit`: the lowest of the fund cap, k x (own + guarantor stake) and lendable cash, plus the medical cap for medical loans; each limit explained in plain words
+- S-WEB-51 Typed AVAX amounts parse to exact wei; zero, negatives, commas, exponents and more than 18 decimals are refused
+- S-WEB-52 The loan preview uses the rules engine: monthly interest per tenor rounded up, first charged month (later for medical), repay-by month, rule-17 minimum (none for medical)
+- S-WEB-53 The tenor timeline marks past, current and next terms and "due in full" after the third; the rate charged per month mirrors `LoanBook._span`
+- S-WEB-54 A loan is defaultable after `defaultAfter` late months or past the third tenor, never twice; the cure text says what to pay
+- S-WEB-55 The repay form refuses what `repay` refuses: overdue interest, closing with interest owed, a part payment that covers the whole loan
+- S-WEB-56 Asking for a loan is blocked with the first reason that applies (closed, paused, frozen, dormant, not a voter, loan or request open, too few members)
+- S-WEB-57 `loanOf` structs and request enums read correctly; small amounts keep four decimals; settled lines say what happens next
+- S-WEB-58 The loans list is built from events (voting, active, repaid, default, settled, didn't go ahead), filters by status, type and borrower name or address, and sorts by date, amount and rate; bad URL values fall back
+- S-WEB-59 "Loans outstanding per member" counts running and defaulted loans, biggest first; "Where the money is" splits value into lent out, reserve (rounded up, capped at cash) and free cash that add up
+- S-WEB-60 Every loan event reads as a plain sentence in the activity feed (request, guarantee, vote, payout, interest, repayment, default, cure, settle, not approved) under the "Loans" filter
+- S-WEB-61 One stake, one loan (ADR 0043): borrowers with a live request or loan and guarantors who accepted one are tied, so the guarantor picker leaves them out and a guarantor can't ask; asking is also refused while you've asked to leave; a loan's own `defaultAfter` decides when it can be marked as defaulted
+- S-WEB-62 Circle asset helpers (ADR 0046): `vault.asset()` zero = AVAX/18 decimals, else USDT/6; amounts format, parse (extra decimals refused) and chart in the right unit; loan, rule and CSV text name the circle's asset
+- S-WEB-63 Create form (ADR 0045, 0046): AVAX by default with a cap of 12; USDT parses 6 decimals and sends `asset = 1`; caps 2 and 51 refused, 3 and 50 accepted, a note above 20; more starting members than the cap refused
+
+### Landing page (S-LAND)
+
+ADR 0049. E2E in `apps/web/e2e/landing.e2e.ts`; copy checks in `apps/web/src/lib/__tests__/seo.test.ts`.
+
+- S-LAND-01 `/` loads with one h1, every section, canonical and `SoftwareApplication` JSON-LD, no noindex; motion starts and a full scroll logs no console errors
+- S-LAND-02 The hero "Open the app" goes to `/login/`
+- S-LAND-03 Footer links reach how-it-works, FAQ, rules and security
+- S-LAND-04 No sideways scroll at 360px wide, anywhere down the page
+- S-LAND-05 Reduced motion: GSAP never starts, every section and all four month steps are fully visible, the diagram shows "3 of 4 said yes", the hero has no entrance animation
+- S-LAND-06 Scrolling the month scene highlights step 1 at the start and step 4 at the end
+- S-LAND-07 Landing copy never advertises returns, the description fits search limits, FAQ teaser answers match `/faq`, and llms-full.txt carries the landing copy
 
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
@@ -247,6 +352,17 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-15 Two members pay (one on time, one late); the circle page shows the summary line, the three charts (each readable as a table) and the heatmap with one on-time and one late square; the home page shows portfolio totals and each circle's share
 - S-E2E-14 A circle name that looks like a web address is refused by the create form before anything is sent; a member voted in shows "can vote after 2 more payments"; a join card shows the inviter's open invites
 - S-E2E-13 The sign-in page fits one screen with no scrolling on a small phone, a laptop and a desktop; Back returns to the previous page on this site, or home
+- S-E2E-18 A member asks to leave from the circle page: the dialog shows the 30-day notice and today's value; the card shows the notice with UTC and local time and "Stay in the circle"; after the chain passes the notice, "Collect my share" pays out, vault value goes down and the member count drops
+- S-E2E-19 The guardian pauses from a confirm dialog that explains the 14-day and 90-day limits; the banner shows on the overview and Pay pages for everyone, only the guardian gets Unpause, another member can still ask to leave, and Unpause ends it
+- S-E2E-20 A rule change (notice 30 to 14 days) is proposed from the dialog, an out-of-bounds fee is refused before sending, a second member's yes passes it, the banner shows "New rules apply on" and members see they can leave before the new rules start; after the wait "Apply new rules" works and the rules card shows 14 days
+- S-E2E-21 A late member's fee waiver is proposed by another member (member, month, reason), the subject can't vote on it, a yes passes it, and she pays the late month with no late fee
+- S-E2E-22 Closing the circle is proposed and passes at 66% with a calm warning on the card; a member claims her share from the circle page, vault value goes down and she leaves
+- S-E2E-23 A member opens Loans from the nav and asks for 0.5 AVAX (limits shown, an amount over the limit refused before sending, monthly interest previewed); two others vote yes on the Votes page in their own browsers; the borrower's balance goes up by exactly 0.5 AVAX, the loan panel and the list show it, and the overview shows both loan charts with a table view
+- S-E2E-24 A month later the borrower pays the exact interest from the loan panel, then repays in full from the Repay dialog; the panel returns to "no loan" and the activity feed's Loans filter lists the interest and the repayment
+- S-E2E-25 A borrower names a guarantor in the dialog (the limit counts both savings); the card shows "not agreed yet"; after two yes votes it waits for the guarantor, who sees the notice explaining what backing means, clicks "Back this loan", and the AVAX reaches the borrower
+- S-E2E-26 After two months of unpaid interest another member sees "Interest 2 months late", marks the loan as defaulted from a confirm dialog, the row turns to default with "Ask the circle to settle", and the borrower sees the frozen notice with how to lift it
+- S-E2E-31 Start a USDT circle: USDT is offered (factory has one), the freeze and AVAX-for-gas warning shows, amounts are in USDT; the Pay page says the wallet has too little USDT; after the faucet mint the member pays in two steps (approve up to installment plus both fees, then pay), exactly 50.00 USDT leaves the wallet, 2 USDT of allowance is left, and the overview shows the USDT badge and amounts
+- S-E2E-32 The create form refuses member caps of 2 and 51 before sending and notes slower votes above 20; a cap of 50 creates an AVAX circle with `maxMembers = 50` and the AVAX badge
 
 ## Gates in CI
 
@@ -255,6 +371,38 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - No new Slither high/medium findings
 - Gas snapshot diff reviewed
 - Playwright E2E suite green (`pnpm --filter @wealthkart/web e2e`)
+
+## Security review fixes (S-RV)
+
+From the November 2026 module reviews ([governance](redteam/2026-11-governance-review.md), [exits](redteam/2026-11-exits-review.md), [loans](redteam/2026-11-loans-review.md)); decisions in ADR 0043. Tests: `packages/contracts/test/CircleVault.reviewFixes.t.sol`.
+
+- S-RV-LAYOUT Storage slots the tests poke with `vm.store` haven't moved (transient lock, `exiting` byte, exit list head, rules)
+- S-RV-GOV-01 6 of 12 members vote to dissolve with quorum met → expires, not dissolved; in a 5-member circle at 20% quorum the proposer alone can't dissolve
+- S-RV-GOV-02 Exit pending when the circle dissolves → paid with no exit fee; new exits refused; a waiting exit is cleared when its member claims dissolution (`exitsWaiting` exact)
+- S-RV-GOV-03 Rule change that lowers the dissolve bar (or touches any risky field) → needs the dissolve pass mark of all eligible members; safer changes keep the ordinary bar
+- S-RV-GOV-04 A passed change is shown in force from `effectiveAt` and the next write applies it, with no poke
+- S-RV-GOV-05 Every forwarded Governance write, then a `nonReentrant` call in the same transaction → the lock was never left set
+- S-RV-GOV-07 Proposer tries to cancel after the window closed → refused; the vote is finalised as passed
+- S-RV-GOV-09 Member two periods behind proposes a waiver for themselves → refused; nobody can open a waiver for a dormant member
+- S-RV-GOV-13 Dirty or short calldata through the forwarder → reverts; a view called by CALL writes nothing
+- S-RV-EXIT-01 Two members churn request/cancel hundreds of times → queue holds only live exits, cancel stays O(1); two waiting exits are both paid once cash returns
+- S-RV-EXIT-02 Seven self-claims at the front → keeper still sees the next matured exit
+- S-RV-EXIT-03 Rage-quit exit matures at the earlier of the notice and the switch, never at once
+- S-RV-EXIT-04 Member four months behind exits → paid full value (arrears forgiven by design)
+- S-RV-EXIT-05 Later exit claims while an earlier matured one is unmarked → the earlier one is paid first
+- S-RV-EXIT-06 Member asks to exit → can't vote or propose and leaves the quorum base; cancel → votes again on new proposals only
+- S-RV-EXIT-09 Caller sweeps gas limits on a payout → never pushes it into `withdrawable`
+- S-RV-EXIT-11 Creator leaves → guardian role and any pause end for good, even after rejoining
+- S-RV-LOAN-01 Mutual guarantees, a borrower guaranteeing, or a guarantor with an open request → refused
+- S-RV-LOAN-02 Circle dissolves with a loan out → untied members claim cash now; the default is settled by anyone with no vote; everyone claims the rest and the vault empties
+- S-RV-LOAN-03 Borrower wallet return-bombs or burns gas → the vote still closes; a refused payout becomes withdrawable
+- S-RV-LOAN-04 `defaultAfter` and the interest late fee change after payout → the running loan keeps its own
+- S-RV-LOAN-05 Medical cap lowered before payout → the request closes as Failed
+- S-RV-LOAN-06 Settle months after a default → charges interest and fees only up to the default month
+- S-RV-LOAN-07 Exit matured but unmarked at the head of the queue → disbursal waits until it is paid
+- S-RV-LOAN-08 Frozen member → can't vote on loans or proposals
+- S-RV-LOAN-09 Member in exit notice → can't borrow or guarantee
+- S-RV-LOAN-11 `loanRequest(0)` → clean revert, not a panic
 
 ## Red-team scenarios
 
@@ -281,7 +429,7 @@ From [`redteam/2026-11-plan-redteam.md`](redteam/2026-11-plan-redteam.md). Each 
 - S-RT-19 (RT-12) Proposal to lower the reserve or raise k / exit fee / notice / fees → needs 66% and a 14-day delay; a lower-risk change keeps the normal pass mark
 - S-RT-20 (RT-12) Member rage-quits during the delay → exit uses the old notice and fee even after the change takes effect
 - S-RT-21 (RT-13) Migration proposal targeting an address not created by a registered factory → can't be created
-- S-RT-22 (RT-14) Guardian pauses deposits over the due day → no late fees for paused days; second pause within 30 days → reverts; exits still process during a pause
+- S-RT-22 (RT-14) Guardian pause → new joins and loans stop for 14 days, deposits never stop (so no late-fee issue); second pause within 90 days of the last → reverts; voted-off or departed guardian can't pause and anyone can unpause; exits, claims and withdraw still work during a pause
 - S-RT-23 (RT-15) Pair with stakes 2 + 2, borrower has 3 paid periods → cap uses k = 1 (4 AVAX), not 8
 - S-RT-24 (RT-16) Guarantor backs a second loan with already-locked shares → rejected; locked shares can't be exited
 - S-RT-25 (RT-17) Exit queue non-empty and a loan vote passes → disbursal blocked until the queue is paid; reserve used for the queued exit

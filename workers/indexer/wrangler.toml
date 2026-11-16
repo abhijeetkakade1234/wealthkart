@@ -1,0 +1,68 @@
+# WealthKart indexer (ADR 0036): caches public circle events in D1 so charts and the activity
+# feed load fast. It holds no secrets and no personal data, only what anyone can read on-chain.
+name = "wealthkart-indexer"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# Catch up every minute; every API request also catches up a little first.
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "wealthkart-indexer"
+# Owner action at deploy time: `wrangler d1 create wealthkart-indexer`, paste the id here.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+# Fuji until mainnet. Use a provider URL as a secret (`wrangler secret put RPC_URL`) for heavy use.
+CHAIN_ID = "43113"
+RPC_URL = "https://api.avax-test.network/ext/bc/C/rpc"
+# Set from packages/sdk/src/deployments/43113.json after the Fuji deploy.
+FACTORY = "0x0000000000000000000000000000000000000000"
+FROM_BLOCK = "0"
+# Public Avalanche RPCs cap eth_getLogs at 2048 blocks.
+LOG_CHUNK = "2048"
+# Blocks to stay behind the tip. Avalanche finalises in about a second, so 1 is plenty.
+CONFIRMATIONS = "1"
+# D1 free tier: 500 MB per database. Stop storing new events at this many MB (ADR 0047).
+D1_SOFT_LIMIT_MB = "450"
+
+# Avalanche mainnet (ADR 0051): `wrangler deploy --env mainnet`. Own D1 database and factory.
+# Keep this section before [env.e2e]: the deploy workflow reads it up to that line.
+[env.mainnet]
+name = "wealthkart-indexer-mainnet"
+[env.mainnet.triggers]
+crons = ["* * * * *"]
+[env.mainnet.vars]
+CHAIN_ID = "43114"
+RPC_URL = "https://api.avax.network/ext/bc/C/rpc"
+# Set from packages/sdk/src/deployments/43114.json after the mainnet deploy.
+FACTORY = "0x0000000000000000000000000000000000000000"
+FROM_BLOCK = "0"
+LOG_CHUNK = "2048"
+CONFIRMATIONS = "1"
+D1_SOFT_LIMIT_MB = "450"
+[[env.mainnet.d1_databases]]
+binding = "DB"
+database_name = "wealthkart-indexer-mainnet"
+# Owner action: `wrangler d1 create wealthkart-indexer-mainnet`, paste the id here.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs.
+[env.e2e]
+name = "wealthkart-indexer-e2e"
+[env.e2e.vars]
+CHAIN_ID = "43113"
+RPC_URL = "http://127.0.0.1:8546"
+FACTORY = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+FROM_BLOCK = "0"
+LOG_CHUNK = "2048"
+CONFIRMATIONS = "0"
+[[env.e2e.d1_databases]]
+binding = "DB"
+database_name = "wealthkart-indexer-e2e"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"

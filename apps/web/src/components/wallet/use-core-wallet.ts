@@ -1,6 +1,5 @@
 "use client";
 
-import { isSupportedChain } from "@wealthkart/sdk";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 
 import { CORE_CONNECTOR_ID, TARGET_CHAIN } from "@/lib/wagmi";
@@ -20,7 +19,7 @@ export function walletStatusOf(input: {
 }): WalletStatus {
   const { status, chainId, hasCore } = input;
   if (status === "connecting" || status === "reconnecting") return "connecting";
-  if (status === "connected") return isSupportedChain(chainId) ? "ready" : "wrong-network";
+  if (status === "connected") return chainId === TARGET_CHAIN.id ? "ready" : "wrong-network";
   return hasCore ? "disconnected" : "no-core";
 }
 

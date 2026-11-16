@@ -60,6 +60,17 @@ On every PR:
 8. Preview deploy to Cloudflare Pages (comment the URL on the PR)
 
 On `main`: the same, plus a production deploy of `apps/web` to Cloudflare Pages.
+
+**Which branch runs where (founder setting, 2026-11-16; ADR 0051).** Cloudflare Pages builds only `main` and `dev`:
+
+| Branch     | Cloudflare              | `NEXT_PUBLIC_NETWORK`                                                                                                      |
+| ---------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `main`     | Production              | `fuji` for now; `mainnet` after the audit                                                                                  |
+| `dev`      | Preview (branch deploy) | `fuji`                                                                                                                     |
+| `abhijeet` | not deployed            | n/a                                                                                                                        |
+| your PC    | `pnpm dev`              | local anvil: `NEXT_PUBLIC_RPC_URL` + `NEXT_PUBLIC_FACTORY_OVERRIDE` in `apps/web/.env.local` (see `apps/web/.env.example`) |
+
+Set the variable per environment in the Pages project (Settings, Environment variables: Production and Preview). Going live is changing Production to `mainnet` and redeploying `main`.
 Nightly: deep invariant runs, Fuji fork tests, dependency audit.
 Contract deploys: **manual workflow** with environment approval (Fuji / mainnet), verify on Snowtrace, write the address to `packages/contracts/deployments/<chain>.json`, sdk picks it up.
 

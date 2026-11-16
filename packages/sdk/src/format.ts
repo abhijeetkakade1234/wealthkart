@@ -1,19 +1,29 @@
 /**
  * Display helpers. Money stays `bigint` wei everywhere; format only at the edge.
  */
-const WEI_PER_AVAX = 10n ** 18n;
-
-/** Formats wei as AVAX with a fixed number of decimals, rounding down (never overstates). */
-export function formatAvax(wei: bigint, decimals = 2): string {
-  const negative = wei < 0n;
-  const abs = negative ? -wei : wei;
-  const whole = abs / WEI_PER_AVAX;
-  const frac = abs % WEI_PER_AVAX;
-  const scale = 10n ** BigInt(18 - decimals);
-  const fracDigits = (frac / scale).toString().padStart(decimals, "0");
+/**
+ * Formats an amount in an asset's smallest unit (wei for AVAX, 1e-6 for USDT) with a fixed
+ * number of shown decimals, rounding down so it never overstates (ADR 0046).
+ */
+export function formatUnitsDown(units: bigint, unitDecimals: number, decimals = 2): string {
+  const negative = units < 0n;
+  const abs = negative ? -units : units;
+  const one = 10n ** BigInt(unitDecimals);
+  const whole = abs / one;
+  const frac = abs % one;
+  const shown = Math.min(decimals, unitDecimals);
+  const fracDigits = (frac / 10n ** BigInt(unitDecimals - shown))
+    .toString()
+    .padStart(shown, "0")
+    .padEnd(decimals, "0");
   const wholeStr = whole.toLocaleString("en-US");
   const out = decimals > 0 ? `${wholeStr}.${fracDigits}` : wholeStr;
   return negative ? `-${out}` : out;
+}
+
+/** Formats wei as AVAX with a fixed number of decimals, rounding down (never overstates). */
+export function formatAvax(wei: bigint, decimals = 2): string {
+  return formatUnitsDown(wei, 18, decimals);
 }
 
 /** 0x3f1c…a1c2 */

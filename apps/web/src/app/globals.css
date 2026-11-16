@@ -42,6 +42,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
   --color-art-mustard: var(--art-mustard);
   --color-art-red: var(--art-red);
   --color-art-cobalt: var(--art-cobalt);
@@ -105,6 +106,8 @@
   --chart-3: #a8701a;
   --chart-4: #c2391f;
   --chart-5: #9a9ca2;
+  /* Third series hue for part-to-whole bars; validated with chart-1 and chart-2 (dataviz). */
+  --chart-6: #8a8f2a;
 
   --art-mustard: #d79922;
   --art-red: #f13c20;
