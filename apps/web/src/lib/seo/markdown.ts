@@ -16,8 +16,15 @@ function blockToMarkdown(block: Block): string {
         `| ${cells.map((c) => c.replace(/\|/g, "\\|")).join(" | ")} |`;
       return [row(block.head), row(block.head.map(() => "---")), ...block.rows.map(row)].join("\n");
     }
+    case "warn":
+      return `> **${block.title}.** ${block.text}`;
     case "links":
-      return block.items.map((l) => `- [${l.label}](${l.href})`).join("\n");
+      return block.items
+        .map((l) => {
+          const href = l.href.startsWith("/") ? absoluteUrl(l.href) : l.href;
+          return l.note ? `- [${l.label}](${href}): ${l.note}` : `- [${l.label}](${href})`;
+        })
+        .join("\n");
   }
 }
 
@@ -46,6 +53,7 @@ const LLMS_BLURB: Record<string, string> = {
   rules: "every circle setting with default values and limits",
   security: "immutable contracts, custody, status and contract addresses",
   faq: "common questions",
+  start: "for crypto beginners: install Core wallet, back up the recovery phrase, get AVAX, join",
 };
 
 /** Legal pages (ADR 0055), listed in their own llms.txt section. */

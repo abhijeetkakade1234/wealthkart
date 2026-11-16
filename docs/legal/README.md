@@ -21,6 +21,7 @@ Checked in the code, not assumed. `S-LEGAL-04` keeps this honest: it fails if a 
 - **On-chain (public, permanent, not ours):** wallet addresses, payments, loans, votes, display names, nominee wallets, reputation records.
 - **Browser, local storage:** `wagmi.store` (connected address, chain, connector), `wagmi.recentConnectorId`, `wagmi.injected.connected`, `wagmi.app.core.extension.disconnected`. These are written by the wagmi library because `apps/web/src/lib/wagmi.ts` uses its default storage.
 - **Browser, session storage:** `wk:join:<circle>:<wallet>` holds a join request id (`apps/web/src/app/app/join/page.tsx`).
+- **Browser, first-run checklist (ADR 0054):** `wk:first-run:<wallet>` holds which checklist items were ticked or hidden (`apps/web/src/lib/first-run.ts`).
 - **Browser, reminders (ADR 0052, being built):** `wk:reminders` holds the push endpoint, a device token, wallet address and chain id (`apps/web/src/lib/push.ts`).
 - **Browser, Cache Storage:** the service worker (`apps/web/public/sw.js`) caches pages and static assets. No RPC, cross-origin or non-GET requests.
 - **Cookies:** none set by the app.

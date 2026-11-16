@@ -7,6 +7,7 @@
 
 - `app-shell.tsx`, `page-header.tsx`, `circle-switcher.tsx`, `circle-not-found.tsx`: layout and circle navigation
 - `pagination.tsx`: URL-state pagination (`?page=`, or another param for a second list)
+- `first-run-checklist.tsx`: "Before you start" on the home screen for a new wallet; links to `/start` steps, dismissible per wallet (ADR 0054)
 - `countdown-utc.tsx`, `deadline.tsx`: due dates and any on-chain moment in UTC plus local time, with time left (`pastText` once it has passed)
 - `stat-card.tsx`: big-number tile
 - `tx-for.tsx`: `TxFor`, the transaction tracker for one `useTx` state, hidden while idle

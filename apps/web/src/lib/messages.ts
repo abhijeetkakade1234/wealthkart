@@ -234,6 +234,10 @@ export const messages = {
   widgetErrorTitle: (name?: string) => (name ? `${name} couldn't load` : "This part couldn't load"),
   widgetErrorBody: () => "The rest of the page still works. Try again in a moment.",
 
+  // First-run checklist on the home screen (ADR 0054)
+  checklistHidden: () => "Checklist hidden. The full guide is still on the Get started page.",
+  checklistCantCheck: () => "Couldn't check this right now.",
+
   // Transaction tracker
   txStepConfirm: () => "Confirm in Core",
   txStepSending: () => "Sending",

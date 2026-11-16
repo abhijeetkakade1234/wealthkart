@@ -19,7 +19,9 @@
 - `feed.ts`: activity feed sentences for every vault event, including loans
 - `rules.ts`: `Rules.Params` mirror: defaults, plain-words formatting, `ruleDiff`, `rulesProblem` (bounds of `Rules.validate`), form parsing
 - `use-vault-action.ts`: one typed vault write with its tracker state
-- `circle-form.ts`: create-circle form state and validation (mirrors contract bounds): asset AVAX or USDT, member cap 3..50 (default 12, note above 20)
+- `circle-form.ts`: create-circle form state and validation (mirrors contract bounds): asset AVAX or USDT, member cap 3..50 (default 12, note above 20), quorum 20..100, and the loan/vote/notice rules checked by `rulesProblem`
+- `templates.ts`: circle templates (Friends, Family, Office, Custom) as data; apply, asset switch, change count, plain summary (ADR 0054)
+- `first-run.ts`: first-run checklist items and per-wallet localStorage state, try/catch wrapped (ADR 0054)
 - `messages.ts`: plain-language message catalogue, `toFriendlyError`
 - `use-tx.ts`: confirm, sending, confirmed or failed for one transaction (keeps the failure code for retries)
 - `safe-call.ts`, `toast.ts`, `utils.ts`: safe async wrapper, toasts, `cn()`

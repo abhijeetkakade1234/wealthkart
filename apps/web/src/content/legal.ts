@@ -80,6 +80,7 @@ export const PRIVACY: PublicPage = {
             "wagmi.recentConnectorId (local storage): the wallet you used last, which is Core.",
             "wagmi.injected.connected and wagmi.app.core.extension.disconnected (local storage): whether you signed in or out, so the app doesn't reconnect after you sign out.",
             "wk:join:<circle>:<wallet> (session storage): the number of your join request, so you can see the result after a reload. It goes away when you close the tab.",
+            'wk:first-run:<wallet> (local storage): which "Before you start" checklist items you ticked or hid on this device, so the list remembers them.',
             "wk:reminders (local storage), only if you turn on reminders: this device's push address, a device token, your wallet address and the network.",
             "App files (the service worker's cache): copies of the app's pages, code and fonts, so it opens without a connection. They hold no personal data.",
           ],
