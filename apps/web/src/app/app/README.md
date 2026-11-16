@@ -5,7 +5,7 @@
 | Route                       | File                       | Purpose                                                                                                            |
 | --------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `/app/`                     | `page.tsx`                 | Your circles: portfolio totals and split, then paginated cards with stake, share and dues                          |
-| `/app/new/`                 | `new/page.tsx`             | Create a circle (rules + founders), validated like the contract                                                    |
+| `/app/new/`                 | `new/page.tsx`             | Create a circle: pick a template (ADR 0054), then rules + founders, validated like the contract                    |
 | `/app/circle/?id=`          | `circle/page.tsx`          | Overview: value, my stake, dues with UTC countdown, charts and payments heatmap, paginated members                 |
 | `/app/circle/pay/?id=`      | `circle/pay/page.tsx`      | Pay the installment (with fees) or take a payment holiday                                                          |
 | `/app/circle/loans/?id=`    | `circle/loans/page.tsx`    | Loans: your loan (pay interest, repay, default notice), ask dialog, guarantor notice, all loans with URL filters   |
