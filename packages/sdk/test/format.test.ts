@@ -1,7 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { circleVaultAbi, formatAvax, periodLabel, shortAddress } from "../src/index.js";
+import {
+  circleVaultAbi,
+  formatAvax,
+  formatUnitsDown,
+  periodLabel,
+  shortAddress,
+} from "../src/index.js";
 
 const AVAX = 10n ** 18n;
+
+describe("formatUnitsDown (S-WEB-10, ADR 0046: 6-decimal USDT)", () => {
+  it("formats USDT units with 2 shown decimals, rounding down", () => {
+    expect(formatUnitsDown(25_000_000n, 6)).toBe("25.00");
+    expect(formatUnitsDown(1_999_999n, 6)).toBe("1.99");
+    expect(formatUnitsDown(1_234_567_890_000n, 6)).toBe("1,234,567.89");
+  });
+
+  it("pads when more decimals are asked for than the unit has", () => {
+    expect(formatUnitsDown(1_500_000n, 6, 8)).toBe("1.50000000");
+    expect(formatUnitsDown(-2_500_000n, 6)).toBe("-2.50");
+  });
+});
 
 describe("formatAvax (S-WEB-10: exact decimals, no float rounding)", () => {
   it("formats whole and fractional AVAX", () => {
