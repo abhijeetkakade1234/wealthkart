@@ -91,7 +91,8 @@ export async function handlePush(
   const limited = () => json({ error: "Too many requests. Try again in a little while." }, 429);
 
   if (path === "/v1/push/subscribe") {
-    const ip = request.headers.get("cf-connecting-ip") ?? "local";
+    // Only a hash of the IP is kept, and only as a rate-limit counter (pruned within 2 days).
+    const ip = (await sha256Hex(request.headers.get("cf-connecting-ip") ?? "local")).slice(0, 32);
     const [ipMax, ipWin] = LIMITS.subscribeIp;
     if (!(await allow(db, `ip:${ip}`, ipMax, ipWin, now))) return limited();
     const sub = body.subscription as { endpoint: string; keys: { p256dh: string; auth: string } };

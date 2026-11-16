@@ -1,7 +1,13 @@
 import { type Address, isAddress } from "viem";
 
 import { AVAX, ASSET_ENUM, type AssetSymbol, type CircleAsset, parseAmount } from "@/lib/asset";
-import { defaultRules } from "@/lib/rules";
+import {
+  defaultRules,
+  percentToBps,
+  type RuleKey,
+  rulesProblem,
+  type RulesParams,
+} from "@/lib/rules";
 
 /** Create-circle form: shape, defaults (G1 values) and validation mirroring the contract (ADR 0022). */
 
@@ -12,9 +18,12 @@ export const MIN_MAX_MEMBERS = 3;
 export const MAX_MAX_MEMBERS = 50;
 /** Above this, votes slow down noticeably; the form says so. */
 export const BIG_CIRCLE_NOTE_ABOVE = 20;
-/** Join-vote settings until the wizard exposes them (ADR 0022 defaults). */
+/** Voting window until the form exposes it (ADR 0022 default). */
 export const DEFAULT_VOTING_WINDOW_SECONDS = 48 * 60 * 60;
 export const DEFAULT_QUORUM_PCT = 50;
+/** `CircleVault` bounds for `Config.quorumPct` (MIN_QUORUM_PCT..MAX_QUORUM_PCT). */
+export const MIN_QUORUM_PCT = 20;
+export const MAX_QUORUM_PCT = 100;
 /** G1's size (ADR 0045). */
 export const DEFAULT_MAX_MEMBERS = 12;
 
@@ -34,6 +43,16 @@ export interface FormState {
   dormantAfter: string;
   /** Installments a member admitted by vote pays before voting (ADR 0033). */
   minPaidToVote: string;
+  /** Share of voters who must take part for a vote to count, 20 to 100 (`Config.quorumPct`). */
+  quorumPct: string;
+  /** Rules (ADR 0022, `Rules.Params`) the form exposes; the rest keep `Rules.defaults`. */
+  passPct: string;
+  /** Loan interest per month, in percent ("1", "1.5"). */
+  interestPct: string;
+  kMultiplier: string;
+  /** "true" or "false". */
+  guarantorRequired: string;
+  exitNoticeDays: string;
   founders: string;
 }
 
@@ -49,16 +68,13 @@ export const DEFAULTS: FormState = {
   holidays: "3",
   dormantAfter: "3",
   minPaidToVote: "2",
+  quorumPct: String(DEFAULT_QUORUM_PCT),
+  passPct: "50",
+  interestPct: "1",
+  kMultiplier: "2",
+  guarantorRequired: "false",
+  exitNoticeDays: "30",
   founders: "",
-};
-
-/** Default amounts per asset: AVAX keeps the old test values, USDT uses round dollars. */
-export const ASSET_DEFAULTS: Record<
-  AssetSymbol,
-  Pick<FormState, "installment" | "fee1" | "fee2">
-> = {
-  AVAX: { installment: "0.5", fee1: "0.01", fee2: "0.01" },
-  USDT: { installment: "50", fee1: "1", fee2: "1" },
 };
 
 /** The asset the form will create, for parsing and labels (decimals come from the symbol). */
@@ -138,6 +154,12 @@ export function validate(f: FormState, self: Address | undefined) {
   if (!Number.isInteger(minPaidToVote) || minPaidToVote < 0 || minPaidToVote > 6)
     errors.minPaidToVote = "Pick 0 to 6.";
 
+  const quorumPct = Number(f.quorumPct);
+  if (!Number.isInteger(quorumPct) || quorumPct < MIN_QUORUM_PCT || quorumPct > MAX_QUORUM_PCT)
+    errors.quorumPct = `Pick ${MIN_QUORUM_PCT} to ${MAX_QUORUM_PCT}.`;
+  const rules = formRules(f, installment);
+  Object.assign(errors, rules.errors);
+
   const capProblem = maxMembersProblem(f.maxMembers);
   if (capProblem) errors.maxMembers = capProblem;
   const maxMembers = capProblem ? MAX_MAX_MEMBERS : Number(f.maxMembers.trim());
@@ -166,7 +188,7 @@ export function validate(f: FormState, self: Address | undefined) {
     /** Everyone except the creator: they get an invite and must accept (ADR 0028). */
     invitees: [...set.values()].filter((a) => a.toLowerCase() !== self?.toLowerCase()),
     cfg:
-      installment !== null && fee1 !== null && fee2 !== null
+      installment !== null && fee1 !== null && fee2 !== null && rules.params
         ? {
             name: f.name.trim(),
             asset: ASSET_ENUM[f.asset],
@@ -177,12 +199,70 @@ export function validate(f: FormState, self: Address | undefined) {
             secondFeeDay,
             holidaysPerYear: holidays,
             votingWindow: DEFAULT_VOTING_WINDOW_SECONDS,
-            quorumPct: DEFAULT_QUORUM_PCT,
+            quorumPct,
             maxMembers,
             dormantAfter,
             minPaidToVote,
-            rules: defaultRules(installment),
+            rules: rules.params,
           }
         : null,
   };
+}
+
+/** Form field for each rule the create form shows (the others keep `Rules.defaults`). */
+const RULE_FIELD: Partial<Record<RuleKey, keyof FormState>> = {
+  interestBps: "interestPct",
+  tenor2Bps: "interestPct",
+  tenor3Bps: "interestPct",
+  kMultiplier: "kMultiplier",
+  guarantorRequired: "guarantorRequired",
+  passPct: "passPct",
+  exitNoticeDays: "exitNoticeDays",
+};
+
+/**
+ * The circle's starting rules: `Rules.defaults(installment)` with the form's loan, vote and
+ * notice fields on top, checked with the same `rulesProblem` the rule-change form uses.
+ * The later-term rates rise with the first rate so a higher rate never breaks their order.
+ */
+export function formRules(
+  f: FormState,
+  installment: bigint | null,
+): { params: RulesParams | null; errors: Partial<Record<keyof FormState, string>> } {
+  const errors: Partial<Record<keyof FormState, string>> = {};
+  const interestBps = percentToBps(f.interestPct);
+  if (interestBps === null) errors.interestPct = "Enter a percentage like 1 or 1.5.";
+  const whole = (k: keyof FormState) => {
+    const t = f[k].trim();
+    if (!/^\d{1,3}$/.test(t)) {
+      errors[k] = "Enter a whole number.";
+      return 0;
+    }
+    return Number(t);
+  };
+  const kMultiplier = whole("kMultiplier");
+  const passPct = whole("passPct");
+  const exitNoticeDays = whole("exitNoticeDays");
+  if (Object.keys(errors).length > 0 || installment === null || installment === 0n) {
+    return { params: null, errors };
+  }
+  const base = defaultRules(installment);
+  const bps = interestBps ?? 0;
+  const tenor2Bps = Math.max(base.tenor2Bps, bps);
+  const params: RulesParams = {
+    ...base,
+    interestBps: bps,
+    tenor2Bps,
+    tenor3Bps: Math.max(base.tenor3Bps, tenor2Bps),
+    kMultiplier,
+    guarantorRequired: f.guarantorRequired === "true",
+    passPct,
+    exitNoticeDays,
+  };
+  const problem = rulesProblem(params, installment);
+  if (problem) {
+    const field = RULE_FIELD[problem.key] ?? "installment";
+    return { params: null, errors: { [field]: problem.message } };
+  }
+  return { params, errors };
 }

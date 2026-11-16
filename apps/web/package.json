@@ -12,7 +12,9 @@
     "deploy:preview": "pnpm build && wrangler pages deploy out --project-name=wealthkart --branch=preview",
     "deploy:prod": "pnpm build && wrangler pages deploy out --project-name=wealthkart --branch=main",
     "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "e2e:isolated": "node e2e/isolated.mjs",
+    "dev:local": "node scripts/dev-local.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",

@@ -26,7 +26,7 @@ When a wallet's last device goes, its settings and history are deleted too. A ro
 
 **Endpoints accepted.** https only, standard port, no credentials, at most 1024 characters, and the host must be a known push service (FCM, Mozilla, Apple, Windows). The device key must be a real P-256 point and the secret 16 bytes. The Worker never follows redirects. This keeps the API from becoming a way to make the Worker call arbitrary URLs.
 
-**Rate limits** (fixed windows in D1): subscribe 30/hour per IP and 10/hour per wallet, settings 120/hour per wallet, test pushes 1 per 30 seconds and 10 per day per device. Bodies over 8 KB are refused.
+**Rate limits** (fixed windows in D1): subscribe 30/hour per IP (stored only as a hash) and 10/hour per wallet, settings 120/hour per wallet, test pushes 1 per 30 seconds and 10 per day per device. Bodies over 8 KB are refused.
 
 **What reminds, and when** (all UTC, computed by a pure function, `src/push/schedule.ts`):
 

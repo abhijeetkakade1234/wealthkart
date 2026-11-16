@@ -244,6 +244,7 @@ Known gaps:
 - S-USDT-08 AVAX circle `repay(amount)` needs `msg.value == amount`
 - S-USDT-09 Gas sweep, USDT circle (RT-USDT-01 / M-1, ADR 0050): as S-EXIT-14b → every call pays ≥ 1 exit or reverts only `ExitGasTooLow`; never `PayoutGasTooLow`; monotonic in gas
 - S-USDT-10 Tether turns on a 0.01% fee (RT-USDT-02, ADR 0050) → `contribute`, `payInterest` and `repay` succeed and count as paid in full; `TokenFeeAbsorbed` emitted; `totalAssets` short by exactly the fee; for a repayment `loansOutstanding` drops by the full amount; I-12u holds. S-USDT-10b: exactly 1% is absorbed, 2% reverts `TokenAmountMismatch`
+- S-USDT-11 "Get test USDT" shows only when the build isn't mainnet, it targets chain 43113, the factory has a USDT and that token answers `MINT_CAP()` > 0; one tap asks for 1,000 USDT or the cap if lower (ADR 0053)
 - S-DEPLOY-01 `DeployFactory.s.sol` on chain 43114 (RT-USDT-06, ADR 0050) → reverts without `CONFIRM_MAINNET=yes`, with a USDT other than C-Chain USDt, or with the mock token
 
 ### Analytics and activity (S-ACT)
@@ -369,6 +370,42 @@ ADR 0049. E2E in `apps/web/e2e/landing.e2e.ts`; copy checks in `apps/web/src/lib
 - S-LAND-06 Scrolling the month scene highlights step 1 at the start and step 4 at the end
 - S-LAND-07 Landing copy never advertises returns, the description fits search limits, FAQ teaser answers match `/faq`, and llms-full.txt carries the landing copy
 
+### Legal pages (S-LEGAL)
+
+ADR 0055. Unit checks in `apps/web/src/lib/__tests__/legal.test.ts`; E2E in `apps/web/e2e/legal.e2e.ts`.
+
+- S-LEGAL-01 Privacy, terms and risks each have a title (≤ 60), a description (≤ 155), an ISO last-updated date and the "Draft, pending legal review" note; question headings with unique anchors; no page JSON-LD
+- S-LEGAL-02 Legal copy never advertises returns, even in a denial (same banned words as S-LAND-07); the terms say nothing is promised, that WealthKart holds no keys or funds, and still show the court-city placeholder for the lawyer
+- S-LEGAL-03 Every legal page is in the sitemap, linked from llms.txt under "Legal", included in llms-full.txt, and its `.md` twin carries the draft note and links
+- S-LEGAL-04 The privacy policy matches the code: it names every browser storage key, every file that touches browser storage or cookies is on the known list, no analytics or tracker library is present, fonts are self-hosted
+- S-LEGAL-05 `/privacy/`, `/terms/` and `/risks/` load with one h1, the draft note, an "Updated" date, a canonical link and no noindex; the `.md` twins, sitemap and llms.txt serve them
+- S-LEGAL-06 The footer's Legal row reaches each page from home and from a help page
+- S-LEGAL-07 The sign-in page shows "By connecting you agree to the Terms and have read the Risks", and its Terms, Risks and Privacy links work
+- S-LEGAL-08 No sideways scroll at 360px wide on any legal page
+
+### Circle templates (S-TPL)
+
+ADR 0054. Unit tests in `apps/web/src/lib/__tests__/templates.test.ts`, E2E in `apps/web/e2e/templates.e2e.ts`.
+
+- S-TPL-01 Every template (Friends, Family, Office, Custom) in AVAX and in USDT passes the create form's own `validate` with no errors, and its config sits inside the `CircleVault` and `Rules.validate` bounds (due day, second fee day, fees at most half the installment, quorum 20..100, cap 3..50, `rulesProblem` null); Friends and Custom equal today's defaults; Family is gentler and Office stricter than Friends
+- S-TPL-02 Applying a template never touches the name, friends or asset; a member cap the creator typed survives switching templates; switching asset swaps the template's amounts but keeps typed ones; edits are counted
+- S-TPL-03 Template summaries give the late fee as an amount and a share of the installment, name the guarantor rule, and write ordinals correctly
+- S-TPL-04 (E2E) The create form opens on Friends with today's defaults and its plain summary
+- S-TPL-05 (E2E) Pick Family: every rule field takes the Family values and the summary says what they mean; change one field and the form says "You changed 1 setting"; create the circle on anvil and the chain holds the Family values plus the edit
+- S-TPL-06 (E2E) Office ticks "Every loan needs a guarantor" and a 66% quorum while keeping a cap the creator typed; an out-of-bounds quorum is refused before anything is sent
+
+### Onboarding (S-ONB)
+
+ADR 0054. Unit tests in `apps/web/src/lib/__tests__/first-run.test.ts` and `seo.test.ts`, E2E in `apps/web/e2e/onboarding.e2e.ts`.
+
+- S-ONB-01 First-run checklist state is stored per wallet (address case ignored), junk or blocked storage reads as a fresh list and writes never throw
+- S-ONB-02 Checklist items map chain reads to done / to do / checking / couldn't check, link to their `/start` step, and hide once dismissed or all done; the AVAX hint names the faucet only on test networks
+- S-ONB-03 `/start` is in the sitemap and llms.txt, has HowTo JSON-LD with every step and the recovery phrase warning; Fuji builds link the faucet and the test USDT button, mainnet builds say to use an exchange and name none
+- S-ONB-04 (E2E) `/start` renders all six steps, is indexable with a canonical, shows the phrase warning and the Fuji network note, links Core and the faucet, step chips jump to their section, in-site links open, and the sitemap, llms.txt and `/start.md` include it
+- S-ONB-05 (E2E) The sign-in page ("New to wallets? Start here"), the landing hero and the public footer all reach `/start`
+- S-ONB-06 (E2E) No sideways scroll on `/start` at 360px wide
+- S-ONB-07 (E2E) A newly connected wallet sees "Before you start" with AVAX ticked from its balance; "I've done this" ticks the recovery phrase item and survives a reload; open items link to their guide step; hiding the list toasts and keeps it hidden after a reload
+
 ### End-to-end (Playwright, `apps/web/e2e/`)
 
 Real static export, local anvil chain posing as Fuji (chain id 43113), test wallet that announces itself as Core and forwards to anvil. Every user-facing feature adds one here (CLAUDE.md).
@@ -404,6 +441,7 @@ Real static export, local anvil chain posing as Fuji (chain id 43113), test wall
 - S-E2E-34 The circle page's Reminders card turns reminders on for that circle; switching "Votes waiting for you" off survives a reload while the others stay on
 - S-E2E-35 Notifications blocked, a browser without Web Push and iPhone Safari outside the Home Screen each show what to do instead of a broken button; saying no at the browser prompt leaves reminders off with a plain note
 - S-E2E-36 When the push service says a device is gone (410), the test button says so and the card is back to "Turn on reminders"
+- S-E2E-40 A wallet with no circles sees "Get test USDT" on the empty dashboard with the plain note that test USDT has no value; one tap adds exactly 1,000 USDT; on a USDT circle's Pay page the button shows again, adds another 1,000 and Pay is enabled (ADR 0053)
 
 ## Gates in CI
 

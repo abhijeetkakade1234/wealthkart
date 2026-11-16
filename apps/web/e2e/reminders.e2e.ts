@@ -62,7 +62,7 @@ test.describe("reminders", () => {
     await expect(card.getByText("Signing is free and moves no money")).toBeVisible();
     await card.getByRole("button", { name: "Turn on reminders" }).click();
     await expect(fay.getByText("Reminders are on for this device.")).toBeVisible();
-    await expect(card.getByTestId("reminders-on")).toContainText("0x976E…0aa9");
+    await expect(card.getByTestId("reminders-on")).toContainText("0x14dC…9955");
 
     // The new circle is switched on; switching it off sticks after a reload.
     const name = new RegExp("^Reminders E2E");

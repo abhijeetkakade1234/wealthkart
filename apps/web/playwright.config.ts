@@ -1,7 +1,4 @@
 import { generateKeyPairSync } from "node:crypto";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
@@ -14,19 +11,7 @@ import {
   INDEXER_URL,
   WEB_PORT,
 } from "./e2e/support/env";
-
-/** anvil from FOUNDRY_DIR (e.g. D:/tools/foundry) or ~/.foundry, else PATH. */
-function anvilBin() {
-  const exe = process.platform === "win32" ? "anvil.exe" : "anvil";
-  for (const dir of [process.env.FOUNDRY_DIR, join(homedir(), ".foundry")]) {
-    if (!dir) continue;
-    const d =
-      process.platform === "win32" && /^\/[a-zA-Z]\//.test(dir) ? `${dir[1]}:${dir.slice(2)}` : dir;
-    const p = join(d, "bin", exe);
-    if (existsSync(p)) return `"${p}"`;
-  }
-  return "anvil";
-}
+import { foundryBin } from "./e2e/support/local-chain.cjs";
 
 /**
  * A VAPID key pair for this run only (ADR 0052): the web build gets the public key, the local
@@ -60,6 +45,8 @@ const VAPID = {
  * E2E (CLAUDE.md: every user-facing feature ships with one). Runs the real static export
  * against a local anvil chain that pretends to be Fuji, with a test wallet that announces
  * itself as Core. Tests share one chain and run in order, so each creates its own circle.
+ * Ports come from E2E_ANVIL_PORT / E2E_WEB_PORT / E2E_INDEXER_PORT, or are picked free with
+ * E2E_PORTS=auto (`pnpm e2e:isolated`), so parallel runs never share servers (ADR 0053).
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -80,7 +67,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      command: `${anvilBin()} --port ${ANVIL_PORT} --chain-id ${CHAIN_ID} --silent`,
+      command: `"${foundryBin("anvil")}" --port ${ANVIL_PORT} --chain-id ${CHAIN_ID} --silent`,
       port: ANVIL_PORT,
       reuseExistingServer: !process.env.CI,
     },
@@ -92,6 +79,8 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         INDEXER_PORT: String(INDEXER_PORT),
+        INDEXER_RPC_URL: ANVIL_URL,
+        // Reminders (ADR 0052): the configured web port is the only site allowed to sign.
         WEB_PORT: String(WEB_PORT),
         VAPID_PUBLIC_KEY: VAPID.publicKey,
         VAPID_PRIVATE_KEY: VAPID.privateKey,

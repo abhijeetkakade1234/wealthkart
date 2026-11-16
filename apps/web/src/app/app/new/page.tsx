@@ -1,7 +1,16 @@
 "use client";
 
 import { circleFactoryAbi } from "@wealthkart/sdk";
-import { Lock, Sparkles } from "lucide-react";
+import {
+  Briefcase,
+  Check,
+  House,
+  Lock,
+  type LucideIcon,
+  SlidersHorizontal,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { parseEventLogs } from "viem";
@@ -13,16 +22,29 @@ import { useCoreWallet } from "@/components/wallet/use-core-wallet";
 import { type AssetSymbol, fmt } from "@/lib/asset";
 import { useFactory, useFactoryUsdt } from "@/lib/circle";
 import {
-  ASSET_DEFAULTS,
   DEFAULTS,
   type FormState,
   MAX_MAX_MEMBERS,
+  MAX_QUORUM_PCT,
   MIN_MAX_MEMBERS,
+  MIN_QUORUM_PCT,
   validate,
 } from "@/lib/circle-form";
+import {
+  applyTemplate,
+  changedFromTemplate,
+  type CircleTemplate,
+  DEFAULT_TEMPLATE,
+  switchAsset,
+  templateById,
+  type TemplateId,
+  TEMPLATES,
+  templateSummary,
+} from "@/lib/templates";
 import { cn } from "@/lib/utils";
 import { useTx } from "@/lib/use-tx";
 import { useBufferedWriteContract } from "@/lib/use-buffered-write";
+import { TARGET_CHAIN } from "@/lib/wagmi";
 
 export default function NewCirclePage() {
   return (
@@ -39,7 +61,9 @@ function NewCircle() {
   const { usdt } = useFactoryUsdt();
   const writeContractAsync = useBufferedWriteContract();
   const tx = useTx();
-  const [form, setForm] = useState<FormState>(DEFAULTS);
+  const [templateId, setTemplateId] = useState<TemplateId>(DEFAULT_TEMPLATE);
+  const template = templateById(templateId) ?? TEMPLATES[0]!;
+  const [form, setForm] = useState<FormState>(() => applyTemplate(DEFAULTS, template));
   const [touched, setTouched] = useState(false);
   const v = useMemo(() => validate(form, address), [form, address]);
   const set =
@@ -48,20 +72,18 @@ function NewCircle() {
   const err = (k: keyof FormState) => (touched ? v.errors[k] : undefined);
   const unit = form.asset;
 
-  /** Switching asset swaps in that asset's example amounts unless the creator typed their own. */
+  const changed = changedFromTemplate(form, template);
+
+  /** Switching asset swaps in the template's amounts for it, unless the creator typed their own. */
   function pickAsset(next: AssetSymbol) {
-    setForm((f) => {
-      if (f.asset === next) return f;
-      const old = ASSET_DEFAULTS[f.asset];
-      const fresh = ASSET_DEFAULTS[next];
-      return {
-        ...f,
-        asset: next,
-        installment: f.installment === old.installment ? fresh.installment : f.installment,
-        fee1: f.fee1 === old.fee1 ? fresh.fee1 : f.fee1,
-        fee2: f.fee2 === old.fee2 ? fresh.fee2 : f.fee2,
-      };
-    });
+    setForm((f) => switchAsset(f, next, template));
+  }
+
+  /** A template fills in the rule fields below; name, asset and friends stay as they are. */
+  function pickTemplate(next: CircleTemplate) {
+    if (next.id === template.id) return;
+    setForm((f) => applyTemplate(f, next, template));
+    setTemplateId(next.id);
   }
 
   async function create() {
@@ -107,7 +129,12 @@ function NewCircle() {
       />
 
       <div className="grid gap-12">
-        <Section title="The basics">
+        <Section title="1. Pick a starting point">
+          <TemplatePicker value={template} onChange={pickTemplate} />
+          <TemplateSummary template={template} asset={form.asset} changed={changed} />
+        </Section>
+
+        <Section title="2. The basics">
           <Field
             label="Circle name"
             hint="Shown to members. Letters, numbers and spaces; no web addresses. It's public on the blockchain, so don't use personal details."
@@ -124,7 +151,7 @@ function NewCircle() {
           </Field>
         </Section>
 
-        <Section title="Money the circle holds">
+        <Section title="3. Money the circle holds">
           <AssetChoice value={form.asset} usdtAvailable={Boolean(usdt)} onChange={pickAsset} />
           {form.asset === "USDT" && (
             <InlineAlert tone="warn" title="Before you pick USDT">
@@ -139,7 +166,7 @@ function NewCircle() {
           )}
         </Section>
 
-        <Section title="Monthly installment">
+        <Section title="4. Monthly installment">
           <div className="grid gap-6 sm:grid-cols-2">
             <Field label={`Amount each month (${unit})`} error={err("installment")}>
               <input
@@ -232,10 +259,98 @@ function NewCircle() {
           </div>
         </Section>
 
-        <Section title="Members">
+        <Section title="5. Loans, votes and leaving">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Field
+              label="Loan interest per month (%)"
+              hint="0 to 5. Later loan terms never charge less than this."
+              error={err("interestPct")}
+            >
+              <input
+                id="interestPct"
+                className={inputCls}
+                inputMode="decimal"
+                value={form.interestPct}
+                onChange={set("interestPct")}
+              />
+            </Field>
+            <Field
+              label="Loan limit vs savings"
+              hint="A loan can be this many times your savings plus your guarantor's, 1 to 10."
+              error={err("kMultiplier")}
+            >
+              <input
+                id="kMultiplier"
+                className={inputCls}
+                inputMode="numeric"
+                value={form.kMultiplier}
+                onChange={set("kMultiplier")}
+              />
+            </Field>
+            <Field
+              label="Voters who must take part (%)"
+              hint={`${MIN_QUORUM_PCT} to ${MAX_QUORUM_PCT}. A vote only counts once this share of voters has voted.`}
+              error={err("quorumPct")}
+            >
+              <input
+                id="quorumPct"
+                className={inputCls}
+                inputMode="numeric"
+                value={form.quorumPct}
+                onChange={set("quorumPct")}
+              />
+            </Field>
+            <Field
+              label="Yes votes needed (%)"
+              hint="50 to 100, for loans and rule changes. 50 means more than half."
+              error={err("passPct")}
+            >
+              <input
+                id="passPct"
+                className={inputCls}
+                inputMode="numeric"
+                value={form.passPct}
+                onChange={set("passPct")}
+              />
+            </Field>
+            <Field
+              label="Notice to leave (days)"
+              hint="0 to 90. A member who leaves is paid out after this many days."
+              error={err("exitNoticeDays")}
+            >
+              <input
+                id="exitNoticeDays"
+                className={inputCls}
+                inputMode="numeric"
+                value={form.exitNoticeDays}
+                onChange={set("exitNoticeDays")}
+              />
+            </Field>
+          </div>
+          <label className="flex cursor-pointer items-start gap-3 rounded-[12px] border border-border px-5 py-4 transition-colors hover:bg-secondary">
+            <input
+              id="guarantorRequired"
+              type="checkbox"
+              className="mt-1 size-4 accent-[var(--brand)]"
+              checked={form.guarantorRequired === "true"}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, guarantorRequired: String(e.target.checked) }))
+              }
+            />
+            <span className="grid gap-1">
+              <span className="text-[14px] font-medium">Every loan needs a guarantor</span>
+              <span className="text-[13px] text-muted-foreground">
+                Another member backs the loan with their savings. Members can change any of these
+                rules later by vote.
+              </span>
+            </span>
+          </label>
+        </Section>
+
+        <Section title="6. Members">
           <Field
             label="Most members the circle can have"
-            hint={`${MIN_MAX_MEMBERS} to ${MAX_MAX_MEMBERS}. It can't be raised later.`}
+            hint={`${MIN_MAX_MEMBERS} to ${MAX_MAX_MEMBERS}. It can't be raised later. The starting point only suggests a number; pick what suits your circle.`}
             error={err("maxMembers")}
           >
             <input
@@ -272,9 +387,9 @@ function NewCircle() {
         </Section>
 
         <InlineAlert tone="info">
-          {
-            "This runs on the Fuji test network, so use test money only. A circle's money and member limit can't be changed after it's created."
-          }
+          {TARGET_CHAIN.testnet
+            ? "This runs on the Fuji test network, so use test money only. A circle's money and member limit can't be changed after it's created."
+            : "This uses real money on Avalanche. A circle's money and member limit can't be changed after it's created."}
         </InlineAlert>
 
         <div className="grid gap-6">
@@ -299,6 +414,123 @@ function NewCircle() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const TEMPLATE_ICON: Record<TemplateId, LucideIcon> = {
+  friends: Users,
+  family: House,
+  office: Briefcase,
+  custom: SlidersHorizontal,
+};
+
+/**
+ * Step 1 (ADR 0054): four starting points as a radio group. Picking one fills in the rule
+ * fields below; nothing is locked, and the asset and member cap stay the creator's choice.
+ */
+function TemplatePicker({
+  value,
+  onChange,
+}: {
+  value: CircleTemplate;
+  onChange: (t: CircleTemplate) => void;
+}) {
+  return (
+    <fieldset className="grid gap-4">
+      <legend className="sr-only">Pick a starting point</legend>
+      <p className="text-[14px] text-muted-foreground">
+        Each one fills in the rules below. You can change any of them before you create the circle.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {TEMPLATES.map((t) => {
+          const Icon = TEMPLATE_ICON[t.id];
+          const on = value.id === t.id;
+          return (
+            <label
+              key={t.id}
+              data-testid={`template-${t.id}`}
+              className={cn(
+                "group flex cursor-pointer items-start gap-4 rounded-[12px] border px-5 py-5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand/30",
+                on ? "border-brand bg-brand-soft" : "border-border hover:bg-secondary",
+              )}
+            >
+              <input
+                type="radio"
+                name="template"
+                value={t.id}
+                aria-label={t.name}
+                className="sr-only"
+                checked={on}
+                onChange={() => onChange(t)}
+              />
+              <span
+                className={cn(
+                  "inline-flex size-9 shrink-0 items-center justify-center rounded-full border transition-transform group-active:scale-95",
+                  on ? "border-brand bg-card text-brand" : "border-border text-muted-foreground",
+                )}
+                aria-hidden
+              >
+                {on ? (
+                  <Check className="size-4" strokeWidth={1.75} />
+                ) : (
+                  <Icon className="size-4" strokeWidth={1.5} />
+                )}
+              </span>
+              <span className="grid gap-1">
+                <span className="text-[15px] font-medium">{t.name}</span>
+                <span className="text-[12.5px] leading-relaxed text-muted-foreground">
+                  {t.blurb}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/** What the picked template means, in plain sentences, and how far the form has moved from it. */
+function TemplateSummary({
+  template,
+  asset,
+  changed,
+}: {
+  template: CircleTemplate;
+  asset: AssetSymbol;
+  changed: number;
+}) {
+  return (
+    <div
+      className="grid gap-4 rounded-[14px] border border-line-soft bg-card px-6 py-6"
+      data-testid="template-summary"
+      aria-live="polite"
+    >
+      <p className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <span className="font-display text-[22px] leading-tight">
+          {template.id === "custom" ? "Your own rules" : `What ${template.name} means`}
+        </span>
+        {changed > 0 && (
+          <span className="text-[12.5px] text-muted-foreground" data-testid="template-changed">
+            You changed {changed} {changed === 1 ? "setting" : "settings"}
+          </span>
+        )}
+      </p>
+      {template.id === "custom" ? (
+        <p className="text-[13.5px] leading-relaxed text-muted-foreground">
+          The fields start at the usual rules. Set each one the way your circle wants it.
+        </p>
+      ) : (
+        <ul className="grid gap-2.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          {templateSummary(template, asset).map((line) => (
+            <li key={line} className="flex gap-3">
+              <span aria-hidden className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-brand" />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

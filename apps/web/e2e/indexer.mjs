@@ -1,6 +1,9 @@
 // Starts the indexer Worker locally for E2E (ADR 0036): fresh local D1, migrations, then
 // `wrangler dev --env e2e`, which reads the anvil chain. The D1 folder is wiped on every start
 // because anvil starts from block 0 each run, and old rows would describe a chain that's gone.
+// Env (ADR 0053): INDEXER_PORT, INDEXER_RPC_URL (the anvil node; overrides the e2e env's
+// RPC_URL), INDEXER_PERSIST (D1 folder name under workers/indexer, default .wrangler-e2e, so
+// `pnpm dev:local` keeps its own). wrangler picks a free inspector port by itself.
 import { spawn, spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -8,8 +11,10 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const worker = join(here, "..", "..", "..", "workers", "indexer");
-const persist = join(worker, ".wrangler-e2e");
+const persist = join(worker, process.env.INDEXER_PERSIST || ".wrangler-e2e");
 const port = process.env.INDEXER_PORT || "8787";
+const rpcUrl = process.env.INDEXER_RPC_URL || "http://127.0.0.1:8546";
+// WEB_PORT is the configured or auto-picked web port (ADR 0053), passed by playwright.config.ts.
 const webPort = process.env.WEB_PORT || "4310";
 // Reminders (ADR 0052): a VAPID pair made for this run by playwright.config.ts, the local site as
 // the only domain allowed in signed messages, and a fake push service on 127.0.0.1 (the tests
@@ -69,6 +74,8 @@ const dev = spawn(
     port,
     "--persist-to",
     persist,
+    "--var",
+    `RPC_URL:${rpcUrl}`,
     "--show-interactive-dev-session=false",
     ...pushVars,
   ],

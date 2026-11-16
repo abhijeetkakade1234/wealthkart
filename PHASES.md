@@ -5,17 +5,30 @@ Every task with its tick box is in [docs/STATUS.md](docs/STATUS.md); what each p
 
 Last updated: 2026-11-16
 
-| Phase | What it delivers                                                                   | Status                                                                                |
-| ----- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| 0     | Foundation: monorepo, CI, rules engine matching G1, Core sign-in, design system    | **Done** (owner actions left, see TODO)                                               |
-| 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                              |
-| 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Done**: contracts reviewed and fixed (239 tests), all screens with Playwright tests |
-| 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: bug bounty, external audit and mainnet deploy are owner/external       |
-| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page and reminders done                                          |
-| 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                 |
-| 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                 |
+| Phase | What it delivers                                                                   | Status                                                                                                                        |
+| ----- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Foundation: monorepo, CI, rules engine matching G1, Core sign-in, design system    | **Done** (owner actions left, see TODO)                                                                                       |
+| 1     | MVP on Fuji: circles, monthly AVAX payments, join by vote, dormant members, charts | **Done** (milestone deferred to the end)                                                                                      |
+| 2     | Loans and governance: loan votes, interest, tenors, defaults, exits, rule changes  | **Done**: contracts reviewed and fixed (239 tests), all screens with Playwright tests                                         |
+| 3     | Audit and mainnet beta: full analytics, external audit, G1 live on mainnet         | **Code done**: bug bounty, external audit and mainnet deploy are owner/external                                               |
+| 4     | Growth: landing page, reminders, circle templates, Hindi and Marathi, onboarding   | **Started**: landing page, reminders, templates, onboarding guide, draft legal pages, test USDT faucet, `pnpm dev:local` done |
+| 5     | USDC vaults and a WealthKart L1                                                    | Later                                                                                                                         |
+| 6     | Ecosystem: reputation-based credit lines, optional reserve yield by vote           | Later                                                                                                                         |
 
 **When is it finished?** The full product is done at the end of **Phase 4**: Phase 3 puts it live on mainnet after an external audit, and Phase 4 adds the growth features. Phases 5 and 6 are optional expansion.
+
+## Phase 4 so far
+
+Done:
+
+- Landing page in plain words with a scroll-told month in a circle (ADR 0049)
+- Circle templates: Friends, Family, Office or Custom fill in the create form, every value editable and inside the on-chain limits (ADR 0054)
+- Onboarding guide at `/start` for people new to crypto, linked from sign-in and the landing page, plus a "Before you start" checklist on the home screen (ADR 0054)
+- Reminders on your phone or computer (Web Push): an installment due in 3 days, tomorrow or today, a late fee about to start, loan interest, a vote waiting for you, money ready to collect. Keyed by wallet only, one signature to turn on, switches per circle, times in UTC with your own time added (ADR 0052)
+
+Left:
+
+- Hindi and Marathi
 
 ## Phase 2 (done)
 
@@ -33,17 +46,6 @@ Done:
 
 - Loan screens: ask with live limits, vote, pay interest, repay, guarantor and default flows, loan votes, loans in the activity feed, and two loan charts
 - Safety fixes found while testing everything together: exit claims can't succeed while paying nobody, and every write is sent with gas headroom so nested calls never run out
-
-## Phase 4 so far
-
-Done:
-
-- Landing page with the "one month" scroll scene
-- Reminders on your phone or computer (Web Push): an installment due in 3 days, tomorrow or today, a late fee about to start, loan interest, a vote waiting for you, money ready to collect. Keyed by wallet only, one signature to turn on, switches per circle, times in UTC with your own time added
-
-Left:
-
-- Circle templates, Hindi and Marathi, onboarding guide
 
 ## Phase 3 so far
 
@@ -85,5 +87,5 @@ Phase 0  ##########  done
 Phase 1  ##########  done (milestone deferred)
 Phase 2  ##########  done
 Phase 3  ########--  code done; bug bounty, audit, mainnet deploy left (owner/external)
-Phase 4  ####------  landing page and reminders done
+Phase 4  ########--  landing page, reminders, templates, onboarding, legal drafts done
 ```

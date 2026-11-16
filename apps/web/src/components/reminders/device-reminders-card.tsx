@@ -40,7 +40,13 @@ export function DeviceRemindersCard({
           We send a short note when an installment is due, a late fee is close, loan interest is
           due, a vote needs you, or money is ready to collect. Deadlines are in UTC, with your own
           time added on the device. We keep only your wallet address and this device&apos;s push
-          address; no name, email or phone number.
+          address; no name, email or phone number.{" "}
+          <a
+            href="/privacy/#reminders"
+            className="font-medium text-brand underline-offset-4 hover:underline"
+          >
+            What we keep and why
+          </a>
         </p>
       </div>
 

@@ -9,6 +9,8 @@ import { Suspense } from "react";
 import { PortfolioSummary } from "@/components/analytics/portfolio-summary";
 import { AssetBadge } from "@/components/app/asset-pay";
 import { PageHeader } from "@/components/app/page-header";
+import { TestUsdtFaucet } from "@/components/app/test-usdt-faucet";
+import { FirstRunChecklist } from "@/components/app/first-run-checklist";
 import { Pagination, usePageParam } from "@/components/app/pagination";
 import { CircleCover, EmptyArt } from "@/components/art";
 import { Button, ErrorBoundary, StateView } from "@/components/kit";
@@ -33,21 +35,25 @@ function Portfolio() {
   const page = usePageParam();
   const q = useMyCircles(page);
 
+  const inCircle = q.isPending ? undefined : q.isError || !q.factory ? null : (q.total ?? 0) > 0;
   const header = (
-    <PageHeader
-      title="Your circles"
-      subtitle="Everything you've put in, across every circle you're part of."
-      actions={
-        <Button
-          icon={Plus}
-          onClick={() => router.push("/app/new/")}
-          disabled={!q.factory}
-          disabledReason="WealthKart isn't live on this network yet"
-        >
-          Start a circle
-        </Button>
-      }
-    />
+    <>
+      <PageHeader
+        title="Your circles"
+        subtitle="Everything you've put in, across every circle you're part of."
+        actions={
+          <Button
+            icon={Plus}
+            onClick={() => router.push("/app/new/")}
+            disabled={!q.factory}
+            disabledReason="WealthKart isn't live on this network yet"
+          >
+            Start a circle
+          </Button>
+        }
+      />
+      <FirstRunChecklist inCircle={inCircle} />
+    </>
   );
 
   if (q.isPending) {
@@ -91,6 +97,7 @@ function Portfolio() {
               : "WealthKart isn't live on this network yet. Check back soon."
           }
         />
+        {q.factory && <TestUsdtFaucet className="mx-auto mt-10 max-w-[640px]" />}
       </>
     );
   }

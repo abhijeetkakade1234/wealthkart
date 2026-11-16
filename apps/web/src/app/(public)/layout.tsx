@@ -1,10 +1,14 @@
 import Link from "next/link";
 
 import { JsonLd } from "@/components/public/json-ld";
+import { LEGAL_PAGES } from "@/content/legal";
 import { PUBLIC_PAGES } from "@/content/pages";
 import { organizationLd, websiteLd } from "@/lib/seo/json-ld";
 
 const NAV = PUBLIC_PAGES.map((p) => ({ href: p.path, label: p.eyebrow }));
+
+/** Legal pages (ADR 0055): footer only, in their own row. */
+const LEGAL_NAV = LEGAL_PAGES.map((p) => ({ href: p.path, label: p.eyebrow }));
 
 const linkCls = "text-muted-foreground transition-colors hover:text-foreground";
 
@@ -22,7 +26,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           WealthKart
         </Link>
         <nav aria-label="Site" className="flex items-center gap-8">
-          <ul className="hidden items-center gap-8 text-[14.5px] md:flex">
+          <ul className="hidden items-center gap-8 text-[14.5px] lg:flex">
             {NAV.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className={linkCls}>
@@ -72,6 +76,23 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               </li>
             </ul>
           </nav>
+        </div>
+        {/* Legal row (ADR 0055), kept apart from the main footer links. */}
+        <div className="mx-auto max-w-[1180px] px-4 sm:px-10">
+          <div className="flex flex-col gap-4 border-t border-line-soft py-8 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <nav aria-label="Legal">
+              <ul className="flex flex-wrap gap-x-8 gap-y-3">
+                {LEGAL_NAV.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className={linkCls}>
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <p>Open-source software under the MIT licence. Not a bank or an investment scheme.</p>
+          </div>
         </div>
       </footer>
     </div>

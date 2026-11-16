@@ -88,7 +88,7 @@ How to use this file:
 ### Other
 
 - [ ] Figma: portfolio, create, join, pay, loans, votes, members
-- [ ] Lawyer review booked (pre-mainnet)
+- [ ] Lawyer review booked (pre-mainnet); brief and checklist in `docs/legal/README.md`
 
 ---
 
@@ -145,10 +145,14 @@ How to use this file:
 ## Phase 4: Growth
 
 - [x] Landing page: plain-language sections, cut-paper hero, GSAP scroll scene (ADR 0049)
+- [x] Legal pages (draft): `/privacy`, `/terms`, `/risks` in plain words with a "Draft, pending legal review" note; footer Legal row, sign-in agreement line, sitemap, llms.txt; privacy page tested against what the code stores (ADR 0055, S-LEGAL-01..08, `docs/legal/README.md`)
+- [ ] Lawyer review of privacy, terms and risks (checklist in `docs/legal/README.md`), then remove the draft notes
 - [x] Reminders (Web Push, wallet-keyed, ADR 0052): indexer cron sends installment, late-fee, interest, vote and money-waiting reminders in UTC stages; SIWE to turn on, device token after; Reminders card per circle and a Settings page; unit S-REM-01..44, E2E S-E2E-33..36. VAPID keys are an owner action
-- [ ] Circle templates (friends / family / office)
+- [x] Circle templates (friends / family / office / custom) on the create form (ADR 0054)
 - [ ] Hindi + Marathi
-- [ ] Onboarding guide (install Core, back up phrase, get AVAX)
+- [x] Onboarding guide `/start` (install Core, back up phrase, get AVAX) + first-run checklist (ADR 0054)
+- [x] "Get test USDT" faucet button on test network builds (ADR 0053)
+- [x] Dev tools: `pnpm dev:local` (anvil + contracts + app on a PC) and configurable / free E2E ports (`pnpm e2e:isolated`) (ADR 0053)
 
 ## Phase 5: USDC vaults + WealthKart L1
 

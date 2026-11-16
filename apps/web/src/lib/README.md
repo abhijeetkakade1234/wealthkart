@@ -6,6 +6,7 @@
 **Key files**
 
 - `asset.ts`: the circle's money, AVAX (18 decimals) or USDT (6), from `vault.asset()` (ADR 0046): `useCircleAsset`, `fmt`/`money`/`parseAmount`/`toNumber`, `useTokenBalance`. Every amount goes through it; never assume wei
+- `faucet.ts`: when "Get test USDT" may show (`testUsdtFaucetVisible`: not mainnet, chain 43113, factory USDT with `MINT_CAP`) and how much one tap mints; `use-test-usdt.ts` is the hook (ADR 0053)
 - `use-asset-payment.ts`: pays the circle in its asset: AVAX with `value`; USDT balance check, approve (installments up to installment + both fees, ADR 0048), then pay, re-approving once on `TokenAllowanceTooLow`
 - `circle.ts`: factory and circle read hooks (each circle's `asset` included), `useFactoryUsdt`, per-asset portfolio totals, `parseCircleId`, page sizes, `NEXT_PUBLIC_FACTORY_OVERRIDE` for local chains
 - `analytics.ts`: pure chart and heatmap shaping from circle events (ADR 0034)
@@ -18,7 +19,9 @@
 - `feed.ts`: activity feed sentences for every vault event, including loans
 - `rules.ts`: `Rules.Params` mirror: defaults, plain-words formatting, `ruleDiff`, `rulesProblem` (bounds of `Rules.validate`), form parsing
 - `use-vault-action.ts`: one typed vault write with its tracker state
-- `circle-form.ts`: create-circle form state and validation (mirrors contract bounds): asset AVAX or USDT, member cap 3..50 (default 12, note above 20)
+- `circle-form.ts`: create-circle form state and validation (mirrors contract bounds): asset AVAX or USDT, member cap 3..50 (default 12, note above 20), quorum 20..100, and the loan/vote/notice rules checked by `rulesProblem`
+- `templates.ts`: circle templates (Friends, Family, Office, Custom) as data; apply, asset switch, change count, plain summary (ADR 0054)
+- `first-run.ts`: first-run checklist items and per-wallet localStorage state, try/catch wrapped (ADR 0054)
 - `messages.ts`: plain-language message catalogue, `toFriendlyError`
 - `push.ts`: reminders (ADR 0052): browser support (iPhone needs the Home Screen), the SIWE message, kind bitmask, push API client, this device's record
 - `use-reminders.ts`: reminder state for this device (`loading` ... `on`), turn on/off, per-circle settings, test push

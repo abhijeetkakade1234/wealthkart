@@ -64,9 +64,11 @@ database_name = "wealthkart-indexer-mainnet"
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
-# Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs, which also passes a fresh
-# VAPID key pair, APP_DOMAINS for the local web port and PUSH_EXTRA_ORIGINS for a fake push
-# service on 127.0.0.1 as --var flags. Never copy those settings to Fuji or mainnet.
+# Local E2E against anvil (apps/web/e2e). Started by e2e/indexer.mjs, which passes the real
+# anvil URL with `--var RPC_URL:...` (ports are configurable, ADR 0053); this one is the default.
+# It also passes a fresh VAPID key pair, APP_DOMAINS for the configured web port and
+# PUSH_EXTRA_ORIGINS for a fake push service on 127.0.0.1 (ADR 0052). Never copy those to
+# Fuji or mainnet.
 [env.e2e]
 name = "wealthkart-indexer-e2e"
 [env.e2e.vars]

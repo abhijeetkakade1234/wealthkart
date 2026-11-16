@@ -133,7 +133,14 @@ export function Hero() {
           <SecondaryCta href="#how-it-works">How it works</SecondaryCta>
         </div>
         <p className="land-rise mt-7 text-[13.5px] text-faint" style={{ animationDelay: "420ms" }}>
-          {LANDING_HERO.note}
+          {LANDING_HERO.note}{" "}
+          <Link
+            href="/start/"
+            className="font-medium text-brand underline-offset-4 hover:underline"
+            data-testid="hero-start-link"
+          >
+            {LANDING_HERO.startLink}
+          </Link>
         </p>
       </div>
       <HeroArt className="mx-auto h-auto w-full max-w-[560px]" />
@@ -148,7 +155,8 @@ export function Steps() {
     <section
       aria-labelledby="how-title"
       id="how-it-works"
-      className={cn(WRAP, SECTION, "scroll-mt-8")}
+      data-tone="paper"
+      className={cn(WRAP, SECTION, "land-band scroll-mt-8")}
     >
       <SectionHead id="how-title" eyebrow={LANDING_STEPS.eyebrow} heading={LANDING_STEPS.heading} />
       <ol className="mt-20 grid gap-14 sm:grid-cols-2 md:mt-28 lg:grid-cols-4 lg:gap-10">
@@ -242,7 +250,12 @@ const FEATURE_ART = { save: SaveDiagram, borrow: VoteDiagram, leave: LeaveDiagra
 
 export function Features() {
   return (
-    <section aria-labelledby="features-title" id="what-you-can-do" className={cn(WRAP, SECTION)}>
+    <section
+      aria-labelledby="features-title"
+      id="what-you-can-do"
+      data-tone="cobalt"
+      className={cn(WRAP, SECTION, "land-band")}
+    >
       <SectionHead
         id="features-title"
         eyebrow={LANDING_FEATURES.eyebrow}
@@ -340,7 +353,8 @@ export function Audience() {
     <section
       aria-labelledby="audience-title"
       id="who-its-for"
-      className="border-y border-line-soft bg-card"
+      data-tone="sand"
+      className="land-band"
     >
       <div
         className={cn(
@@ -429,7 +443,8 @@ export function FinalCta() {
     <section
       aria-labelledby="start-title"
       id="start"
-      className={cn(WRAP, "pb-16 pt-16 md:pb-24 md:pt-24")}
+      data-tone="cobalt"
+      className={cn(WRAP, "land-band pb-16 pt-16 md:pb-24 md:pt-24")}
     >
       <div className="flex flex-col items-center text-center" data-reveal>
         <RingDiagram className="size-[104px]" />
@@ -439,6 +454,7 @@ export function FinalCta() {
         <p className={cn(LEAD, "mt-7 max-w-[44ch]")}>{LANDING_CTA.text}</p>
         <div className="mt-11 flex flex-wrap justify-center gap-3">
           <PrimaryCta />
+          <SecondaryCta href="/start/">{LANDING_CTA.startLink}</SecondaryCta>
           <SecondaryCta href="/rules/">Read the rules</SecondaryCta>
         </div>
       </div>

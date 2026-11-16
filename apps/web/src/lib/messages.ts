@@ -106,6 +106,11 @@ export const messages = {
     "The USDT transfer didn't go through. Check your USDT balance and approval, then try again.",
   usdtNotAvailable: () =>
     "USDT circles aren't available on this network yet. Choose AVAX for this circle.",
+  // Test USDT faucet, test network builds only (ADR 0053)
+  testUsdtNote: (amount: string) =>
+    `You're on the test network. Test USDT has no value; it only lets you try USDT circles. Each tap adds ${amount}.`,
+  testUsdtAdded: (amount: string) =>
+    `Added ${amount} test USDT to your wallet. It has no value and only works on the test network.`,
   notAllowedToPropose: () => "Only members who can vote right now can start a proposal.",
   tooManyOpenProposals: () =>
     "There are already 10 open proposals. Wait for some to be decided first.",
@@ -253,6 +258,10 @@ export const messages = {
   pageErrorTitle: () => "This page couldn't load",
   widgetErrorTitle: (name?: string) => (name ? `${name} couldn't load` : "This part couldn't load"),
   widgetErrorBody: () => "The rest of the page still works. Try again in a moment.",
+
+  // First-run checklist on the home screen (ADR 0054)
+  checklistHidden: () => "Checklist hidden. The full guide is still on the Get started page.",
+  checklistCantCheck: () => "Couldn't check this right now.",
 
   // Transaction tracker
   txStepConfirm: () => "Confirm in Core",
