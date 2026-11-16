@@ -1,19 +1,38 @@
 import { circleFactoryAbi, circleVaultAbi } from "@wealthkart/sdk";
-import { createPublicClient, decodeEventLog, http, type Address } from "viem";
+import {
+  createPublicClient,
+  decodeEventLog,
+  erc20Abi,
+  http,
+  parseAbi,
+  zeroAddress,
+  type Address,
+} from "viem";
 
 import { encode } from "./codec";
 import type { ChainReader } from "./indexer";
 import type { MonitorReader } from "./monitor";
 import type { StoredLog } from "./store";
 
-/** viem-backed solvency reads for monitoring (ADR 0041). */
+/** `asset()` (ADR 0046): zero for AVAX circles, else the token. Inline so old ABIs still build. */
+const assetAbi = parseAbi(["function asset() view returns (address)"]);
+
+/** viem-backed solvency reads for monitoring (ADR 0041). USDT circles use the token balance. */
 export function viemMonitor(rpcUrl: string): MonitorReader {
   const client = createPublicClient({ transport: http(rpcUrl) });
   return {
     async solvency(circle) {
       const address = circle as Address;
+      const asset = await client.readContract({ address, abi: assetAbi, functionName: "asset" });
       const [balance, totalAssets, loansOutstanding] = await Promise.all([
-        client.getBalance({ address }),
+        asset === zeroAddress
+          ? client.getBalance({ address })
+          : client.readContract({
+              address: asset,
+              abi: erc20Abi,
+              functionName: "balanceOf",
+              args: [address],
+            }),
         client.readContract({ address, abi: circleVaultAbi, functionName: "totalAssets" }),
         client.readContract({ address, abi: circleVaultAbi, functionName: "loansOutstanding" }),
       ]);
