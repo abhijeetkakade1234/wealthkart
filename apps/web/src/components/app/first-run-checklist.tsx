@@ -174,7 +174,7 @@ function ChecklistRow({ item, onToggle }: { item: ChecklistItem; onToggle?: () =
         {!done && (
           <Link
             href={item.href}
-            className="group inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13.5px] text-brand transition-colors hover:bg-brand-soft"
+            className="group inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13.5px] text-brand transition-colors hover:bg-brand-soft"
             aria-label={`How to: ${item.title}`}
           >
             Show me how
